@@ -1,0 +1,55 @@
+import { clsx, type ClassValue } from "clsx"
+import { twMerge } from "tailwind-merge"
+
+export function cn(...inputs: ClassValue[]) {
+  return twMerge(clsx(inputs))
+}
+
+export function formatDateTime(date: string | Date): string {
+  return new Intl.DateTimeFormat("fr-FR", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(new Date(date))
+}
+
+export function formatDate(date: string | Date): string {
+  return new Intl.DateTimeFormat("fr-FR", {
+    day: "2-digit",
+    month: "long",
+    year: "numeric",
+  }).format(new Date(date))
+}
+
+export function formatHeure(date: string): string {
+  return new Intl.DateTimeFormat("fr-FR", {
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(new Date(date))
+}
+
+export function exporterVersCSV(rows: Record<string, unknown>[]): string {
+  if (rows.length === 0) return ""
+  const headers = Object.keys(rows[0])
+  const lines = rows.map((row) =>
+    headers.map((h) => {
+      const val = row[h]
+      if (val === null || val === undefined) return ""
+      const str = String(val)
+      return str.includes(",") || str.includes('"') ? `"${str.replace(/"/g, '""')}"` : str
+    }).join(","),
+  )
+  return [headers.join(","), ...lines].join("\n")
+}
+
+export function telechargerCSV(filename: string, csv: string) {
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement("a")
+  a.href = url
+  a.download = filename
+  a.click()
+  URL.revokeObjectURL(url)
+}

@@ -1,11 +1,21 @@
 "use client"
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+} from "recharts"
 
 type PresenceChartProps = {
   data: Array<{ label: string; presents: number; absents: number }>
   period: "semaine" | "mois"
 }
 
-function PresenceChart({ data, period }: PresenceChartProps) {
+function PresenceChart({ data }: PresenceChartProps) {
   if (data.length === 0) {
     return (
       <div className="flex h-40 items-center justify-center rounded-2xl border border-border text-sm text-muted-foreground">
@@ -14,40 +24,26 @@ function PresenceChart({ data, period }: PresenceChartProps) {
     )
   }
 
-  const max = Math.max(...data.map((d) => d.presents + d.absents), 1)
-
   return (
     <div className="rounded-2xl border border-border bg-card p-5">
-      <div className="flex items-end gap-2" style={{ height: 160 }}>
-        {data.map((item, i) => {
-          const total = item.presents + item.absents
-          const presentHeight = (item.presents / max) * 140
-          const absentHeight = (item.absents / max) * 140
-          return (
-            <div key={i} className="flex flex-1 flex-col items-center gap-1">
-              <div className="flex w-full flex-col-reverse" style={{ height: 140 }}>
-                <div
-                  className="w-full rounded-t bg-emerald-400 transition-all"
-                  style={{ height: `${presentHeight}px` }}
-                />
-                <div
-                  className="w-full rounded-t bg-rose-400 transition-all"
-                  style={{ height: `${absentHeight}px` }}
-                />
-              </div>
-              <span className="text-xs text-muted-foreground">{item.label}</span>
-            </div>
-          )
-        })}
-      </div>
-      <div className="mt-4 flex items-center justify-center gap-4 text-xs text-muted-foreground">
-        <span className="flex items-center gap-1">
-          <span className="size-3 rounded bg-emerald-400" /> Présents
-        </span>
-        <span className="flex items-center gap-1">
-          <span className="size-3 rounded bg-rose-400" /> Absents
-        </span>
-      </div>
+      <ResponsiveContainer width="100%" height={240}>
+        <BarChart data={data} barGap={4}>
+          <CartesianGrid strokeDasharray="3 3" stroke="#e4e4e7" />
+          <XAxis dataKey="label" tick={{ fontSize: 12, fill: "#71717a" }} axisLine={false} tickLine={false} />
+          <YAxis tick={{ fontSize: 12, fill: "#71717a" }} axisLine={false} tickLine={false} />
+          <Tooltip
+            contentStyle={{
+              borderRadius: "12px",
+              border: "1px solid #e4e4e7",
+              background: "#ffffff",
+              fontSize: "13px",
+            }}
+          />
+          <Legend wrapperStyle={{ fontSize: "12px", paddingTop: "8px" }} />
+          <Bar dataKey="presents" name="Présents" fill="#4ade80" radius={[6, 6, 0, 0]} />
+          <Bar dataKey="absents" name="Absents" fill="#fb7185" radius={[6, 6, 0, 0]} />
+        </BarChart>
+      </ResponsiveContainer>
     </div>
   )
 }

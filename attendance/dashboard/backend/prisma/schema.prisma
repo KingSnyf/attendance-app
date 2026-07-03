@@ -1,0 +1,108 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String   @id @default(uuid())
+  email         String   @unique
+  firstName     String?
+  lastName      String?
+  passwordHash  String
+  codePinHash   String?
+  methodeAuth   String   @default("pin")
+  role          String   @default("employe")
+  statutActuel  String?  @default("absent")
+  departement   String?
+  photoUrl      String?
+  actif         Boolean  @default(true)
+  tentativesPin        Int       @default(0)
+  blocagePinJusqua     DateTime?
+  dateCreation         DateTime @default(now())
+  devices              Device[]
+  sessions      SessionPresence[]
+  logActions    LogAction[]
+  anomalies     Anomaly[]
+}
+
+model Device {
+  id               String @id @default(uuid())
+  user             User?  @relation(fields: [userId], references: [id])
+  userId           String?
+  identifiantAppareil String
+  modele           String?
+  dateAssociation  DateTime
+  actif            Boolean
+}
+
+model SessionPresence {
+  id               String   @id @default(uuid())
+  user             User     @relation(fields: [userId], references: [id])
+  userId           String
+  date             DateTime
+  heureArrivee     DateTime
+  heureDepart      DateTime?
+  typeArrivee      String
+  methodeValidation String
+  appareilId       String?
+  retardMinutes    Int?
+  valide           Boolean @default(true)
+  latitude         Float?
+  longitude        Float?
+  modifications    RequestModification[]
+}
+
+model Anomaly {
+  id            String   @id @default(uuid())
+  userId        String?
+  type          String
+  description   String?
+  dateDetection DateTime
+  traitee       Boolean  @default(false)
+  commentaire   String?
+  geolocVerifiee Boolean?
+  user          User?    @relation(fields: [userId], references: [id])
+}
+
+model RequestModification {
+  id                 String           @id @default(uuid())
+  gestionnaireId     String
+  sessionPresenceId  String
+  modificationProposee String
+  raison             String
+  statut             String
+  adminId            String?
+  dateDemande        DateTime
+  dateTraitement     DateTime?
+  session            SessionPresence  @relation(fields: [sessionPresenceId], references: [id])
+}
+
+model LogAction {
+  id       String   @id @default(uuid())
+  auteurId String
+  action   String
+  cibleId  String
+  details  String?
+  date     DateTime
+  auteur   User?    @relation(fields: [auteurId], references: [id])
+}
+
+model Setting {
+  id                        String @id @default(uuid())
+  reseauBssid               String?
+  plageIpLocale             String?
+  toleranceRetardMinutes    Int?
+  dureePauseMaxMinutes      Int?
+  joursFeries               String? // JSON
+  joursOuvres               String? // JSON
+  politiqueConfidentialite  String?
+  geolocalisationSecoursActive Boolean @default(false)
+  geofencingActif           Boolean @default(false)
+  rayonGeofencingMetres     Int?    @default(120)
+  latitudeBureau            Float?
+  longitudeBureau           Float?
+}

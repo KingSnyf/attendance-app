@@ -38,7 +38,7 @@ function EmployeeFilters({
       >
         <option value="all">Tous les statuts</option>
         <option value="present">Présent</option>
-        <option value="pause">En pause</option>
+        <option value="en_attente">En pause</option>
         <option value="absent">Absent</option>
       </select>
       <select

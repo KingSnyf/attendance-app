@@ -12,18 +12,18 @@ function GeofencingAlert({ anomalies_geofencing, users, onVerify }: GeofencingAl
   if (anomalies_geofencing.length === 0) return null
 
   return (
-    <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
+    <div className="rounded-2xl border border-warning bg-warning p-4">
       <div className="flex items-start gap-3">
-        <AlertTriangle className="mt-0.5 size-5 shrink-0 text-amber-600" />
+        <AlertTriangle className="mt-0.5 size-5 shrink-0 text-warning-foreground" />
         <div className="flex-1">
-          <p className="font-medium text-amber-800">
+          <p className="font-medium text-warning-foreground">
             {anomalies_geofencing.length} alerte(s) géofencing
           </p>
           <ul className="mt-2 space-y-1">
             {anomalies_geofencing.slice(0, 5).map((alert, i) => {
               const user = users.find((u) => u.id === alert.user_id)
               return (
-                <li key={i} className="text-sm text-amber-700">
+                <li key={i} className="text-sm text-warning-foreground/80">
                   {user ? `${user.prenom} ${user.nom}` : alert.user_id}
                   {alert.description ? ` — ${alert.description}` : ""}
                 </li>

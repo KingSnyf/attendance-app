@@ -19,7 +19,7 @@ import { api } from "@/lib/api";
 import { getNomComplet } from "@/lib/data";
 import type { EmployeDetail, ParametresSysteme, PresenceJour } from "@/lib/types";
 import { formatDate, formatDateTime, formatHeure } from "@/lib/utils";
-import { anomalieTypeLabel } from "@/lib/labels";
+import { anomalieTypeLabel, statutBadgeVariant, statutLabel } from "@/lib/labels";
 
 const GeofenceMap = dynamic(
   () => import("@/components/dashboard/geofence-map").then((module) => module.GeofenceMap),
@@ -82,18 +82,8 @@ export default function EmployeDetailPage() {
             <p className="text-sm text-muted-foreground">{user.email}</p>
             <div className="mt-3 flex flex-wrap gap-2">
               <Badge variant="brand">{user.role}</Badge>
-              <Badge
-                variant={
-                  user.statut_actuel === "present"
-                    ? "success"
-                    : user.statut_actuel === "pause"
-                      ? "warning"
-                      : user.statut_actuel === "absent"
-                        ? "danger"
-                        : "info"
-                }
-              >
-                {user.statut_actuel}
+              <Badge variant={statutBadgeVariant(user.statut_actuel)}>
+                {statutLabel[user.statut_actuel] ?? user.statut_actuel}
               </Badge>
             </div>
           </div>

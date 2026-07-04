@@ -16,11 +16,12 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/spinner";
 import { useDashboardData } from "@/hooks/useDashboardData";
-import { exporterVersCSV, telechargerCSV } from "@/lib/utils";
+import { exporterVersCSV, formatDuree, formatHeure, telechargerCSV } from "@/lib/utils";
+import { api } from "@/lib/api";
 
 export default function VueEnsemblePage() {
   const router = useRouter();
-  const { data, isLoading, error } = useDashboardData();
+  const { data, isLoading, error, refetch } = useDashboardData();
   const [searchQuery, setSearchQuery] = useState("");
   const [filterDepartement, setFilterDepartement] = useState("all");
   const [filterStatut, setFilterStatut] = useState("all");
@@ -40,8 +41,8 @@ export default function VueEnsemblePage() {
     return (data?.employees ?? [])
       .map((employee) => ({
         ...employee,
-        premiere_arrivee: null as string | null,
-        temps_cumule: null as string | null,
+        premiere_arrivee: employee.premiere_arrivee ? formatHeure(employee.premiere_arrivee) : null,
+        temps_cumule: formatDuree(employee.temps_cumule_minutes),
         geofencing_alert: data?.geofencingAlerts.some(
           (alert) => alert.user_id === employee.id,
         ),
@@ -101,7 +102,15 @@ export default function VueEnsemblePage() {
       <GeofencingAlert
         anomalies_geofencing={data.geofencingAlerts}
         users={data.employees}
-        onVerify={() => toast.success("Alerte marquée comme vérifiée pour la démo.")}
+        onVerify={async () => {
+          await Promise.all(
+            data.geofencingAlerts.map((alert) =>
+              api.resolveAnomaly(alert.id, "Vérifiée depuis le tableau de bord", true),
+            ),
+          );
+          toast.success("Alerte(s) géofencing marquée(s) comme vérifiée(s).");
+          refetch();
+        }}
       />
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
@@ -183,7 +192,7 @@ export default function VueEnsemblePage() {
             >
               <option value="all">Tous</option>
               <option value="present">Présent</option>
-              <option value="pause">En pause</option>
+              <option value="en_attente">En pause</option>
               <option value="absent">Absent</option>
             </select>
             <select

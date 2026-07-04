@@ -1,6 +1,7 @@
 "use client"
 import { Badge } from "@/components/dashboard/status-badge"
 import { Button } from "@/components/ui/button"
+import { statutBadgeVariant, statutLabel } from "@/lib/labels"
 
 type EmployeeRow = {
   id: string
@@ -17,13 +18,6 @@ type EmployeeRow = {
 type EmployeesPresenceProps = {
   employees: EmployeeRow[]
   onViewEmployee: (id: string) => void
-}
-
-function badgeVariant(statut: string) {
-  if (statut === "present") return "success"
-  if (statut === "pause") return "warning"
-  if (statut === "absent") return "danger"
-  return "info"
 }
 
 function EmployeesPresence({ employees, onViewEmployee }: EmployeesPresenceProps) {
@@ -51,8 +45,8 @@ function EmployeesPresence({ employees, onViewEmployee }: EmployeesPresenceProps
               </td>
               <td className="py-3 pr-4 text-muted-foreground">{employee.departement}</td>
               <td className="py-3 pr-4">
-                <Badge variant={badgeVariant(employee.statut_actuel)}>
-                  {employee.statut_actuel}
+                <Badge variant={statutBadgeVariant(employee.statut_actuel)}>
+                  {statutLabel[employee.statut_actuel] ?? employee.statut_actuel}
                 </Badge>
               </td>
               <td className="py-3 pr-4 text-muted-foreground">{employee.premiere_arrivee ?? "—"}</td>

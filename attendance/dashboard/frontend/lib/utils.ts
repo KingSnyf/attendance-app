@@ -30,6 +30,13 @@ export function formatHeure(date: string): string {
   }).format(new Date(date))
 }
 
+export function formatDuree(minutes: number | null | undefined): string {
+  if (minutes === null || minutes === undefined) return "—"
+  const heures = Math.floor(minutes / 60)
+  const reste = minutes % 60
+  return `${heures}h${String(reste).padStart(2, "0")}`
+}
+
 export function exporterVersCSV(rows: Record<string, unknown>[]): string {
   if (rows.length === 0) return ""
   const headers = Object.keys(rows[0])

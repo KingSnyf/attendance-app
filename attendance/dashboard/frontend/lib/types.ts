@@ -9,6 +9,9 @@ export type Utilisateur = {
   departement: string
   statut_actuel: string
   photo_url?: string | null
+  // Uniquement présents sur les employés renvoyés par /sessions/stats
+  premiere_arrivee?: string | null
+  temps_cumule_minutes?: number | null
   appareil?: {
     modele: string
     identifiant_appareil: string

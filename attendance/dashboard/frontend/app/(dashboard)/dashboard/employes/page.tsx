@@ -18,7 +18,7 @@ import { Spinner } from "@/components/ui/spinner";
 import { Table, TableHeadCell, TableWrapper } from "@/components/ui/table";
 import { api } from "@/lib/api";
 import { departementsDisponibles, getNomComplet } from "@/lib/data";
-import { roleLabel } from "@/lib/labels";
+import { roleLabel, statutBadgeVariant, statutLabel } from "@/lib/labels";
 import type { Utilisateur } from "@/lib/types";
 
 export default function EmployesPage() {
@@ -144,18 +144,8 @@ export default function EmployesPage() {
                     <Badge variant="brand">{roleLabel[employee.role]}</Badge>
                   </td>
                   <td className="px-4 py-4">
-                    <Badge
-                      variant={
-                        employee.statut_actuel === "present"
-                          ? "success"
-                          : employee.statut_actuel === "pause"
-                            ? "warning"
-                            : employee.statut_actuel === "absent"
-                              ? "danger"
-                              : "info"
-                      }
-                    >
-                      {employee.statut_actuel}
+                    <Badge variant={statutBadgeVariant(employee.statut_actuel)}>
+                      {statutLabel[employee.statut_actuel] ?? employee.statut_actuel}
                     </Badge>
                   </td>
                   <td className="px-4 py-4">

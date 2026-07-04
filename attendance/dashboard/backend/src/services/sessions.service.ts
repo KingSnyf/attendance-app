@@ -405,6 +405,32 @@ export class SessionsService {
       });
     }
 
+    // Présence du jour par utilisateur (première arrivée + temps cumulé)
+    // -> alimente les colonnes "Arrivée" et "Temps cumulé" du dashboard
+    const jourDebut = new Date();
+    jourDebut.setHours(0, 0, 0, 0);
+    const jourFin = new Date(jourDebut);
+    jourFin.setDate(jourFin.getDate() + 1);
+
+    const sessionsDuJour = await this.prisma.sessionPresence.findMany({
+      where: { date: { gte: jourDebut, lt: jourFin } },
+      orderBy: { heureArrivee: 'asc' },
+    });
+
+    const maintenant = new Date();
+    const presenceParUtilisateur = new Map<string, { premiereArrivee: Date; minutes: number }>();
+    for (const s of sessionsDuJour) {
+      const fin = s.heureDepart ?? maintenant;
+      const minutes = Math.max(0, Math.round((fin.getTime() - s.heureArrivee.getTime()) / 60000));
+      const existant = presenceParUtilisateur.get(s.userId);
+      if (existant) {
+        existant.minutes += minutes;
+        if (s.heureArrivee < existant.premiereArrivee) existant.premiereArrivee = s.heureArrivee;
+      } else {
+        presenceParUtilisateur.set(s.userId, { premiereArrivee: s.heureArrivee, minutes });
+      }
+    }
+
     return {
       stats: {
         presents,
@@ -421,25 +447,30 @@ export class SessionsService {
         traitee: a.traitee,
         geoloc_verifiee: a.geolocVerifiee,
       })),
-      employees: employees.map((u) => ({
-        id: u.id,
-        nom: u.lastName || '',
-        prenom: u.firstName || '',
-        email: u.email,
-        role: u.role,
-        statut_actuel: u.statutActuel || 'absent',
-        departement: u.departement || '',
-        actif: u.actif,
-        photo_url: u.photoUrl || null,
-        appareil: u.devices?.[0]
-          ? {
-              id: u.devices[0].id,
-              identifiant_appareil: u.devices[0].identifiantAppareil,
-              modele: u.devices[0].modele,
-              actif: u.devices[0].actif,
-            }
-          : null,
-      })),
+      employees: employees.map((u) => {
+        const presenceJour = presenceParUtilisateur.get(u.id);
+        return {
+          id: u.id,
+          nom: u.lastName || '',
+          prenom: u.firstName || '',
+          email: u.email,
+          role: u.role,
+          statut_actuel: u.statutActuel || 'absent',
+          departement: u.departement || '',
+          actif: u.actif,
+          photo_url: u.photoUrl || null,
+          premiere_arrivee: presenceJour ? presenceJour.premiereArrivee.toISOString() : null,
+          temps_cumule_minutes: presenceJour ? presenceJour.minutes : null,
+          appareil: u.devices?.[0]
+            ? {
+                id: u.devices[0].id,
+                identifiant_appareil: u.devices[0].identifiantAppareil,
+                modele: u.devices[0].modele,
+                actif: u.devices[0].actif,
+              }
+            : null,
+        };
+      }),
       weeklyPresence,
       monthlyPresence,
     };

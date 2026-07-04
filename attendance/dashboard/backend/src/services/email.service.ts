@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import * as nodemailer from 'nodemailer';
 
 interface EmailOptions {
   to: string;
@@ -9,32 +10,38 @@ interface EmailOptions {
 @Injectable()
 export class EmailService {
   private readonly logger = new Logger(EmailService.name);
+  private transporter: nodemailer.Transporter | null = null;
+
+  private getTransporter() {
+    if (this.transporter) return this.transporter;
+    this.transporter = nodemailer.createTransport({
+      host: process.env.SMTP_HOST || 'smtp.example.com',
+      port: parseInt(process.env.SMTP_PORT || '587'),
+      secure: process.env.SMTP_SECURE === 'true',
+      auth: {
+        user: process.env.SMTP_USER || '',
+        pass: process.env.SMTP_PASS || '',
+      },
+    });
+    return this.transporter;
+  }
 
   async send(options: EmailOptions): Promise<boolean> {
-    this.logger.log(`[EMAIL SIMULÉ] À: ${options.to} | Sujet: ${options.subject}`);
-    this.logger.log(`[EMAIL SIMULÉ] Corps: ${options.text.slice(0, 200)}...`);
-
-    // L'envoi réel nécessite un transport SMTP configuré (nodemailer)
-    // Décommenter et configurer quand le serveur SMTP est disponible:
-
-    // const nodemailer = require('nodemailer');
-    // const transporter = nodemailer.createTransport({
-    //   host: process.env.SMTP_HOST || 'smtp.example.com',
-    //   port: parseInt(process.env.SMTP_PORT || '587'),
-    //   secure: process.env.SMTP_SECURE === 'true',
-    //   auth: {
-    //     user: process.env.SMTP_USER,
-    //     pass: process.env.SMTP_PASS,
-    //   },
-    // });
-    // await transporter.sendMail({
-    //   from: '"Attendance" <noreply@attendance.company.com>',
-    //   to: options.to,
-    //   subject: options.subject,
-    //   text: options.text,
-    // });
-
-    return true;
+    try {
+      const transporter = this.getTransporter();
+      await transporter.sendMail({
+        from: process.env.SMTP_FROM || '"Attendance" <noreply@attendance.company.com>',
+        to: options.to,
+        subject: options.subject,
+        text: options.text,
+      });
+      this.logger.log(`Email envoyé à ${options.to} — ${options.subject}`);
+      return true;
+    } catch (err) {
+      this.logger.warn(`Échec envoi email à ${options.to}: ${(err as Error).message}`);
+      this.logger.log(`[FALLBACK] Email simulé — À: ${options.to} | Sujet: ${options.subject}`);
+      return false;
+    }
   }
 
   async sendWelcomeEmail(email: string, prenom: string, password: string): Promise<boolean> {

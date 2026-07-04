@@ -30,7 +30,7 @@ export default function LogsPage() {
     api.getLogs().then((result) => {
       setLogs(result as JournalActivite[]);
       setLoading(false);
-    });
+    }).catch(() => setLoading(false));
   }, []);
 
   const filtered = useMemo(

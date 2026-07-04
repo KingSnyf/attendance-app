@@ -84,6 +84,12 @@ export class SessionsController {
     return { traites: results.length, details: results };
   }
 
+  @Get('today')
+  @Roles('gestionnaire', 'admin')
+  async getToday() {
+    return this.sessions.getTodaySessions();
+  }
+
   @Get(':userId')
   async list(@Param('userId') userId: string, @User() user: any) {
     // Employé ne peut voir que ses propres sessions

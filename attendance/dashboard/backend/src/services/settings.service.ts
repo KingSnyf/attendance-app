@@ -34,29 +34,17 @@ export class SettingsService {
 
     const data: any = {};
     if (payload.reseau_bssid !== undefined) data.reseauBssid = payload.reseau_bssid;
-    if (payload.reseauBssid !== undefined) data.reseauBssid = payload.reseauBssid;
     if (payload.plage_ip_locale !== undefined) data.plageIpLocale = payload.plage_ip_locale;
-    if (payload.plageIpLocale !== undefined) data.plageIpLocale = payload.plageIpLocale;
     if (payload.tolerance_retard_minutes !== undefined) data.toleranceRetardMinutes = payload.tolerance_retard_minutes;
-    if (payload.toleranceRetardMinutes !== undefined) data.toleranceRetardMinutes = payload.toleranceRetardMinutes;
     if (payload.duree_pause_max_minutes !== undefined) data.dureePauseMaxMinutes = payload.duree_pause_max_minutes;
-    if (payload.dureePauseMaxMinutes !== undefined) data.dureePauseMaxMinutes = payload.dureePauseMaxMinutes;
     if (payload.jours_feries !== undefined) data.joursFeries = JSON.stringify(payload.jours_feries);
-    if (payload.joursFeries !== undefined) data.joursFeries = JSON.stringify(payload.joursFeries);
     if (payload.jours_ouvres !== undefined) data.joursOuvres = JSON.stringify(payload.jours_ouvres);
-    if (payload.joursOuvres !== undefined) data.joursOuvres = JSON.stringify(payload.joursOuvres);
     if (payload.geofencing_actif !== undefined) data.geofencingActif = payload.geofencing_actif;
-    if (payload.geofencingActif !== undefined) data.geofencingActif = payload.geofencingActif;
     if (payload.rayon_geofencing_metres !== undefined) data.rayonGeofencingMetres = payload.rayon_geofencing_metres;
-    if (payload.rayonGeofencingMetres !== undefined) data.rayonGeofencingMetres = payload.rayonGeofencingMetres;
     if (payload.coordonnees_bureau?.lat !== undefined) data.latitudeBureau = payload.coordonnees_bureau.lat;
     if (payload.coordonnees_bureau?.lng !== undefined) data.longitudeBureau = payload.coordonnees_bureau.lng;
-    if (payload.latitudeBureau !== undefined) data.latitudeBureau = payload.latitudeBureau;
-    if (payload.longitudeBureau !== undefined) data.longitudeBureau = payload.longitudeBureau;
     if (payload.politique_confidentialite !== undefined) data.politiqueConfidentialite = payload.politique_confidentialite;
-    if (payload.politiqueConfidentialite !== undefined) data.politiqueConfidentialite = payload.politiqueConfidentialite;
     if (payload.geolocalisation_secours_active !== undefined) data.geolocalisationSecoursActive = payload.geolocalisation_secours_active;
-    if (payload.geolocalisationSecoursActive !== undefined) data.geolocalisationSecoursActive = payload.geolocalisationSecoursActive;
 
     const updated = await this.prisma.setting.update({
       where: { id: settings.id },

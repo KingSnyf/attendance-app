@@ -82,6 +82,7 @@ function AuthProvider({ children }: { children: ReactNode }) {
   const logout = useCallback(() => {
     authService.logout()
     setUser(null)
+    window.location.replace("/auth")
   }, [])
 
   const refreshUser = useCallback(async () => {

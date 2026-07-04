@@ -279,6 +279,22 @@ export class SessionsService {
     }));
   }
 
+  async getTodaySessions() {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const sessions = await this.prisma.sessionPresence.findMany({
+      where: { date: { gte: today, lt: tomorrow } },
+      orderBy: { date: 'desc' },
+      include: { user: { select: { id: true, firstName: true, lastName: true, email: true, role: true, departement: true } } },
+    });
+    return sessions.map((s) => ({
+      ...this.formatSession(s),
+      user: s.user,
+    }));
+  }
+
   async getStats(dateFrom?: string, dateTo?: string) {
     const where: any = {};
     if (dateFrom || dateTo) {

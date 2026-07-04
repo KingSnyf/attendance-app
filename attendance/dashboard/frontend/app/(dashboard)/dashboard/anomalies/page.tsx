@@ -35,7 +35,7 @@ export default function AnomaliesPage() {
     api.getAnomalies().then((result) => {
       setAnomalies(result);
       setIsLoading(false);
-    });
+    }).catch(() => setIsLoading(false));
   }, []);
 
   const filtered = useMemo(

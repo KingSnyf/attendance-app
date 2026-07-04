@@ -58,6 +58,7 @@ function SectionCard({
 export default function ParametresPage() {
   const { user, refreshUser } = useAuth();
   const [settings, setSettings] = useState<ParametresSysteme | null>(null);
+  const [settingsLoaded, setSettingsLoaded] = useState(false);
   const [saving, setSaving] = useState(false);
   const [profile, setProfile] = useState({
     nom: "",
@@ -68,7 +69,7 @@ export default function ParametresPage() {
   const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    api.getSettings().then(setSettings);
+    api.getSettings().then((s) => { setSettings(s); setSettingsLoaded(true); }).catch(() => setSettingsLoaded(true));
     if (user)
       setProfile({
         nom: user.nom || "",
@@ -87,22 +88,34 @@ export default function ParametresPage() {
     reader.readAsDataURL(file);
   };
 
-  if (user?.role !== "admin") {
+  if (user?.role !== "admin" && user?.role !== "gestionnaire") {
     return (
       <Card>
         <p className="p-6 text-center text-muted-foreground">
-          Accès réservé aux administrateurs.
+          Accès réservé aux administrateurs et gestionnaires.
         </p>
       </Card>
     );
   }
 
-  if (!settings) {
+  const isReadOnly = user?.role === "gestionnaire"
+
+  if (!settingsLoaded) {
     return (
       <div className="flex min-h-[30vh] items-center justify-center gap-3 text-muted-foreground">
         <Spinner />
         <span>Chargement des paramètres système…</span>
       </div>
+    );
+  }
+
+  if (!settings) {
+    return (
+      <Card>
+        <p className="p-6 text-center text-muted-foreground">
+          Impossible de charger les paramètres. Vérifie que le backend est lancé.
+        </p>
+      </Card>
     );
   }
 
@@ -206,6 +219,7 @@ export default function ParametresPage() {
             <Input
               value={settings.reseau_bssid}
               onChange={(e) => update("reseau_bssid", e.target.value)}
+              disabled={isReadOnly}
               placeholder="00:11:22:33:44:55"
             />
           </div>
@@ -216,6 +230,7 @@ export default function ParametresPage() {
             <Input
               value={settings.plage_ip_locale}
               onChange={(e) => update("plage_ip_locale", e.target.value)}
+              disabled={isReadOnly}
               placeholder="192.168.1.0/24"
             />
           </div>
@@ -226,13 +241,14 @@ export default function ParametresPage() {
       <SectionCard icon={MapPinned} title="Géofencing">
         <div className="grid gap-6 lg:grid-cols-2">
           <div className="space-y-4">
-            <label className="flex items-center gap-3 text-sm text-foreground">
+              <label className="flex items-center gap-3 text-sm text-foreground">
               <input
                 type="checkbox"
                 checked={settings.geofencing_actif}
                 onChange={(e) =>
                   update("geofencing_actif", e.target.checked)
                 }
+                disabled={isReadOnly}
                 className="size-4 accent-brand"
               />
               <span className="font-medium">Activer le géofencing</span>
@@ -247,6 +263,7 @@ export default function ParametresPage() {
                 onChange={(e) =>
                   update("rayon_geofencing_metres", Number(e.target.value))
                 }
+                disabled={isReadOnly}
               />
             </div>
             <div className="grid gap-4 sm:grid-cols-2">
@@ -270,6 +287,7 @@ export default function ParametresPage() {
                         },
                     )
                   }
+                  disabled={isReadOnly}
                 />
               </div>
               <div className="space-y-2">
@@ -292,6 +310,7 @@ export default function ParametresPage() {
                         },
                     )
                   }
+                  disabled={isReadOnly}
                 />
               </div>
             </div>
@@ -316,6 +335,7 @@ export default function ParametresPage() {
               onChange={(e) =>
                 update("tolerance_retard_minutes", Number(e.target.value))
               }
+              disabled={isReadOnly}
             />
           </div>
           <div className="space-y-2">
@@ -328,6 +348,7 @@ export default function ParametresPage() {
               onChange={(e) =>
                 update("duree_pause_max_minutes", Number(e.target.value))
               }
+              disabled={isReadOnly}
             />
           </div>
         </div>
@@ -351,7 +372,8 @@ export default function ParametresPage() {
                     .filter(Boolean),
                 )
               }
-              className="min-h-36 w-full resize-none rounded-xl border border-border bg-card p-3 text-sm outline-none transition focus:border-brand focus:ring-1 focus:ring-brand/20"
+              disabled={isReadOnly}
+              className="min-h-36 w-full resize-none rounded-xl border border-border bg-card p-3 text-sm outline-none transition focus:border-brand focus:ring-1 focus:ring-brand/20 disabled:cursor-not-allowed disabled:opacity-60"
               placeholder="2026-01-01"
             />
           </div>
@@ -368,6 +390,7 @@ export default function ParametresPage() {
                   <input
                     type="checkbox"
                     checked={settings.jours_ouvres.includes(jour)}
+                    disabled={isReadOnly}
                     onChange={(e) => {
                       const checked = e.target.checked;
                       setSettings(
@@ -391,25 +414,27 @@ export default function ParametresPage() {
       </SectionCard>
 
       {/* === SAUVEGARDE GLOBALE === */}
-      <div className="flex items-center justify-between rounded-2xl border border-border bg-card p-4">
-        <div>
-          <p className="text-sm font-medium text-foreground">
-            Paramètres système
-          </p>
-          <p className="text-xs text-muted-foreground">
-            La sauvegarde concerne le réseau, le géofencing, les règles et le
-            calendrier.
-          </p>
+      {!isReadOnly && (
+        <div className="flex items-center justify-between rounded-2xl border border-border bg-card p-4">
+          <div>
+            <p className="text-sm font-medium text-foreground">
+              Paramètres système
+            </p>
+            <p className="text-xs text-muted-foreground">
+              La sauvegarde concerne le réseau, le géofencing, les règles et le
+              calendrier.
+            </p>
+          </div>
+          <Button onClick={saveSettings} disabled={saving}>
+            {saving ? (
+              <Spinner />
+            ) : (
+              <Save className="size-4" />
+            )}
+            {saving ? "Sauvegarde…" : "Sauvegarder"}
+          </Button>
         </div>
-        <Button onClick={saveSettings} disabled={saving}>
-          {saving ? (
-            <Spinner />
-          ) : (
-            <Save className="size-4" />
-          )}
-          {saving ? "Sauvegarde…" : "Sauvegarder"}
-        </Button>
-      </div>
+      )}
     </div>
   );
 }

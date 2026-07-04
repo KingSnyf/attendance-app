@@ -1,5 +1,5 @@
 "use client"
-import { useEffect, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { Sidebar } from "@/components/layout/Sidebar"
 import { Header } from "@/components/layout/Header"
@@ -12,14 +12,21 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
   const router = useRouter()
   const [authorized, setAuthorized] = useState(false)
 
-  useEffect(() => {
+  const checkAuth = useCallback(() => {
     const user = authService.getUser()
     if (!user || !ROLES_AUTHORISES.includes(user.role)) {
       authService.logout()
-      router.push("/auth")
+      router.replace("/auth")
     } else {
       setAuthorized(true)
     }
+  }, [router])
+
+  useEffect(() => { checkAuth() }, [checkAuth])
+  useEffect(() => {
+    const onFocus = () => { if (!authService.getToken()) router.replace("/auth") }
+    window.addEventListener("focus", onFocus)
+    return () => window.removeEventListener("focus", onFocus)
   }, [router])
 
   if (!authorized) {

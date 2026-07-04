@@ -45,7 +45,7 @@ export default function EmployesPage() {
     api.getEmployees().then((result) => {
       setEmployees(result);
       setIsLoading(false);
-    });
+    }).catch(() => setIsLoading(false));
   }, []);
 
   const filtered = useMemo(

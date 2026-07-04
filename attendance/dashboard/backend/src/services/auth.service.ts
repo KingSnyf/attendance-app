@@ -2,10 +2,11 @@ import { Injectable, UnauthorizedException, ConflictException } from '@nestjs/co
 import * as bcrypt from 'bcryptjs';
 import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '../prisma.service';
+import { EmailService } from './email.service';
 
 @Injectable()
 export class AuthService {
-  constructor(private readonly prisma: PrismaService, private readonly jwtService: JwtService) {}
+  constructor(private readonly prisma: PrismaService, private readonly jwtService: JwtService, private readonly emailService: EmailService) {}
 
   async validateUser(email: string, password: string) {
     const user = await this.prisma.user.findUnique({ where: { email } });
@@ -143,5 +144,29 @@ export class AuthService {
       actif: user.actif,
       photo_url: user.photoUrl || null,
     };
+  }
+
+  async changePassword(userId: string, currentPassword: string, newPassword: string) {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) throw new UnauthorizedException('User not found');
+
+    const match = await bcrypt.compare(currentPassword, user.passwordHash);
+    if (!match) throw new UnauthorizedException('Mot de passe actuel incorrect');
+
+    const newHash = await bcrypt.hash(newPassword, 10);
+    await this.prisma.user.update({ where: { id: userId }, data: { passwordHash: newHash } });
+    return { success: true };
+  }
+
+  async forgotPassword(email: string) {
+    const user = await this.prisma.user.findUnique({ where: { email } });
+    if (!user) return { success: true };
+
+    const newPassword = Math.random().toString(36).slice(-10) + 'A1!';
+    const hash = await bcrypt.hash(newPassword, 10);
+    await this.prisma.user.update({ where: { id: user.id }, data: { passwordHash: hash } });
+    await this.emailService.sendPasswordResetEmail(email, newPassword);
+
+    return { success: true };
   }
 }

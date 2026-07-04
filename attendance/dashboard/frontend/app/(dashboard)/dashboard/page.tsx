@@ -121,7 +121,7 @@ export default function VueEnsemblePage() {
         />
       </div>
 
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h2 className="text-lg font-semibold text-foreground">Présence collective</h2>
           <p className="text-sm text-muted-foreground">
@@ -132,12 +132,14 @@ export default function VueEnsemblePage() {
           <Button
             variant={period === "semaine" ? "default" : "outline"}
             onClick={() => setPeriod("semaine")}
+            size="sm"
           >
             Semaine
           </Button>
           <Button
             variant={period === "mois" ? "default" : "outline"}
             onClick={() => setPeriod("mois")}
+            size="sm"
           >
             Mois
           </Button>
@@ -150,7 +152,7 @@ export default function VueEnsemblePage() {
       />
 
       <Card>
-        <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+        <div className="mb-5 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div>
             <h2 className="text-lg font-semibold text-foreground">Présence des employés</h2>
             <p className="text-sm text-muted-foreground">
@@ -162,12 +164,12 @@ export default function VueEnsemblePage() {
               placeholder="Rechercher un employé..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="h-10 w-48 lg:w-56"
+              className="h-9 w-44 lg:w-52"
             />
             <select
               value={filterStatut}
               onChange={(e) => setFilterStatut(e.target.value)}
-              className="h-10 rounded-xl border border-border bg-card px-3 text-sm"
+              className="h-9 rounded-lg border border-border bg-card px-2.5 text-sm"
             >
               <option value="all">Tous</option>
               <option value="present">Présent</option>
@@ -177,7 +179,7 @@ export default function VueEnsemblePage() {
             <select
               value={filterDepartement}
               onChange={(e) => setFilterDepartement(e.target.value)}
-              className="h-10 rounded-xl border border-border bg-card px-3 text-sm"
+              className="h-9 rounded-lg border border-border bg-card px-2.5 text-sm"
             >
               <option value="all">Tous les dép.</option>
               {departementsDisponibles.map((dept) => (
@@ -187,13 +189,13 @@ export default function VueEnsemblePage() {
             <select
               value={filterGeofencing}
               onChange={(e) => setFilterGeofencing(e.target.value)}
-              className="h-10 rounded-xl border border-border bg-card px-3 text-sm"
+              className="h-9 rounded-lg border border-border bg-card px-2.5 text-sm"
             >
               <option value="all">Géo.</option>
               <option value="alert">Alerte</option>
               <option value="safe">Sans alerte</option>
             </select>
-            <Button onClick={handleExportCSV} size="sm">
+            <Button onClick={handleExportCSV} size="sm" variant="outline">
               <Download className="size-4" />
               CSV
             </Button>

@@ -37,7 +37,7 @@ export default function ModificationsPage() {
     api.getModificationRequests().then((result) => {
       setRequests(result as RequestRow[]);
       setIsLoading(false);
-    });
+    }).catch(() => setIsLoading(false));
   }, []);
 
   const filtered = useMemo(

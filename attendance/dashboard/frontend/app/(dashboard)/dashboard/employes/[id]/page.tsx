@@ -46,7 +46,7 @@ export default function EmployeDetailPage() {
       setDetail(result ?? null);
       setSelectedDate(result?.calendrier.find((day) => day.sessions.length > 0)?.date ?? null);
       setLoading(false);
-    });
+    }).catch(() => setLoading(false));
   }, [params.id]);
 
   const selectedDay = useMemo(

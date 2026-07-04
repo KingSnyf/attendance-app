@@ -21,5 +21,5 @@ export const navigation: NavItem[] = [
   { label: "Anomalies", href: "/dashboard/anomalies", icon: AlertTriangle, roles: ["admin", "gestionnaire"] },
   { label: "Modifications", href: "/dashboard/modifications", icon: FileEdit, roles: ["admin", "gestionnaire"] },
   { label: "Logs", href: "/dashboard/logs", icon: ClipboardList, roles: ["admin"] },
-  { label: "Paramètres", href: "/dashboard/parametres", icon: Settings, roles: ["admin"] },
+  { label: "Paramètres", href: "/dashboard/parametres", icon: Settings, roles: ["admin", "gestionnaire"] },
 ]

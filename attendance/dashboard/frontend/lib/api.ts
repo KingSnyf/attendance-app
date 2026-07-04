@@ -4,12 +4,19 @@ const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:300
 
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
   const token = typeof window !== "undefined" ? localStorage.getItem("attendance_token") : null
-  const res = await fetch(`${BACKEND_URL}${path}`, {
-    ...options,
-    headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}), ...options?.headers },
-  })
-  if (!res.ok) throw new Error(`API error: ${res.status} ${res.statusText}`)
-  return res.json()
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), 8000)
+  try {
+    const res = await fetch(`${BACKEND_URL}${path}`, {
+      ...options,
+      signal: controller.signal,
+      headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}), ...options?.headers },
+    })
+    if (!res.ok) throw new Error(`API error: ${res.status} ${res.statusText}`)
+    return res.json()
+  } finally {
+    clearTimeout(timer)
+  }
 }
 
 export const api = {
@@ -45,6 +52,14 @@ export const api = {
 
   updateProfile: (data: { firstName?: string; lastName?: string; photoUrl?: string; email?: string }) =>
     request<any>("/auth/profile", { method: "PATCH", body: JSON.stringify(data) }),
+
+  changePassword: (currentPassword: string, newPassword: string) =>
+    request<{ success: boolean }>("/auth/password", { method: "PATCH", body: JSON.stringify({ currentPassword, newPassword }) }),
+
+  forgotPassword: (email: string) =>
+    request<{ success: boolean }>("/auth/forgot-password", { method: "POST", body: JSON.stringify({ email }) }),
+
+  getTodaySessions: () => request("/sessions/today"),
 
   getDashboardData: () => request<DashboardData>("/sessions/stats"),
 

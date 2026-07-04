@@ -87,7 +87,7 @@ export class UsersController {
     return result;
   }
 
-  @Post(':id/toggle-active')
+  @Patch(':id/toggle-active')
   @Roles('gestionnaire', 'admin')
   async toggleAccount(@Param('id') id: string, @User() user: any) {
     const result = await this.users.toggleAccount(id);

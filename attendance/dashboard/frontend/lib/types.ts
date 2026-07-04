@@ -25,11 +25,13 @@ export type Anomalie = {
   user_id: string
   traitee: boolean
   geoloc_verifiee: boolean
+  commentaire?: string
+  employe?: { prenom: string; nom: string }
 }
 
 export type DemandeModification = {
   id: string
-  session_id: string
+  session_presence_id: string
   modification_proposee: string
   raison: string
   statut: string
@@ -70,6 +72,8 @@ export type ParametresSysteme = {
   duree_pause_max_minutes: number
   jours_feries: string[]
   jours_ouvres: string[]
+  geolocalisation_secours_active?: boolean
+  politique_confidentialite?: string
 }
 
 export type JournalActivite = {

@@ -16,7 +16,6 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/spinner";
 import { useDashboardData } from "@/hooks/useDashboardData";
-import { departementsDisponibles, getEmployeeSummaryRows } from "@/lib/data";
 import { exporterVersCSV, telechargerCSV } from "@/lib/utils";
 
 export default function VueEnsemblePage() {
@@ -28,10 +27,21 @@ export default function VueEnsemblePage() {
   const [filterGeofencing, setFilterGeofencing] = useState("all");
   const [period, setPeriod] = useState<"semaine" | "mois">("semaine");
 
+  const departements = useMemo(() => {
+    const uniques = new Set(
+      (data?.employees ?? [])
+        .map((employee) => employee.departement)
+        .filter((departement): departement is string => Boolean(departement)),
+    );
+    return Array.from(uniques).sort();
+  }, [data?.employees]);
+
   const employees = useMemo(() => {
-    return getEmployeeSummaryRows()
+    return (data?.employees ?? [])
       .map((employee) => ({
         ...employee,
+        premiere_arrivee: null as string | null,
+        temps_cumule: null as string | null,
         geofencing_alert: data?.geofencingAlerts.some(
           (alert) => alert.user_id === employee.id,
         ),
@@ -50,7 +60,7 @@ export default function VueEnsemblePage() {
               : !employee.geofencing_alert))
         );
       });
-  }, [data?.geofencingAlerts, filterDepartement, filterGeofencing, filterStatut, searchQuery]);
+  }, [data?.employees, data?.geofencingAlerts, filterDepartement, filterGeofencing, filterStatut, searchQuery]);
 
   const handleExportCSV = () => {
     const csv = exporterVersCSV(
@@ -182,7 +192,7 @@ export default function VueEnsemblePage() {
               className="h-9 rounded-lg border border-border bg-card px-2.5 text-sm"
             >
               <option value="all">Tous les dép.</option>
-              {departementsDisponibles.map((dept) => (
+              {departements.map((dept) => (
                 <option key={dept} value={dept}>{dept}</option>
               ))}
             </select>

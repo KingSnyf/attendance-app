@@ -13,18 +13,19 @@ import { Spinner } from "@/components/ui/spinner";
 import { Table, TableHeadCell, TableWrapper } from "@/components/ui/table";
 import { useAuth } from "@/hooks/useAuth";
 import { api } from "@/lib/api";
-import { getNomComplet, utilisateurs } from "@/lib/data";
+import { getNomComplet } from "@/lib/data";
 import type { DemandeModification, SessionPresence, Utilisateur } from "@/lib/types";
 import { formatDateTime } from "@/lib/utils";
 
 type RequestRow = DemandeModification & {
-  employe?: Utilisateur;
+  employe?: { id: string; nom: string; prenom: string } | null;
   session?: SessionPresence;
 };
 
 export default function ModificationsPage() {
   const { user } = useAuth();
   const [requests, setRequests] = useState<RequestRow[]>([]);
+  const [employees, setEmployees] = useState<Utilisateur[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState("all");
   const [employeeFilter, setEmployeeFilter] = useState("all");
@@ -38,6 +39,7 @@ export default function ModificationsPage() {
       setRequests(result as RequestRow[]);
       setIsLoading(false);
     }).catch(() => setIsLoading(false));
+    api.getEmployees().then(setEmployees).catch(() => setEmployees([]));
   }, []);
 
   const filtered = useMemo(
@@ -80,7 +82,7 @@ export default function ModificationsPage() {
           className="h-10 rounded-xl border border-border bg-card px-3 text-sm"
         >
           <option value="all">Tous les employés</option>
-          {utilisateurs.map((employee) => (
+          {employees.map((employee) => (
             <option key={employee.id} value={employee.id}>
               {getNomComplet(employee)}
             </option>
@@ -168,7 +170,7 @@ export default function ModificationsPage() {
             ? "Valider la demande"
             : "Rejeter la demande"
         }
-        description="Confirmation simulée du traitement administrateur."
+        description="Cette action met à jour le statut de la demande."
       >
         <div className="flex justify-end gap-2">
           <Button variant="outline" onClick={() => setSelectedAction(null)}>
@@ -178,13 +180,21 @@ export default function ModificationsPage() {
             variant={selectedAction?.action === "approve" ? "default" : "destructive"}
             onClick={async () => {
               if (!selectedAction) return;
-              if (selectedAction.action === "approve") {
-                await api.approveRequest(selectedAction.id);
-                toast.success("Demande validée pour la démonstration.");
+              const { id, action } = selectedAction;
+              if (action === "approve") {
+                await api.approveRequest(id);
+                toast.success("Demande validée.");
               } else {
-                await api.rejectRequest(selectedAction.id);
-                toast.success("Demande rejetée pour la démonstration.");
+                await api.rejectRequest(id);
+                toast.success("Demande rejetée.");
               }
+              setRequests((prev) =>
+                prev.map((request) =>
+                  request.id === id
+                    ? { ...request, statut: action === "approve" ? "validee" : "rejetee" }
+                    : request,
+                ),
+              );
               setSelectedAction(null);
             }}
           >

@@ -16,8 +16,8 @@ import { Modal } from "@/components/ui/modal";
 import { Spinner } from "@/components/ui/spinner";
 import { Table, TableHeadCell, TableWrapper } from "@/components/ui/table";
 import { api } from "@/lib/api";
-import { getNomComplet, parametresSystemeData } from "@/lib/data";
-import type { EmployeDetail, PresenceJour } from "@/lib/types";
+import { getNomComplet } from "@/lib/data";
+import type { EmployeDetail, ParametresSysteme, PresenceJour } from "@/lib/types";
 import { formatDate, formatDateTime, formatHeure } from "@/lib/utils";
 
 const GeofenceMap = dynamic(
@@ -36,6 +36,7 @@ const statusColors: Record<PresenceJour["statut"], string> = {
 export default function EmployeDetailPage() {
   const params = useParams<{ id: string }>();
   const [detail, setDetail] = useState<EmployeDetail | null>(null);
+  const [settings, setSettings] = useState<ParametresSysteme | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [requestOpen, setRequestOpen] = useState(false);
@@ -47,6 +48,7 @@ export default function EmployeDetailPage() {
       setSelectedDate(result?.calendrier.find((day) => day.sessions.length > 0)?.date ?? null);
       setLoading(false);
     }).catch(() => setLoading(false));
+    api.getSettings().then(setSettings).catch(() => setSettings(null));
   }, [params.id]);
 
   const selectedDay = useMemo(
@@ -176,16 +178,24 @@ export default function EmployeDetailPage() {
                 : "Indisponible"}
             </p>
             <p>
-              Coordonnées bureau: {parametresSystemeData.coordonnees_bureau.lat},{" "}
-              {parametresSystemeData.coordonnees_bureau.lng}
+              Coordonnées bureau:{" "}
+              {settings
+                ? `${settings.coordonnees_bureau.lat}, ${settings.coordonnees_bureau.lng}`
+                : "Chargement..."}
             </p>
           </div>
 
-          <GeofenceMap
-            center={parametresSystemeData.coordonnees_bureau}
-            radius={parametresSystemeData.rayon_geofencing_metres}
-            lastPosition={user.appareil?.derniere_geoloc}
-          />
+          {settings ? (
+            <GeofenceMap
+              center={settings.coordonnees_bureau}
+              radius={settings.rayon_geofencing_metres}
+              lastPosition={user.appareil?.derniere_geoloc}
+            />
+          ) : (
+            <div className="flex h-48 items-center justify-center rounded-2xl border border-border bg-muted/30 text-sm text-muted-foreground">
+              Chargement de la carte...
+            </div>
+          )}
         </Card>
       </div>
 

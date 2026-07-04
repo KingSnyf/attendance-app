@@ -13,15 +13,16 @@ import { Modal } from "@/components/ui/modal";
 import { Spinner } from "@/components/ui/spinner";
 import { Table, TableHeadCell, TableWrapper } from "@/components/ui/table";
 import { api } from "@/lib/api";
-import { getNomComplet, utilisateurs } from "@/lib/data";
+import { getNomComplet } from "@/lib/data";
 import { useAuth } from "@/hooks/useAuth";
-import type { Anomalie } from "@/lib/types";
+import type { Anomalie, Utilisateur } from "@/lib/types";
 import { formatDateTime } from "@/lib/utils";
 
 export default function AnomaliesPage() {
   const { user } = useAuth();
   const isAdmin = user?.role === "admin";
   const [anomalies, setAnomalies] = useState<Anomalie[]>([]);
+  const [employees, setEmployees] = useState<Utilisateur[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState("all");
   const [typeFilter, setTypeFilter] = useState("all");
@@ -36,6 +37,7 @@ export default function AnomaliesPage() {
       setAnomalies(result);
       setIsLoading(false);
     }).catch(() => setIsLoading(false));
+    api.getEmployees().then(setEmployees).catch(() => setEmployees([]));
   }, []);
 
   const filtered = useMemo(
@@ -90,7 +92,7 @@ export default function AnomaliesPage() {
           className="h-10 rounded-xl border border-border bg-card px-3 text-sm"
         >
           <option value="all">Tous les employés</option>
-          {utilisateurs.map((employee) => (
+          {employees.map((employee) => (
             <option key={employee.id} value={employee.id}>
               {getNomComplet(employee)}
             </option>
@@ -122,12 +124,11 @@ export default function AnomaliesPage() {
             </thead>
             <tbody>
               {filtered.map((anomalie) => {
-                const user = utilisateurs.find((item) => item.id === anomalie.user_id);
                 return (
                   <tr key={anomalie.id} className="border-t border-border">
                     <td className="px-4 py-3 text-muted-foreground">{anomalie.type}</td>
                     <td className="px-4 py-3 text-muted-foreground">
-                      {user ? getNomComplet(user) : "Inconnu"}
+                      {anomalie.employe ? getNomComplet(anomalie.employe) : "Inconnu"}
                     </td>
                     <td className="px-4 py-3 text-muted-foreground">{anomalie.description}</td>
                     <td className="px-4 py-3 text-muted-foreground">

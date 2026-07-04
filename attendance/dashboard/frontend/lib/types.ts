@@ -84,6 +84,7 @@ export type JournalActivite = {
   cible: string
   details: string
   date: string
+  auteur?: string
 }
 
 export type DashboardData = {

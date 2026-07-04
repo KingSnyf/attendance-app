@@ -5,12 +5,14 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
-  --font-heading: var(--font-sans);
+  --font-heading: var(--font-display);
   --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
-  --font-mono: var(--font-geist-mono), 'Geist Mono Fallback';
+  --font-mono: var(--font-data-mono), ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
   --color-brand: var(--brand);
   --color-brand-foreground: var(--brand-foreground);
   --color-brand-accent: var(--brand-accent);
+  --color-signal: var(--signal);
+  --color-signal-foreground: var(--signal-foreground);
   --color-success: var(--success);
   --color-success-foreground: var(--success-foreground);
   --color-warning: var(--warning);
@@ -48,60 +50,76 @@
   --color-card: var(--card);
   --color-foreground: var(--foreground);
   --color-background: var(--background);
-  --radius-sm: calc(var(--radius) * 0.6);
-  --radius-md: calc(var(--radius) * 0.8);
+  --radius-sm: calc(var(--radius) * 0.5);
+  --radius-md: calc(var(--radius) * 0.7);
   --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) * 1.4);
-  --radius-2xl: calc(var(--radius) * 1.8);
-  --radius-3xl: calc(var(--radius) * 2.2);
-  --radius-4xl: calc(var(--radius) * 2.6);
+  --radius-xl: calc(var(--radius) * 1.2);
+  --radius-2xl: calc(var(--radius) * 1.5);
+  --radius-3xl: calc(var(--radius) * 1.8);
+  --radius-4xl: calc(var(--radius) * 2.2);
 }
 
 :root {
   color-scheme: light;
   --font-inter: 'Inter', ui-sans-serif, system-ui, sans-serif;
-  --font-geist-mono: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
-  --background: #f8f8f8;
-  --foreground: #0a0a0a;
+  --font-display: 'Space Grotesk', 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --font-data-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
+
+  /* Papier -- fond froid et neutre, pas le crème chaud par défaut */
+  --background: #eef0f2;
+  --foreground: #1c2130;
+
   --card: #ffffff;
-  --card-foreground: #0a0a0a;
+  --card-foreground: #1c2130;
   --popover: #ffffff;
-  --popover-foreground: #0a0a0a;
-  --primary: #0a0a0a;
+  --popover-foreground: #1c2130;
+
+  --primary: #1c2130;
   --primary-foreground: #ffffff;
-  --secondary: #f4f4f5;
-  --secondary-foreground: #18181b;
-  --muted: #f4f4f5;
-  --muted-foreground: #71717a;
-  --accent: #fff7ed;
-  --accent-foreground: #ea580c;
-  --destructive: #dc2626;
-  --border: #e4e4e7;
-  --input: #e4e4e7;
-  --ring: #f97316;
-  --brand: #f97316;
+  --secondary: #e4e6ea;
+  --secondary-foreground: #1c2130;
+  --muted: #e4e6ea;
+  --muted-foreground: #676f80;
+  --accent: #eef0f2;
+  --accent-foreground: #a66b25;
+  --destructive: #b23b33;
+  --border: #d8dbe1;
+  --input: #d8dbe1;
+  --ring: #a66b25;
+
+  /* Laiton -- accent principal, plaque de pointeuse murale */
+  --brand: #a66b25;
   --brand-foreground: #ffffff;
-  --brand-accent: #ea580c;
-  --success: #dcfce7;
-  --success-foreground: #15803d;
-  --warning: #ffedd5;
-  --warning-foreground: #c2410c;
-  --danger: #fee2e2;
-  --danger-foreground: #dc2626;
-  --chart-1: #f97316;
-  --chart-2: #fb923c;
-  --chart-3: #fdba74;
-  --chart-4: #18181b;
-  --chart-5: #15803d;
-  --radius: 0.875rem;
-  --sidebar: #0a0a0a;
-  --sidebar-foreground: #a1a1aa;
-  --sidebar-primary: #f97316;
+  --brand-accent: #8f5a1c;
+
+  /* Teal encre -- accent secondaire (info, géofencing) */
+  --signal: #2b6f6b;
+  --signal-foreground: #ffffff;
+
+  --success: #e3efe6;
+  --success-foreground: #2f7d4f;
+  --warning: #f3e7d7;
+  --warning-foreground: #a66b25;
+  --danger: #f6e2e0;
+  --danger-foreground: #b23b33;
+
+  --chart-1: #a66b25;
+  --chart-2: #2b6f6b;
+  --chart-3: #c99a5b;
+  --chart-4: #1c2130;
+  --chart-5: #2f7d4f;
+
+  --radius: 0.75rem;
+
+  /* Boîtier de pointeuse -- encre profonde */
+  --sidebar: #1c2130;
+  --sidebar-foreground: #aeb4c2;
+  --sidebar-primary: #a66b25;
   --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #1c1c1e;
+  --sidebar-accent: #262c3f;
   --sidebar-accent-foreground: #ffffff;
-  --sidebar-border: #27272a;
-  --sidebar-ring: #f97316;
+  --sidebar-border: #2c3348;
+  --sidebar-ring: #a66b25;
 }
 
 @layer base {
@@ -114,20 +132,57 @@
   html {
     @apply font-sans;
   }
+  h1, h2, h3, h4 {
+    font-family: var(--font-display);
+    letter-spacing: -0.01em;
+  }
 }
 
 @layer utilities {
+  /* Chiffres tabulaires pour toute donnée numérique (heures, stats, ID) */
+  .font-data {
+    font-family: var(--font-data-mono);
+    font-variant-numeric: tabular-nums;
+  }
+
   .gradient-brand {
-    background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+    background: linear-gradient(135deg, #a66b25 0%, #8f5a1c 100%);
   }
   .gradient-sidebar {
-    background: linear-gradient(180deg, #0a0a0a 0%, #141414 100%);
+    background: linear-gradient(180deg, #1c2130 0%, #161a26 100%);
   }
   .glass-header {
     background: rgba(255, 255, 255, 0.85);
     backdrop-filter: blur(12px);
   }
   .stat-card-glow {
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 8px 24px rgba(249, 115, 22, 0.06);
+    box-shadow: 0 1px 3px rgba(28, 33, 48, 0.05), 0 8px 24px rgba(166, 107, 37, 0.08);
+  }
+
+  /* Encoche perforée façon carte de pointage, découpée dans le coin de la carte */
+  .punch-notch {
+    position: relative;
+  }
+  .punch-notch::after {
+    content: "";
+    position: absolute;
+    top: -1px;
+    right: 18px;
+    width: 14px;
+    height: 14px;
+    border-radius: 9999px;
+    background: var(--background);
+    border: 1px solid var(--border);
+    border-top: none;
+  }
+
+  /* Badge "tamponné" -- bordure fine, majuscules espacées, sans fond pastel */
+  .stamp-badge {
+    font-family: var(--font-data-mono);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    border-width: 1px;
+    border-style: solid;
+    background: transparent;
   }
 }

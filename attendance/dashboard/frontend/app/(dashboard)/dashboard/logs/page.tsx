@@ -13,13 +13,14 @@ import { Spinner } from "@/components/ui/spinner";
 import { Table, TableHeadCell, TableWrapper } from "@/components/ui/table";
 import { useAuth } from "@/hooks/useAuth";
 import { api } from "@/lib/api";
-import { getNomComplet, utilisateurs } from "@/lib/data";
-import type { JournalActivite } from "@/lib/types";
+import { getNomComplet } from "@/lib/data";
+import type { JournalActivite, Utilisateur } from "@/lib/types";
 import { exporterVersCSV, formatDateTime, telechargerCSV } from "@/lib/utils";
 
 export default function LogsPage() {
   const { user } = useAuth();
   const [logs, setLogs] = useState<JournalActivite[]>([]);
+  const [employees, setEmployees] = useState<Utilisateur[]>([]);
   const [loading, setLoading] = useState(true);
   const [authorFilter, setAuthorFilter] = useState("all");
   const [actionFilter, setActionFilter] = useState("all");
@@ -31,6 +32,7 @@ export default function LogsPage() {
       setLogs(result as JournalActivite[]);
       setLoading(false);
     }).catch(() => setLoading(false));
+    api.getEmployees().then(setEmployees).catch(() => setEmployees([]));
   }, []);
 
   const filtered = useMemo(
@@ -50,10 +52,7 @@ export default function LogsPage() {
   const handleExport = () => {
     const csv = exporterVersCSV(
       filtered.map((log) => ({
-        auteur:
-          utilisateurs.find((item) => item.id === log.auteur_id)
-            ? getNomComplet(utilisateurs.find((item) => item.id === log.auteur_id)!)
-            : log.auteur_id,
+        auteur: log.auteur ?? log.auteur_id,
         action: log.action,
         cible: log.cible,
         details: log.details,
@@ -86,7 +85,7 @@ export default function LogsPage() {
           className="h-10 rounded-xl border border-border bg-card px-3 text-sm"
         >
           <option value="all">Tous les auteurs</option>
-          {utilisateurs.map((employee) => (
+          {employees.map((employee) => (
             <option key={employee.id} value={employee.id}>
               {getNomComplet(employee)}
             </option>
@@ -131,11 +130,10 @@ export default function LogsPage() {
             </thead>
             <tbody>
               {filtered.map((log) => {
-                const auteur = utilisateurs.find((item) => item.id === log.auteur_id);
                 return (
                   <tr key={log.id} className="border-t border-border">
                     <td className="px-4 py-3 text-muted-foreground">
-                      {auteur ? getNomComplet(auteur) : log.auteur_id}
+                      {log.auteur ?? log.auteur_id}
                     </td>
                     <td className="px-4 py-3 text-muted-foreground">{log.action}</td>
                     <td className="px-4 py-3 text-muted-foreground">{log.cible}</td>

@@ -9,6 +9,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Fingerprint, Mail, Lock, User, ArrowRight, ShieldCheck } from "lucide-react";
 import toast from "react-hot-toast";
 
 const ROLES_DASHBOARD = ["admin", "gestionnaire"];
@@ -18,8 +19,8 @@ export default function AuthPage() {
   const { login, register, logout, isLoading, error } = useAuth();
   const [isLogin, setIsLogin] = useState(true);
   const [formData, setFormData] = useState({
-    email: "test@example.com",
-    password: "password123",
+    email: "",
+    password: "",
     firstName: "",
     lastName: "",
   });
@@ -65,104 +66,179 @@ export default function AuthPage() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-slate-900 to-slate-800">
-      <Card className="w-full max-w-md space-y-6 p-6">
-        <div className="space-y-2 text-center">
-          <h1 className="text-2xl font-bold">Attendance Dashboard</h1>
-          <p className="text-sm text-muted-foreground">
-            {isLogin ? "Connectez-vous à votre compte" : "Créer un nouveau compte"}
+    <div className="flex min-h-screen bg-background">
+      {/* Panneau de marque -- masqué sur mobile */}
+      <div className="relative hidden w-[44%] flex-col justify-between overflow-hidden gradient-sidebar px-14 py-12 text-white lg:flex">
+        {/* Grille décorative en fond, façon fiche de pointage perforée */}
+        <div
+          className="pointer-events-none absolute inset-0 opacity-[0.07]"
+          style={{
+            backgroundImage:
+              "radial-gradient(circle, rgba(255,255,255,0.8) 1px, transparent 1px)",
+            backgroundSize: "20px 20px",
+          }}
+        />
+        <div
+          className="pointer-events-none absolute -right-24 -top-24 size-96 rounded-full opacity-20"
+          style={{ background: "radial-gradient(circle, var(--brand) 0%, transparent 70%)" }}
+        />
+        <div
+          className="pointer-events-none absolute -bottom-32 -left-16 size-80 rounded-full opacity-10"
+          style={{ background: "radial-gradient(circle, var(--signal) 0%, transparent 70%)" }}
+        />
+
+        <div className="relative flex items-center gap-2.5">
+          <span className="flex size-9 items-center justify-center rounded-lg bg-sidebar-primary/15 text-sidebar-primary">
+            <Fingerprint className="size-5" />
+          </span>
+          <span className="font-heading text-xl font-semibold tracking-tight text-white">
+            Attendance
+          </span>
+        </div>
+
+        <div className="relative space-y-5">
+          <span className="stamp-badge inline-block rounded-full border-white/25 px-3 py-1 text-[11px] text-white/70">
+            Espace gestionnaire
+          </span>
+          <h2 className="font-heading text-3xl font-semibold leading-tight text-white text-balance">
+            La présence de vos équipes,
+            <br />
+            au pointage près.
+          </h2>
+          <p className="max-w-sm text-sm leading-relaxed text-white/60">
+            Suivi des arrivées, géofencing et anomalies centralisés dans un
+            seul tableau de bord.
           </p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium mb-1">Email</label>
-            <Input
-              type="email"
-              name="email"
-              placeholder="votre@email.com"
-              value={formData.email}
-              onChange={handleChange}
-              required
-              disabled={isLoading}
-            />
+        <div className="relative flex items-center gap-3 text-xs text-white/50">
+          <ShieldCheck className="size-4 shrink-0" />
+          <span>Accès réservé aux administrateurs et gestionnaires</span>
+        </div>
+      </div>
+
+      {/* Panneau de formulaire */}
+      <div className="flex flex-1 items-center justify-center px-6 py-12">
+        <div className="w-full max-w-sm">
+          {/* Logo -- visible uniquement sur mobile, le panneau de marque le remplace en desktop */}
+          <div className="mb-8 flex items-center gap-2.5 lg:hidden">
+            <span className="flex size-9 items-center justify-center rounded-lg bg-brand/10 text-brand">
+              <Fingerprint className="size-5" />
+            </span>
+            <span className="font-heading text-xl font-semibold tracking-tight text-foreground">
+              Attendance
+            </span>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium mb-1">Mot de passe</label>
-            <Input
-              type="password"
-              name="password"
-              placeholder="••••••••"
-              value={formData.password}
-              onChange={handleChange}
-              required
-              disabled={isLoading}
-            />
+          <div className="mb-8 space-y-1.5">
+            <h1 className="font-heading text-2xl font-semibold text-foreground">
+              {isLogin ? "Bon retour" : "Créer un compte"}
+            </h1>
+            <p className="text-sm text-muted-foreground">
+              {isLogin
+                ? "Connectez-vous pour accéder au tableau de bord."
+                : "Renseignez vos informations pour vous inscrire."}
+            </p>
           </div>
 
-          {!isLogin && (
-            <>
-              <div>
-                <label className="block text-sm font-medium mb-1">Prénom</label>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {!isLogin && (
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="mb-1.5 block text-sm font-medium text-foreground">Prénom</label>
+                  <div className="relative">
+                    <User className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                    <Input
+                      type="text"
+                      name="firstName"
+                      placeholder="Jean"
+                      value={formData.firstName}
+                      onChange={handleChange}
+                      disabled={isLoading}
+                      className="pl-9"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="mb-1.5 block text-sm font-medium text-foreground">Nom</label>
+                  <Input
+                    type="text"
+                    name="lastName"
+                    placeholder="Dupont"
+                    value={formData.lastName}
+                    onChange={handleChange}
+                    disabled={isLoading}
+                  />
+                </div>
+              </div>
+            )}
+
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-foreground">Email</label>
+              <div className="relative">
+                <Mail className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
-                  type="text"
-                  name="firstName"
-                  placeholder="Jean"
-                  value={formData.firstName}
+                  type="email"
+                  name="email"
+                  placeholder="votre@email.com"
+                  value={formData.email}
                   onChange={handleChange}
+                  required
                   disabled={isLoading}
+                  className="pl-9"
                 />
               </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-1">Nom</label>
-                <Input
-                  type="text"
-                  name="lastName"
-                  placeholder="Dupont"
-                  value={formData.lastName}
-                  onChange={handleChange}
-                  disabled={isLoading}
-                />
-              </div>
-            </>
-          )}
-
-          {error && (
-            <div className="rounded-md bg-red-50 p-3 text-sm text-red-700">
-              {error}
             </div>
-          )}
 
-          <Button
-            type="submit"
-            className="w-full"
-            disabled={isLoading}
-          >
-            {isLoading ? "Chargement..." : isLogin ? "Se connecter" : "S'inscrire"}
-          </Button>
-        </form>
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-foreground">Mot de passe</label>
+              <div className="relative">
+                <Lock className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  type="password"
+                  name="password"
+                  placeholder="••••••••"
+                  value={formData.password}
+                  onChange={handleChange}
+                  required
+                  disabled={isLoading}
+                  className="pl-9"
+                />
+              </div>
+            </div>
 
-        <div className="text-center">
-          <button
-            type="button"
-            onClick={() => setIsLogin(!isLogin)}
-            className="text-sm text-blue-600 hover:underline"
-            disabled={isLoading}
-          >
-            {isLogin
-              ? "Pas de compte? S'inscrire"
-              : "Vous avez un compte? Se connecter"}
-          </button>
+            {error && (
+              <div className="rounded-xl border border-danger bg-danger px-4 py-3 text-sm text-danger-foreground">
+                {error}
+              </div>
+            )}
+
+            <Button type="submit" size="lg" className="w-full" disabled={isLoading}>
+              {isLoading ? (
+                "Chargement..."
+              ) : (
+                <>
+                  {isLogin ? "Se connecter" : "S'inscrire"}
+                  <ArrowRight className="size-4" />
+                </>
+              )}
+            </Button>
+          </form>
+
+          <div className="mt-6 text-center">
+            <button
+              type="button"
+              onClick={() => setIsLogin(!isLogin)}
+              className="text-sm font-medium text-brand transition hover:text-brand-accent disabled:opacity-50"
+              disabled={isLoading}
+            >
+              {isLogin
+                ? "Pas de compte ? S'inscrire"
+                : "Vous avez un compte ? Se connecter"}
+            </button>
+          </div>
         </div>
-
-        <div className="rounded-md bg-blue-50 p-3 text-xs text-blue-700">
-          <p className="font-medium mb-1">Identifiants de démo:</p>
-          <p>Email: test@example.com</p>
-          <p>Mot de passe: password123</p>
-        </div>
-      </Card>
+      </div>
     </div>
   );
 }

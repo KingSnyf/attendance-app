@@ -41,7 +41,7 @@ function Header() {
   const total = anomalies + modifications
 
   return (
-    <header className="flex h-20 min-h-[80px] items-center justify-between border-b border-border bg-card px-8">
+    <header className="flex h-20 min-h-20 items-center justify-between border-b border-border bg-card px-8">
       <h1 className="text-xl font-semibold text-foreground">
         {current?.label ?? "Tableau de bord"}
       </h1>
@@ -54,14 +54,14 @@ function Header() {
           >
             <Bell className="size-6" />
             {total > 0 && (
-              <span className="absolute -right-1.5 -top-1.5 flex size-5 items-center justify-center rounded-full bg-danger text-[11px] font-bold text-danger-foreground">
+              <span className="absolute -right-1.5 -top-1.5 flex size-5 items-center justify-center rounded-full bg-destructive text-[11px] font-bold text-white ring-2 ring-card">
                 {total > 9 ? "9+" : total}
               </span>
             )}
           </button>
 
           {open && (
-            <div className="absolute right-0 top-12 w-[28rem] rounded-2xl border border-border bg-card p-5 shadow-lg z-50">
+            <div className="absolute right-0 top-12 w-md rounded-2xl border border-border bg-card p-5 shadow-lg z-50">
               <p className="mb-4 text-base font-semibold text-foreground">Notifications</p>
               <div className="space-y-3">
                 <div className="flex items-center gap-4 rounded-xl bg-muted/50 px-4 py-3.5">
@@ -79,9 +79,9 @@ function Header() {
                   </div>
                 </div>
                 {total === 0 && (
-                  <div className="flex items-center gap-4 rounded-xl bg-emerald-50 px-4 py-3.5">
-                    <CheckCircle2 className="size-5 shrink-0 text-emerald-600" />
-                    <span className="text-sm font-medium text-emerald-700">Tout est à jour</span>
+                  <div className="flex items-center gap-4 rounded-xl bg-success px-4 py-3.5">
+                    <CheckCircle2 className="size-5 shrink-0 text-success-foreground" />
+                    <span className="text-sm font-medium text-success-foreground">Tout est à jour</span>
                   </div>
                 )}
               </div>

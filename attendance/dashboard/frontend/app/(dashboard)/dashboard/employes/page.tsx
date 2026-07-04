@@ -18,13 +18,8 @@ import { Spinner } from "@/components/ui/spinner";
 import { Table, TableHeadCell, TableWrapper } from "@/components/ui/table";
 import { api } from "@/lib/api";
 import { departementsDisponibles, getNomComplet } from "@/lib/data";
+import { roleLabel } from "@/lib/labels";
 import type { Utilisateur } from "@/lib/types";
-
-const roleLabel = {
-  employe: "Employé",
-  gestionnaire: "Gestionnaire",
-  admin: "Administrateur",
-};
 
 export default function EmployesPage() {
   const [employees, setEmployees] = useState<Utilisateur[]>([]);
@@ -189,7 +184,7 @@ export default function EmployesPage() {
                       <Button
                         variant="outline"
                         size="sm"
-                        className="w-full border-orange-300 text-orange-600 hover:bg-orange-50"
+                        className="w-full border-warning text-warning-foreground hover:bg-warning"
                         onClick={async () => {
                           await api.resetPin(employee.id);
                           toast.success("PIN réinitialisé pour la démo.");

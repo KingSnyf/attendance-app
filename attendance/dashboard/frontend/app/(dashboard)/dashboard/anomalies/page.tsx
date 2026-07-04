@@ -17,6 +17,7 @@ import { getNomComplet } from "@/lib/data";
 import { useAuth } from "@/hooks/useAuth";
 import type { Anomalie, Utilisateur } from "@/lib/types";
 import { formatDateTime } from "@/lib/utils";
+import { anomalieTypeLabel } from "@/lib/labels";
 
 export default function AnomaliesPage() {
   const { user } = useAuth();
@@ -126,7 +127,7 @@ export default function AnomaliesPage() {
               {filtered.map((anomalie) => {
                 return (
                   <tr key={anomalie.id} className="border-t border-border">
-                    <td className="px-4 py-3 text-muted-foreground">{anomalie.type}</td>
+                    <td className="px-4 py-3 text-muted-foreground">{anomalieTypeLabel[anomalie.type] ?? anomalie.type}</td>
                     <td className="px-4 py-3 text-muted-foreground">
                       {anomalie.employe ? getNomComplet(anomalie.employe) : "Inconnu"}
                     </td>

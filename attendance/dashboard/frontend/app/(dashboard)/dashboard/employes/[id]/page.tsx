@@ -19,6 +19,7 @@ import { api } from "@/lib/api";
 import { getNomComplet } from "@/lib/data";
 import type { EmployeDetail, ParametresSysteme, PresenceJour } from "@/lib/types";
 import { formatDate, formatDateTime, formatHeure } from "@/lib/utils";
+import { anomalieTypeLabel } from "@/lib/labels";
 
 const GeofenceMap = dynamic(
   () => import("@/components/dashboard/geofence-map").then((module) => module.GeofenceMap),
@@ -26,11 +27,11 @@ const GeofenceMap = dynamic(
 );
 
 const statusColors: Record<PresenceJour["statut"], string> = {
-  present: "bg-emerald-500",
-  absent: "bg-rose-500",
-  retard: "bg-amber-500",
-  ferie: "bg-sky-500",
-  weekend: "bg-zinc-300",
+  present: "bg-chart-5",
+  absent: "bg-destructive",
+  retard: "bg-brand",
+  ferie: "bg-signal",
+  weekend: "bg-border",
 };
 
 export default function EmployeDetailPage() {
@@ -271,8 +272,8 @@ export default function EmployeDetailPage() {
               </tr>
             </thead>
             <tbody>
-              {detail.sessions
-                .filter((session) => session.date.startsWith("2026-06"))
+              {[...detail.sessions]
+                .sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0))
                 .map((session) => (
                   <tr key={session.id} className="border-t border-border">
                     <td className="px-4 py-3 text-muted-foreground">{formatDate(session.date)}</td>
@@ -302,7 +303,7 @@ export default function EmployeDetailPage() {
           {detail.anomalies.map((anomalie) => (
             <div key={anomalie.id} className="rounded-2xl border border-border p-4">
               <div className="flex items-center justify-between gap-3">
-                <p className="font-medium text-foreground">{anomalie.type}</p>
+                <p className="font-medium text-foreground">{anomalieTypeLabel[anomalie.type] ?? anomalie.type}</p>
                 <Badge variant={anomalie.traitee ? "success" : "danger"}>
                   {anomalie.traitee ? "Traitée" : "Non traitée"}
                 </Badge>

@@ -16,6 +16,7 @@ import { api } from "@/lib/api";
 import { getNomComplet } from "@/lib/data";
 import type { DemandeModification, SessionPresence, Utilisateur } from "@/lib/types";
 import { formatDateTime } from "@/lib/utils";
+import { modificationStatutLabel } from "@/lib/labels";
 
 type RequestRow = DemandeModification & {
   employe?: { id: string; nom: string; prenom: string } | null;
@@ -127,7 +128,7 @@ export default function ModificationsPage() {
                             : "warning"
                       }
                     >
-                      {request.statut}
+                      {modificationStatutLabel[request.statut] ?? request.statut}
                     </Badge>
                   </td>
                   <td className="px-4 py-3 text-muted-foreground">

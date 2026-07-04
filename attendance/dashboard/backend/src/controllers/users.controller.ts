@@ -1,6 +1,9 @@
-import { Body, Controller, Get, Param, Post, Put, Delete, Query, ForbiddenException } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Put, Patch, Delete, Query, ForbiddenException } from '@nestjs/common';
 import { UsersService } from '../services/users.service';
+import { DevicesService } from '../services/devices.service';
 import { LogsService } from '../services/logs.service';
+import { AnomaliesService } from '../services/anomalies.service';
+import { SessionsService } from '../services/sessions.service';
 import { Roles } from '../auth/roles.decorator';
 import { CreateUserDto } from '../dto/create-user.dto';
 import { UpdateUserDto } from '../dto/update-user.dto';
@@ -10,6 +13,9 @@ import { User } from '../auth/user.decorator';
 export class UsersController {
   constructor(
     private readonly users: UsersService,
+    private readonly devices: DevicesService,
+    private readonly anomalies: AnomaliesService,
+    private readonly sessions: SessionsService,
     private readonly logs: LogsService,
   ) {}
 
@@ -26,11 +32,10 @@ export class UsersController {
 
   @Get(':id')
   async getById(@Param('id') id: string, @User() user: any) {
-    // Employé ne peut voir que son propre profil
     if (user.role === 'employe' && user.userId !== id) {
       throw new ForbiddenException('Vous ne pouvez consulter que votre propre profil');
     }
-    return this.users.getById(id);
+    return this.users.getDetail(id);
   }
 
   @Post()
@@ -82,7 +87,7 @@ export class UsersController {
     return result;
   }
 
-  @Post(':id/toggle')
+  @Post(':id/toggle-active')
   @Roles('gestionnaire', 'admin')
   async toggleAccount(@Param('id') id: string, @User() user: any) {
     const result = await this.users.toggleAccount(id);
@@ -90,6 +95,19 @@ export class UsersController {
       auteurId: user.userId,
       action: result.actif ? 'activation_utilisateur' : 'desactivation_utilisateur',
       cibleId: id,
+    });
+    return result;
+  }
+
+  @Patch(':id/device/deactivate')
+  @Roles('gestionnaire', 'admin')
+  async deactivateDevice(@Param('id') id: string, @User() user: any) {
+    const result = await this.devices.desassocierByUserId(id);
+    await this.logs.create({
+      auteurId: user.userId,
+      action: 'desassociation_appareil',
+      cibleId: id,
+      details: `Appareil désactivé pour l'utilisateur ${id}`,
     });
     return result;
   }

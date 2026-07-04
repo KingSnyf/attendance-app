@@ -57,6 +57,9 @@ export class SessionsController {
     @Query('date_from') dateFrom?: string,
     @Query('date_to') dateTo?: string,
   ) {
+    if (!dateFrom && !dateTo) {
+      return this.sessions.getDashboard();
+    }
     return this.sessions.getStats(dateFrom, dateTo);
   }
 

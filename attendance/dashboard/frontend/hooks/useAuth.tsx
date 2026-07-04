@@ -9,6 +9,7 @@ type User = {
   role: string
   prenom: string
   nom: string
+  photo_url?: string | null
 }
 
 type LoginParams = { email: string; password: string }
@@ -21,6 +22,7 @@ type AuthContextType = {
   login: (params: LoginParams) => Promise<{ success: boolean; user?: User; error?: string }>
   register: (params: RegisterParams) => Promise<{ success: boolean; error?: string }>
   logout: () => void
+  refreshUser: () => Promise<void>
 }
 
 const AuthContext = createContext<AuthContextType | null>(null)
@@ -82,8 +84,24 @@ function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null)
   }, [])
 
+  const refreshUser = useCallback(async () => {
+    const token = authService.getToken()
+    if (!token) return
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:3002/api"}/auth/me`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      if (res.ok) {
+        const data = await res.json()
+        const userData: User = { id: data.id, email: data.email, role: data.role, prenom: data.prenom, nom: data.nom, photo_url: data.photo_url }
+        authService.setUser(userData)
+        setUser(userData)
+      }
+    } catch { /* ignore */ }
+  }, [])
+
   return (
-    <AuthContext.Provider value={{ user, isLoading, error, login, register, logout }}>
+    <AuthContext.Provider value={{ user, isLoading, error, login, register, logout, refreshUser }}>
       {children}
     </AuthContext.Provider>
   )

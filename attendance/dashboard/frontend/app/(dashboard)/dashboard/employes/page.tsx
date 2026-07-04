@@ -170,13 +170,14 @@ export default function EmployesPage() {
                     </div>
                   </td>
                   <td className="px-4 py-4">
-                    <div className="flex flex-wrap gap-2">
+                    <div className="flex flex-col gap-1">
                       <Link href={`/dashboard/employes/${employee.id}`}>
-                        <Button variant="outline" size="sm">Voir la fiche</Button>
+                        <Button variant="outline" size="sm" className="w-full">Voir la fiche</Button>
                       </Link>
                       <Button
                         variant="outline"
                         size="sm"
+                        className="w-full"
                         onClick={async () => {
                           await api.deactivateDevice(employee.id);
                           toast.success("Appareil désactivé pour la démo.");
@@ -186,8 +187,9 @@ export default function EmployesPage() {
                         Désactiver
                       </Button>
                       <Button
-                        variant="ghost"
+                        variant="outline"
                         size="sm"
+                        className="w-full border-orange-300 text-orange-600 hover:bg-orange-50"
                         onClick={async () => {
                           await api.resetPin(employee.id);
                           toast.success("PIN réinitialisé pour la démo.");

@@ -43,6 +43,9 @@ export const api = {
 
   getLogs: () => request("/logs"),
 
+  updateProfile: (data: { firstName?: string; lastName?: string; photoUrl?: string; email?: string }) =>
+    request<any>("/auth/profile", { method: "PATCH", body: JSON.stringify(data) }),
+
   getDashboardData: () => request<DashboardData>("/sessions/stats"),
 
   getSessions: (userId: string) => request(`/sessions/${userId}`),

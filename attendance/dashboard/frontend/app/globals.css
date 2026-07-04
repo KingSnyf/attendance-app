@@ -59,6 +59,8 @@
 
 :root {
   color-scheme: light;
+  --font-inter: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --font-geist-mono: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
   --background: #f8f8f8;
   --foreground: #0a0a0a;
   --card: #ffffff;

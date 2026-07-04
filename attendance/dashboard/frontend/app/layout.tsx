@@ -1,13 +1,6 @@
 import type { Metadata, Viewport } from "next";
-import { Geist_Mono, Inter } from "next/font/google";
 import { AppProviders } from "@/components/providers/app-providers";
 import "./globals.css";
-
-const inter = Inter({ variable: "--font-inter", subsets: ["latin"] });
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
 
 export const metadata: Metadata = {
   title: "Attendance — Tableau de bord",
@@ -46,10 +39,10 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html
-      lang="fr"
-      className={`${inter.variable} ${geistMono.variable} bg-background`}
-    >
+    <html lang="fr" className="bg-background">
+      <head>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap" />
+      </head>
       <body className="font-sans antialiased">
         <AppProviders>{children}</AppProviders>
       </body>

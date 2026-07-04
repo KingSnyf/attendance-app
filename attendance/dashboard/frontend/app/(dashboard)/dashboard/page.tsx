@@ -7,13 +7,13 @@ import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AlertTriangle, CheckCircle2, Coffee, Download, XCircle } from "lucide-react";
 import toast from "react-hot-toast";
-import { EmployeeFilters } from "@/components/dashboard/employee-filters";
 import { EmployeesPresence } from "@/components/dashboard/employeesPresence";
 import { GeofencingAlert } from "@/components/dashboard/geofencing-alert";
 import { PresenceChart } from "@/components/dashboard/presence-chart";
 import { StatCard } from "@/components/dashboard/stat-card";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/spinner";
 import { useDashboardData } from "@/hooks/useDashboardData";
 import { departementsDisponibles, getEmployeeSummaryRows } from "@/lib/data";
@@ -121,18 +121,6 @@ export default function VueEnsemblePage() {
         />
       </div>
 
-      <EmployeeFilters
-        searchQuery={searchQuery}
-        setSearchQuery={setSearchQuery}
-        statut={filterStatut}
-        setStatut={setFilterStatut}
-        filterDepartement={filterDepartement}
-        setFilterDepartement={setFilterDepartement}
-        geofencing={filterGeofencing}
-        setGeofencing={setFilterGeofencing}
-        departements={departementsDisponibles}
-      />
-
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <div>
           <h2 className="text-lg font-semibold text-foreground">Présence collective</h2>
@@ -162,17 +150,54 @@ export default function VueEnsemblePage() {
       />
 
       <Card>
-        <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+        <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
           <div>
             <h2 className="text-lg font-semibold text-foreground">Présence des employés</h2>
             <p className="text-sm text-muted-foreground">
               Statut en temps réel, appareil associé et temps cumulé du jour.
             </p>
           </div>
-          <Button onClick={handleExportCSV}>
-            <Download className="size-4" />
-            Exporter en CSV
-          </Button>
+          <div className="flex flex-wrap items-center gap-2">
+            <Input
+              placeholder="Rechercher un employé..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="h-10 w-48 lg:w-56"
+            />
+            <select
+              value={filterStatut}
+              onChange={(e) => setFilterStatut(e.target.value)}
+              className="h-10 rounded-xl border border-border bg-card px-3 text-sm"
+            >
+              <option value="all">Tous</option>
+              <option value="present">Présent</option>
+              <option value="pause">En pause</option>
+              <option value="absent">Absent</option>
+            </select>
+            <select
+              value={filterDepartement}
+              onChange={(e) => setFilterDepartement(e.target.value)}
+              className="h-10 rounded-xl border border-border bg-card px-3 text-sm"
+            >
+              <option value="all">Tous les dép.</option>
+              {departementsDisponibles.map((dept) => (
+                <option key={dept} value={dept}>{dept}</option>
+              ))}
+            </select>
+            <select
+              value={filterGeofencing}
+              onChange={(e) => setFilterGeofencing(e.target.value)}
+              className="h-10 rounded-xl border border-border bg-card px-3 text-sm"
+            >
+              <option value="all">Géo.</option>
+              <option value="alert">Alerte</option>
+              <option value="safe">Sans alerte</option>
+            </select>
+            <Button onClick={handleExportCSV} size="sm">
+              <Download className="size-4" />
+              CSV
+            </Button>
+          </div>
         </div>
 
         <EmployeesPresence

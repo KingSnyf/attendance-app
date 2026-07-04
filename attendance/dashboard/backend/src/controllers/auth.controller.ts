@@ -1,8 +1,9 @@
-import { Body, Controller, Get, Param, Post, ForbiddenException } from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, Post, ForbiddenException } from '@nestjs/common';
 import { AuthService } from '../services/auth.service';
 import { Public } from '../auth/public.decorator';
 import { Roles } from '../auth/roles.decorator';
 import { CreateUserDto } from '../dto/create-user.dto';
+import { UpdateProfileDto } from '../dto/update-profile.dto';
 import { LoginDto } from '../dto/login.dto';
 import { User } from '../auth/user.decorator';
 
@@ -39,5 +40,10 @@ export class AuthController {
   @Get('me')
   async me(@User() user: any) {
     return this.authService.getUser(user.userId);
+  }
+
+  @Patch('profile')
+  async updateProfile(@Body() body: UpdateProfileDto, @User() user: any) {
+    return this.authService.updateProfile(user.userId, body);
   }
 }

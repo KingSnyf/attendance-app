@@ -17,6 +17,14 @@ export class CreateUserDto {
   lastName?: string;
 
   @IsOptional()
+  @IsString()
+  prenom?: string;
+
+  @IsOptional()
+  @IsString()
+  nom?: string;
+
+  @IsOptional()
   @IsIn(['employe', 'gestionnaire', 'admin'])
   role?: string;
 

@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Post, Put, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Query, UseGuards } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { ModificationsService } from '../services/modifications.service';
 import { LogsService } from '../services/logs.service';
@@ -34,19 +34,20 @@ export class ModificationsController {
     return result;
   }
 
-  @Put(':id/process')
+  @Post(':id/process')
   @Roles('gestionnaire', 'admin')
   async process(
     @Param('id') id: string,
     @Body() body: ProcessModificationDto,
     @User() user: any,
   ) {
-    const result = await this.modifications.process(id, body.statut, body.adminId);
+    const statut = body.action === 'approve' ? 'validee' : body.action === 'reject' ? 'rejetee' : body.action;
+    const result = await this.modifications.process(id, statut, user.userId);
     await this.logs.create({
       auteurId: user.userId,
-      action: `modification_${body.statut}`,
+      action: `modification_${statut}`,
       cibleId: id,
-      details: `Demande ${body.statut}`,
+      details: `Demande ${statut}`,
     });
     return result;
   }

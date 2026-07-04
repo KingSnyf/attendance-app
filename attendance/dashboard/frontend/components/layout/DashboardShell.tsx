@@ -31,11 +31,13 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className="flex min-h-screen bg-background">
-      <Sidebar />
-      <div className="flex flex-1 flex-col">
+    <div className="flex h-screen bg-background">
+      <div className="sticky top-0 h-screen shrink-0">
+        <Sidebar />
+      </div>
+      <div className="flex flex-1 flex-col overflow-y-auto">
         <Header />
-        <main className="flex-1 overflow-y-auto p-6">{children}</main>
+        <main className="flex-1 p-6">{children}</main>
       </div>
     </div>
   )

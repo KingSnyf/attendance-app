@@ -3,9 +3,9 @@ import { IsString, IsOptional, IsBoolean } from 'class-validator';
 export class ResolveAnomalyDto {
   @IsOptional()
   @IsString()
-  commentaire?: string;
+  comment?: string;
 
   @IsOptional()
   @IsBoolean()
-  geolocVerifiee?: boolean;
+  geoloc_verifiee?: boolean;
 }

@@ -82,6 +82,13 @@ export class DevicesService {
     };
   }
 
+  async desassocierByUserId(userId: string) {
+    const device = await this.prisma.device.findFirst({ where: { userId, actif: true } });
+    if (!device) return { success: false, message: 'Aucun appareil actif trouvé' };
+    await this.prisma.device.update({ where: { id: device.id }, data: { actif: false } });
+    return { success: true, id: device.id };
+  }
+
   async desassocier(id: string) {
     const device = await this.prisma.device.findUnique({ where: { id } });
     if (!device) throw new NotFoundException('Device not found');

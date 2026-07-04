@@ -333,6 +333,102 @@ export class SessionsService {
     };
   }
 
+  async getDashboard() {
+    const totalUsers = await this.prisma.user.count({ where: { actif: true } });
+    const presents = await this.prisma.user.count({ where: { statutActuel: 'present' } });
+    const enPause = await this.prisma.user.count({ where: { statutActuel: 'en_attente' } });
+    const anomaliesNonTraitees = await this.prisma.anomaly.count({ where: { traitee: false } });
+
+    const geofencingAlerts = await this.prisma.anomaly.findMany({
+      where: { type: 'geofencing_incoherent', traitee: false },
+      orderBy: { dateDetection: 'desc' },
+      take: 20,
+    });
+
+    const employees = await this.prisma.user.findMany({
+      where: { actif: true },
+      orderBy: { dateCreation: 'desc' },
+      include: { devices: { where: { actif: true }, take: 1 } },
+    });
+
+    // Présence hebdomadaire (7 derniers jours)
+    const weeklyPresence: Array<{ label: string; presents: number; absents: number }> = [];
+    const dayNames = ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam'];
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      const dateStart = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+      const dateEnd = new Date(dateStart);
+      dateEnd.setDate(dateEnd.getDate() + 1);
+      const sessions = await this.prisma.sessionPresence.findMany({
+        where: { date: { gte: dateStart, lt: dateEnd } },
+      });
+      const uniqueUsers = new Set(sessions.map((s) => s.userId));
+      weeklyPresence.push({
+        label: dayNames[d.getDay()],
+        presents: uniqueUsers.size,
+        absents: Math.max(0, totalUsers - uniqueUsers.size),
+      });
+    }
+
+    // Présence mensuelle (4 dernières semaines)
+    const monthlyPresence: Array<{ label: string; presents: number; absents: number }> = [];
+    for (let w = 3; w >= 0; w--) {
+      const end = new Date();
+      end.setDate(end.getDate() - w * 7);
+      const start = new Date(end);
+      start.setDate(start.getDate() - 6);
+      const sessions = await this.prisma.sessionPresence.findMany({
+        where: { date: { gte: start, lt: end } },
+      });
+      const uniqueUsers = new Set(sessions.map((s) => s.userId));
+      monthlyPresence.push({
+        label: `S${4 - w}`,
+        presents: uniqueUsers.size,
+        absents: Math.max(0, totalUsers - uniqueUsers.size),
+      });
+    }
+
+    return {
+      stats: {
+        presents,
+        absents: totalUsers - presents - enPause,
+        enPause,
+        anomaliesNonTraitees,
+      },
+      geofencingAlerts: geofencingAlerts.map((a) => ({
+        id: a.id,
+        user_id: a.userId,
+        type: a.type,
+        description: a.description,
+        date_detection: a.dateDetection.toISOString(),
+        traitee: a.traitee,
+        geoloc_verifiee: a.geolocVerifiee,
+      })),
+      employees: employees.map((u) => ({
+        id: u.id,
+        nom: u.lastName || '',
+        prenom: u.firstName || '',
+        email: u.email,
+        role: u.role,
+        statut_actuel: u.statutActuel || 'absent',
+        departement: u.departement || '',
+        actif: u.actif,
+        photo_url: u.photoUrl || null,
+        appareil: u.devices?.[0]
+          ? {
+              id: u.devices[0].id,
+              identifiant_appareil: u.devices[0].identifiantAppareil,
+              modele: u.devices[0].modele,
+              actif: u.devices[0].actif,
+            }
+          : null,
+      })),
+      weeklyPresence,
+      monthlyPresence,
+    };
+  }
+
   async getMonthlyStats(year?: number) {
     const annee = year || new Date().getFullYear();
     const result: any[] = [];

@@ -40,7 +40,7 @@ export class UsersService {
     return this.formatUser(user);
   }
 
-  async create(data: { email: string; password: string; firstName?: string; lastName?: string; role?: string; departement?: string }) {
+  async create(data: { email: string; password: string; firstName?: string; lastName?: string; prenom?: string; nom?: string; role?: string; departement?: string }) {
     const existing = await this.prisma.user.findUnique({ where: { email: data.email } });
     if (existing) throw new ConflictException('Email already in use');
 
@@ -48,8 +48,8 @@ export class UsersService {
     const user = await this.prisma.user.create({
       data: {
         email: data.email,
-        firstName: data.firstName,
-        lastName: data.lastName,
+        firstName: data.firstName || data.prenom,
+        lastName: data.lastName || data.nom,
         passwordHash,
         role: data.role || 'employe',
         departement: data.departement,
@@ -117,6 +117,64 @@ export class UsersService {
     return { success: true };
   }
 
+  async getDetail(id: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id },
+      include: {
+        devices: true,
+      },
+    });
+    if (!user) throw new NotFoundException('User not found');
+
+    const sessions = await this.prisma.sessionPresence.findMany({
+      where: { userId: id },
+      orderBy: { date: 'desc' },
+      take: 100,
+    });
+
+    const anomalies = await this.prisma.anomaly.findMany({
+      where: { userId: id },
+      orderBy: { dateDetection: 'desc' },
+    });
+
+    // Générer calendrier (30 derniers jours)
+    const calendrier: any[] = [];
+    const now = new Date();
+    for (let i = 29; i >= 0; i--) {
+      const d = new Date(now);
+      d.setDate(d.getDate() - i);
+      const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      const daySessions = sessions.filter(
+        (s) =>
+          `${s.date.getFullYear()}-${String(s.date.getMonth() + 1).padStart(2, '0')}-${String(s.date.getDate()).padStart(2, '0')}` === dateStr,
+      );
+      let statut = 'absent';
+      if (daySessions.length > 0) {
+        const hasDepart = daySessions.some((s) => s.heureDepart);
+        if (hasDepart) statut = 'present';
+        else statut = daySessions.some((s) => (s.retardMinutes ?? 0) > 10) ? 'retard' : 'present';
+      }
+      const dayOfWeek = d.getDay();
+      if (dayOfWeek === 0 || dayOfWeek === 6) statut = 'weekend';
+      calendrier.push({ date: dateStr, statut, sessions: daySessions.map((s) => this.formatSession(s)) });
+    }
+
+    return {
+      utilisateur: this.formatUser(user),
+      calendrier,
+      sessions: sessions.map((s) => this.formatSession(s)),
+      anomalies: anomalies.map((a: any) => ({
+        id: a.id,
+        user_id: a.userId,
+        type: a.type,
+        description: a.description,
+        date_detection: a.dateDetection.toISOString(),
+        traitee: a.traitee,
+        geoloc_verifiee: a.geolocVerifiee,
+      })),
+    };
+  }
+
   async toggleAccount(id: string) {
     const user = await this.prisma.user.findUnique({ where: { id } });
     if (!user) throw new NotFoundException('User not found');
@@ -125,6 +183,21 @@ export class UsersService {
       data: { actif: !user.actif },
     });
     return { success: true, actif: updated.actif };
+  }
+
+  private formatSession(s: any) {
+    return {
+      id: s.id,
+      date: s.date.toISOString(),
+      heure_arrivee: s.heureArrivee.toISOString(),
+      heure_depart: s.heureDepart?.toISOString() || null,
+      type_arrivee: s.typeArrivee,
+      methode_validation: s.methodeValidation,
+      valide: s.valide,
+      retard_minutes: s.retardMinutes || 0,
+      latitude: s.latitude || null,
+      longitude: s.longitude || null,
+    };
   }
 
   private formatUser(u: any) {

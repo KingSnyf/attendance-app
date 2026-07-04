@@ -4,7 +4,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { MapPinned } from "lucide-react";
+import { MapPinned, ShieldCheck, SendHorizonal } from "lucide-react";
 import toast from "react-hot-toast";
 import { Badge } from "@/components/dashboard/status-badge";
 import { Button } from "@/components/ui/button";
@@ -14,10 +14,13 @@ import { Spinner } from "@/components/ui/spinner";
 import { Table, TableHeadCell, TableWrapper } from "@/components/ui/table";
 import { api } from "@/lib/api";
 import { getNomComplet, utilisateurs } from "@/lib/data";
+import { useAuth } from "@/hooks/useAuth";
 import type { Anomalie } from "@/lib/types";
 import { formatDateTime } from "@/lib/utils";
 
 export default function AnomaliesPage() {
+  const { user } = useAuth();
+  const isAdmin = user?.role === "admin";
   const [anomalies, setAnomalies] = useState<Anomalie[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState("all");
@@ -140,13 +143,27 @@ export default function AnomaliesPage() {
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex flex-wrap gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => setSelected(anomalie)}
-                        >
-                          Marquer traitée
-                        </Button>
+                        {isAdmin ? (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setSelected(anomalie)}
+                          >
+                            <ShieldCheck className="size-4" />
+                            Traiter
+                          </Button>
+                        ) : (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              toast.success("Demande de validation envoyée à l'administrateur.");
+                            }}
+                          >
+                            <SendHorizonal className="size-4" />
+                            Demander validation
+                          </Button>
+                        )}
                         {anomalie.type === "geofencing_incoherent" ? (
                           <Button
                             variant="ghost"
@@ -198,7 +215,10 @@ export default function AnomaliesPage() {
               onClick={async () => {
                 if (!selected) return;
                 await api.resolveAnomaly(selected.id, comment, geolocVerified);
-                toast.success("Anomalie traitée pour la démonstration.");
+                toast.success("Anomalie traitée.");
+                setAnomalies((prev) =>
+                  prev.map((a) => (a.id === selected.id ? { ...a, traitee: true, geoloc_verifiee: geolocVerified } : a)),
+                );
                 setSelected(null);
                 setComment("");
                 setGeolocVerified(false);

@@ -17,6 +17,7 @@ import { Spinner } from "@/components/ui/spinner";
 import { Table, TableHeadCell, TableWrapper } from "@/components/ui/table";
 import { api } from "@/lib/api";
 import { getNomComplet } from "@/lib/data";
+import { useAuth } from "@/hooks/useAuth";
 import type { EmployeDetail, ParametresSysteme, PresenceJour } from "@/lib/types";
 import { formatDate, formatDateTime, formatHeure } from "@/lib/utils";
 import { anomalieTypeLabel, statutBadgeVariant, statutLabel } from "@/lib/labels";
@@ -36,11 +37,16 @@ const statusColors: Record<PresenceJour["statut"], string> = {
 
 export default function EmployeDetailPage() {
   const params = useParams<{ id: string }>();
+  const { user: currentUser } = useAuth();
   const [detail, setDetail] = useState<EmployeDetail | null>(null);
   const [settings, setSettings] = useState<ParametresSysteme | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [requestOpen, setRequestOpen] = useState(false);
+  const [requestSessionId, setRequestSessionId] = useState("");
+  const [requestProposition, setRequestProposition] = useState("");
+  const [requestRaison, setRequestRaison] = useState("");
+  const [submittingRequest, setSubmittingRequest] = useState(false);
 
   useEffect(() => {
     if (!params.id) return;
@@ -308,24 +314,80 @@ export default function EmployeDetailPage() {
         open={requestOpen}
         onClose={() => setRequestOpen(false)}
         title="Demander une modification"
-        description="Cette action simule une demande soumise à validation administrateur."
+        description="La demande sera soumise à validation d'un administrateur."
       >
         <div className="space-y-4">
-          <textarea
-            className="min-h-32 w-full rounded-2xl border border-border bg-card p-3 text-sm outline-none focus:border-brand"
-            placeholder="Décrivez la correction demandée..."
-          />
+          <div>
+            <label className="mb-1.5 block text-sm font-medium text-foreground">
+              Session concernée
+            </label>
+            <select
+              value={requestSessionId}
+              onChange={(e) => setRequestSessionId(e.target.value)}
+              className="w-full rounded-2xl border border-border bg-card p-3 text-sm outline-none focus:border-brand"
+            >
+              <option value="">Sélectionner une session...</option>
+              {[...detail.sessions]
+                .sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0))
+                .map((session) => (
+                  <option key={session.id} value={session.id}>
+                    {formatDate(session.date)} · {formatHeure(session.heure_arrivee)}
+                    {session.heure_depart ? ` → ${formatHeure(session.heure_depart)}` : " (en cours)"}
+                  </option>
+                ))}
+            </select>
+          </div>
+          <div>
+            <label className="mb-1.5 block text-sm font-medium text-foreground">
+              Modification proposée
+            </label>
+            <textarea
+              value={requestProposition}
+              onChange={(e) => setRequestProposition(e.target.value)}
+              className="min-h-20 w-full rounded-2xl border border-border bg-card p-3 text-sm outline-none focus:border-brand"
+              placeholder="Ex: Arrivée à 08:00 au lieu de 09:15"
+            />
+          </div>
+          <div>
+            <label className="mb-1.5 block text-sm font-medium text-foreground">Raison</label>
+            <textarea
+              value={requestRaison}
+              onChange={(e) => setRequestRaison(e.target.value)}
+              className="min-h-20 w-full rounded-2xl border border-border bg-card p-3 text-sm outline-none focus:border-brand"
+              placeholder="Justification de la correction..."
+            />
+          </div>
           <div className="flex justify-end gap-2">
             <Button variant="outline" onClick={() => setRequestOpen(false)}>
               Annuler
             </Button>
             <Button
-              onClick={() => {
-                setRequestOpen(false);
-                toast.success("Demande de modification enregistrée pour la démo.");
+              disabled={
+                submittingRequest || !requestSessionId || !requestProposition.trim() || !requestRaison.trim()
+              }
+              onClick={async () => {
+                if (!currentUser) return;
+                setSubmittingRequest(true);
+                try {
+                  await api.createModificationRequest({
+                    gestionnaireId: currentUser.id,
+                    sessionPresenceId: requestSessionId,
+                    modificationProposee: requestProposition.trim(),
+                    raison: requestRaison.trim(),
+                  });
+                  toast.success("Demande de modification soumise.");
+                  setRequestOpen(false);
+                  setRequestSessionId("");
+                  setRequestProposition("");
+                  setRequestRaison("");
+                } catch {
+                  toast.error("Échec de l'envoi de la demande.");
+                } finally {
+                  setSubmittingRequest(false);
+                }
               }}
             >
-              Soumettre
+              {submittingRequest ? "Envoi..." : "Soumettre"}
             </Button>
           </div>
         </div>

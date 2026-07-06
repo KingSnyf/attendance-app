@@ -40,6 +40,13 @@ export const api = {
 
   getModificationRequests: () => request<DemandeModification[]>("/modifications"),
 
+  createModificationRequest: (data: {
+    gestionnaireId: string
+    sessionPresenceId: string
+    modificationProposee: string
+    raison: string
+  }) => request<DemandeModification>("/modifications", { method: "POST", body: JSON.stringify(data) }),
+
   approveRequest: (id: string) => request(`/modifications/${id}/process`, { method: "POST", body: JSON.stringify({ action: "approve" }) }),
 
   rejectRequest: (id: string) => request(`/modifications/${id}/process`, { method: "POST", body: JSON.stringify({ action: "reject" }) }),

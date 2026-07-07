@@ -24,10 +24,15 @@ export class DevicesController {
     return this.devices.getById(id);
   }
 
+  @Post('self')
+  async selfAssociate(@Body() body: { identifiantAppareil: string; modele?: string; marque?: string }, @User() user: any) {
+    return this.devices.associate(user.userId, body.identifiantAppareil, body.modele, body.marque);
+  }
+
   @Post('associate')
   @Roles('gestionnaire', 'admin')
   async associate(@Body() body: CreateDeviceDto, @User() user: any) {
-    const result = await this.devices.associate(body.userId, body.identifiantAppareil, body.modele);
+    const result = await this.devices.associate(body.userId, body.identifiantAppareil, body.modele, body.marque);
     await this.logs.create({
       auteurId: user.userId,
       action: 'association_appareil',

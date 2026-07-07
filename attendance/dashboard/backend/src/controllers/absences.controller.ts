@@ -25,6 +25,14 @@ export class RequestsController {
     });
   }
 
+  @Get('mine')
+  async mine(@User() user: any) {
+    return this.prisma.request.findMany({
+      where: { userId: user.userId },
+      orderBy: { dateDemande: 'desc' },
+    });
+  }
+
   @Get()
   @Roles('gestionnaire', 'admin')
   async list(@User() user: any) {

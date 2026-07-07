@@ -9,6 +9,7 @@ import { UsersController } from './controllers/users.controller';
 import { DevicesController } from './controllers/devices.controller';
 import { ExportController } from './controllers/export.controller';
 import { MobileController } from './controllers/mobile.controller';
+import { UploadController } from './controllers/upload.controller';
 import { RequestsController } from './controllers/absences.controller';
 import { SessionsService } from './services/sessions.service';
 import { SettingsService } from './services/settings.service';
@@ -33,6 +34,7 @@ import { PrismaService } from './prisma.service';
     ExportController,
     MobileController,
     RequestsController,
+    UploadController,
   ],
   providers: [
     PrismaService,

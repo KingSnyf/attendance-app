@@ -4,13 +4,33 @@ import { LogsService } from '../services/logs.service';
 import { ResolveAnomalyDto } from '../dto/resolve-anomaly.dto';
 import { Roles } from '../auth/roles.decorator';
 import { User } from '../auth/user.decorator';
+import { PrismaService } from '../prisma.service';
 
 @Controller('anomalies')
 export class AnomaliesController {
   constructor(
     private readonly svc: AnomaliesService,
     private readonly logs: LogsService,
+    private readonly prisma: PrismaService,
   ) {}
+
+  @Get('mine')
+  async mine(@User() user: any) {
+    const anomalies = await this.prisma.anomaly.findMany({
+      where: { userId: user.userId },
+      orderBy: { dateDetection: 'desc' },
+    }) as any[];
+    return anomalies.map((a: any) => ({
+      id: a.id,
+      user_id: a.userId,
+      type: a.type,
+      description: a.description,
+      date_detection: a.dateDetection.toISOString(),
+      traitee: a.traitee,
+      commentaire: a.commentaire,
+      geoloc_verifiee: a.geolocVerifiee,
+    }));
+  }
 
   @Get()
   @Roles('gestionnaire', 'admin')

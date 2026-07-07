@@ -79,13 +79,16 @@ export default function ParametresPage() {
       });
   }, [user]);
 
-  const handlePhoto = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handlePhoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onloadend = () =>
-      setProfile((p) => ({ ...p, photoUrl: reader.result as string }));
-    reader.readAsDataURL(file);
+    try {
+      const result = await api.uploadFile(file) as { url: string };
+      setProfile((p) => ({ ...p, photoUrl: result.url }));
+      toast.success("Photo uploadée.");
+    } catch {
+      toast.error("Échec de l'upload.");
+    }
   };
 
   if (user?.role !== "admin" && user?.role !== "gestionnaire") {

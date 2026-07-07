@@ -83,10 +83,28 @@ export const api = {
   createRequest: (data: { type: string; dateDebut?: string; dateFin?: string; motif: string }) =>
     request("/requests", { method: "POST", body: JSON.stringify(data) }),
 
+  getMyRequests: () => request("/requests/mine"),
+
   getRequests: () => request("/requests"),
 
   getPendingRequests: () => request<{ count: number }>("/requests/pending"),
 
   processRequest: (id: string, action: string, commentaire?: string) =>
     request(`/requests/${id}/process`, { method: "POST", body: JSON.stringify({ action, commentaire }) }),
+
+  getMyAnomalies: () => request("/anomalies/mine"),
+
+  selfAssociateDevice: (data: { identifiantAppareil: string; modele?: string; marque?: string }) =>
+    request("/devices/self", { method: "POST", body: JSON.stringify(data) }),
+
+  uploadFile: (file: File) => {
+    const form = new FormData();
+    form.append("file", file);
+    const token = typeof window !== "undefined" ? localStorage.getItem("attendance_token") : null;
+    return fetch(`${BACKEND_URL}/upload`, {
+      method: "POST",
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      body: form,
+    }).then((r) => r.json());
+  },
 }

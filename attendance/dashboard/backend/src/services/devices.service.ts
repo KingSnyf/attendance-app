@@ -44,7 +44,7 @@ export class DevicesService {
     };
   }
 
-  async associate(userId: string, identifiantAppareil: string, modele?: string) {
+  async associate(userId: string, identifiantAppareil: string, modele?: string, marque?: string) {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
     if (!user) throw new NotFoundException('User not found');
 
@@ -66,6 +66,7 @@ export class DevicesService {
       data: {
         userId,
         identifiantAppareil,
+        marque: marque ?? null,
         modele: modele ?? null,
         dateAssociation: new Date(),
         actif: true,
@@ -76,6 +77,7 @@ export class DevicesService {
       id: device.id,
       user_id: device.userId,
       identifiant_appareil: device.identifiantAppareil,
+      marque: device.marque,
       modele: device.modele,
       date_association: device.dateAssociation.toISOString(),
       actif: device.actif,

@@ -31,8 +31,10 @@
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.2",
+    "@types/multer": "^2.2.0",
     "@types/node": "^20.0.0",
     "@types/passport-jwt": "^3.0.8",
+    "@types/uuid": "^10.0.0",
     "prisma": "^5.0.0",
     "ts-node-dev": "^2.0.0",
     "typescript": "^5.2.2"

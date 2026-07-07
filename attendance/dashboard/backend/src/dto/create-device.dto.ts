@@ -9,5 +9,9 @@ export class CreateDeviceDto {
 
   @IsOptional()
   @IsString()
+  marque?: string;
+
+  @IsOptional()
+  @IsString()
   modele?: string;
 }

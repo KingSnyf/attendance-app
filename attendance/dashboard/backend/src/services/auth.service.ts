@@ -31,11 +31,12 @@ export class AuthService {
         role: user.role,
         prenom: user.firstName || '',
         nom: user.lastName || '',
+        photo_url: user.photoUrl || null,
       },
     };
   }
 
-  async register(payload: { email: string; password: string; firstName?: string; lastName?: string; prenom?: string; nom?: string; role?: string }) {
+  async register(payload: { email: string; password: string; firstName?: string; lastName?: string; prenom?: string; nom?: string; role?: string; telephone?: string }) {
     const existing = await this.prisma.user.findUnique({ where: { email: payload.email } });
     if (existing) {
       throw new ConflictException('Email already in use');
@@ -48,7 +49,8 @@ export class AuthService {
         lastName: payload.lastName || payload.nom,
         passwordHash,
         methodeAuth: 'pin',
-        role: payload.role || 'employe'
+        role: payload.role || 'employe',
+        telephone: payload.telephone,
       }
     });
 

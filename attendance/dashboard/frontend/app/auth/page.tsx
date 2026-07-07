@@ -9,8 +9,9 @@ import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Fingerprint, Mail, Lock, User, ArrowRight, ShieldCheck } from "lucide-react";
+import { Fingerprint, Mail, Lock, User, ArrowRight, ShieldCheck, ArrowLeft } from "lucide-react";
 import toast from "react-hot-toast";
+import { api } from "@/lib/api";
 
 const ROLES_DASHBOARD = ["admin", "gestionnaire"];
 
@@ -18,6 +19,8 @@ export default function AuthPage() {
   const router = useRouter();
   const { login, register, logout, isLoading, error } = useAuth();
   const [isLogin, setIsLogin] = useState(true);
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState("");
   const [formData, setFormData] = useState({
     email: "",
     password: "",
@@ -207,6 +210,16 @@ export default function AuthPage() {
               </div>
             </div>
 
+            {isLogin && (
+              <button
+                type="button"
+                onClick={() => setShowForgotPassword(true)}
+                className="text-sm text-muted-foreground hover:text-brand transition"
+              >
+                Mot de passe oublié ?
+              </button>
+            )}
+
             {error && (
               <div className="rounded-xl border border-danger bg-danger px-4 py-3 text-sm text-danger-foreground">
                 {error}
@@ -239,6 +252,48 @@ export default function AuthPage() {
           </div>
         </div>
       </div>
+
+      {/* Modale mot de passe oublié */}
+      {showForgotPassword && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40" onClick={() => setShowForgotPassword(false)}>
+          <div className="w-full max-w-sm rounded-2xl border border-border bg-card p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
+            <h2 className="text-lg font-semibold text-foreground">Mot de passe oublié</h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Saisissez votre email pour recevoir un nouveau mot de passe.
+            </p>
+            <div className="mt-4 space-y-4">
+              <Input
+                type="email"
+                placeholder="votre@email.com"
+                value={forgotEmail}
+                onChange={(e) => setForgotEmail(e.target.value)}
+              />
+              <Button
+                className="w-full"
+                onClick={async () => {
+                  if (!forgotEmail.trim()) { toast.error("Email requis"); return; }
+                  try {
+                    await api.forgotPassword(forgotEmail.trim());
+                    toast.success("Un nouveau mot de passe a été envoyé par email.");
+                    setShowForgotPassword(false);
+                  } catch {
+                    toast.error("Erreur lors de la réinitialisation.");
+                  }
+                }}
+              >
+                Réinitialiser
+              </Button>
+              <button
+                type="button"
+                onClick={() => setShowForgotPassword(false)}
+                className="w-full text-center text-sm text-muted-foreground hover:text-foreground"
+              >
+                Annuler
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

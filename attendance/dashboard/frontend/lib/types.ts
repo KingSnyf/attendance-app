@@ -8,11 +8,14 @@ export type Utilisateur = {
   role: Role
   departement: string
   statut_actuel: string
+  actif: boolean
+  telephone?: string | null
   photo_url?: string | null
   // Uniquement présents sur les employés renvoyés par /sessions/stats
   premiere_arrivee?: string | null
   temps_cumule_minutes?: number | null
   appareil?: {
+    marque?: string
     modele: string
     identifiant_appareil: string
     actif: boolean
@@ -50,6 +53,8 @@ export type SessionPresence = {
   methode_validation: string
   lieu: string
   user_id: string
+  latitude?: number | null
+  longitude?: number | null
 }
 
 export type PresenceJour = {
@@ -77,6 +82,8 @@ export type ParametresSysteme = {
   jours_ouvres: string[]
   geolocalisation_secours_active?: boolean
   politique_confidentialite?: string
+  heure_debut_journee: string
+  heure_fin_journee: string
 }
 
 export type JournalActivite = {

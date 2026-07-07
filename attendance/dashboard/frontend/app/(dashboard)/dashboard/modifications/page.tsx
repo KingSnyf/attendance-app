@@ -15,7 +15,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { api } from "@/lib/api";
 import { getNomComplet } from "@/lib/data";
 import type { DemandeModification, SessionPresence, Utilisateur } from "@/lib/types";
-import { formatDateTime } from "@/lib/utils";
+import { formatDateTime, formatHeure } from "@/lib/utils";
 import { modificationStatutLabel } from "@/lib/labels";
 
 type RequestRow = DemandeModification & {
@@ -48,7 +48,7 @@ export default function ModificationsPage() {
       requests.filter((request) => {
         return (
           (statusFilter === "all" || request.statut === statusFilter) &&
-          (employeeFilter === "all" || request.session?.user_id === employeeFilter)
+          (employeeFilter === "all" || request.employe?.id === employeeFilter)
         );
       }),
     [employeeFilter, requests, statusFilter],
@@ -112,7 +112,9 @@ export default function ModificationsPage() {
                     {request.employe ? getNomComplet(request.employe) : "Employé"}
                   </td>
                   <td className="px-4 py-3 text-muted-foreground">
-                    {request.session?.date ?? "Session"} · {request.session?.lieu ?? "—"}
+                    {request.session
+                      ? `${request.session.date} · ${formatHeure(request.session.heure_arrivee)}`
+                      : "—"}
                   </td>
                   <td className="px-4 py-3 text-muted-foreground">
                     {request.modification_proposee}
@@ -179,25 +181,21 @@ export default function ModificationsPage() {
           </Button>
           <Button
             variant={selectedAction?.action === "approve" ? "default" : "destructive"}
-            onClick={async () => {
-              if (!selectedAction) return;
-              const { id, action } = selectedAction;
-              if (action === "approve") {
-                await api.approveRequest(id);
-                toast.success("Demande validée.");
-              } else {
-                await api.rejectRequest(id);
-                toast.success("Demande rejetée.");
-              }
-              setRequests((prev) =>
-                prev.map((request) =>
-                  request.id === id
-                    ? { ...request, statut: action === "approve" ? "validee" : "rejetee" }
-                    : request,
-                ),
-              );
-              setSelectedAction(null);
-            }}
+              onClick={async () => {
+                if (!selectedAction) return;
+                const { id, action } = selectedAction;
+                if (action === "approve") {
+                  await api.approveRequest(id);
+                  toast.success("Demande validée.");
+                } else {
+                  await api.rejectRequest(id);
+                  toast.success("Demande rejetée.");
+                }
+                setSelectedAction(null);
+                api.getModificationRequests().then((result) => {
+                  setRequests(result as RequestRow[]);
+                }).catch(() => {});
+              }}
           >
             Confirmer
           </Button>

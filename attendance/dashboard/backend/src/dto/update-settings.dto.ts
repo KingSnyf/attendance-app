@@ -24,6 +24,12 @@ export class UpdateSettingsDto {
   @IsOptional() @IsBoolean() geolocalisationSecoursActive?: boolean;
   @IsOptional() @IsBoolean() geolocalisation_secours_active?: boolean;
 
+  // Heures standard de la journée
+  @IsOptional() @IsString() heureDebutJournee?: string;
+  @IsOptional() @IsString() heure_debut_journee?: string;
+  @IsOptional() @IsString() heureFinJournee?: string;
+  @IsOptional() @IsString() heure_fin_journee?: string;
+
   // Coordonnees bureau (objet)
   @IsOptional() coordonnees_bureau?: { lat: number; lng: number };
 }

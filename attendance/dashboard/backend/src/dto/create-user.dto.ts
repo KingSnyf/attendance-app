@@ -31,4 +31,8 @@ export class CreateUserDto {
   @IsOptional()
   @IsString()
   departement?: string;
+
+  @IsOptional()
+  @IsString()
+  telephone?: string;
 }

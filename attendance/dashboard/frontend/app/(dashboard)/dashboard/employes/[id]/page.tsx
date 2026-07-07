@@ -4,9 +4,10 @@
 "use client";
 
 import dynamic from "next/dynamic";
+import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
-import { CalendarDays, Download, FileEdit, Power, Smartphone } from "lucide-react";
+import { ArrowLeft, CalendarDays, Download, FileEdit, Power, Smartphone, CalendarOff } from "lucide-react";
 import toast from "react-hot-toast";
 import { Avatar } from "@/components/dashboard/avatar";
 import { Badge } from "@/components/dashboard/status-badge";
@@ -43,6 +44,8 @@ export default function EmployeDetailPage() {
   const [loading, setLoading] = useState(true);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [requestOpen, setRequestOpen] = useState(false);
+  const [demandeOpen, setDemandeOpen] = useState(false);
+  const [demandeForm, setDemandeForm] = useState({ dateDebut: "", dateFin: "", motif: "" });
   const [requestSessionId, setRequestSessionId] = useState("");
   const [requestProposition, setRequestProposition] = useState("");
   const [requestRaison, setRequestRaison] = useState("");
@@ -63,6 +66,15 @@ export default function EmployeDetailPage() {
     [detail?.calendrier, selectedDate],
   );
 
+  const lastPosition = useMemo(() => {
+    if (!detail?.sessions?.length) return null;
+    const last = detail.sessions[0];
+    if (last.latitude && last.longitude) {
+      return { lat: last.latitude, lng: last.longitude, date: last.date };
+    }
+    return null;
+  }, [detail?.sessions]);
+
   if (loading) {
     return (
       <div className="flex min-h-[30vh] items-center justify-center gap-3 text-muted-foreground">
@@ -80,6 +92,10 @@ export default function EmployeDetailPage() {
 
   return (
     <div className="space-y-6">
+      <Link href="/dashboard/employes" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition mb-2">
+        <ArrowLeft className="size-4" />
+        Retour aux employés
+      </Link>
       <Card className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
         <div className="flex items-center gap-4">
           <Avatar nom={getNomComplet(user)} src={user.photo_url} size="xl" />
@@ -110,15 +126,25 @@ export default function EmployeDetailPage() {
             <FileEdit className="size-4" />
             Demander une modification
           </Button>
+          <Button variant="outline" onClick={() => setDemandeOpen(true)}>
+            <CalendarOff className="size-4" />
+            Faire une demande
+          </Button>
           <Button
             variant="destructive"
             onClick={async () => {
-              await api.toggleAccount(user.id);
-              toast.success("Compte désactivé pour la démonstration.");
+              try {
+                await api.toggleAccount(user.id);
+                toast.success(user.actif ? "Compte désactivé" : "Compte réactivé");
+                const result = await api.getEmployeeDetail(params.id);
+                setDetail(result ?? null);
+              } catch {
+                toast.error("Erreur lors de la modification du compte");
+              }
             }}
           >
             <Power className="size-4" />
-            Désactiver le compte
+            {user.actif ? "Désactiver le compte" : "Réactiver le compte"}
           </Button>
         </div>
       </Card>
@@ -131,14 +157,20 @@ export default function EmployeDetailPage() {
           </div>
           <div className="grid gap-3 text-sm">
             <p>
-              <span className="font-medium text-foreground">Modèle:</span>{" "}
-              <span className="text-muted-foreground">{user.appareil?.modele}</span>
+              <span className="font-medium text-foreground">Marque / Modèle:</span>{" "}
+              <span className="text-muted-foreground">
+                {[user.appareil?.marque, user.appareil?.modele].filter(Boolean).join(" ") || "Aucun"}
+              </span>
             </p>
             <p>
               <span className="font-medium text-foreground">Identifiant:</span>{" "}
               <span className="text-muted-foreground">
                 {user.appareil?.identifiant_appareil}
               </span>
+            </p>
+            <p>
+              <span className="font-medium text-foreground">Téléphone:</span>{" "}
+              <span className="text-muted-foreground">{user.telephone || "Non renseigné"}</span>
             </p>
             <p>
               <span className="font-medium text-foreground">État:</span>{" "}
@@ -151,10 +183,10 @@ export default function EmployeDetailPage() {
               variant="outline"
               onClick={async () => {
                 await api.deactivateDevice(user.id);
-                toast.success("État de l'appareil mis à jour pour la démo.");
+                toast.success("Appareil mis à jour.");
               }}
             >
-              {user.appareil?.actif ? "Désactiver" : "Réactiver"}
+              {user.appareil?.actif ? "Désactiver l'appareil" : "Réactiver l'appareil"}
             </Button>
           </div>
         </Card>
@@ -186,7 +218,7 @@ export default function EmployeDetailPage() {
             <GeofenceMap
               center={settings.coordonnees_bureau}
               radius={settings.rayon_geofencing_metres}
-              lastPosition={user.appareil?.derniere_geoloc}
+              lastPosition={lastPosition}
             />
           ) : (
             <div className="flex h-48 items-center justify-center rounded-2xl border border-border bg-muted/30 text-sm text-muted-foreground">
@@ -309,6 +341,49 @@ export default function EmployeDetailPage() {
           ))}
         </div>
       </Card>
+
+      <Modal
+        open={demandeOpen}
+        onClose={() => setDemandeOpen(false)}
+        title="Faire une demande"
+        description="Soumet une demande pour validation."
+      >
+        <div className="space-y-4">
+          <div>
+            <label className="mb-1.5 block text-sm font-medium text-foreground">Date de début</label>
+            <input type="date" value={demandeForm.dateDebut} onChange={(e) => setDemandeForm((f) => ({ ...f, dateDebut: e.target.value }))} className="h-10 w-full rounded-xl border border-border bg-card px-3 text-sm" />
+          </div>
+          <div>
+            <label className="mb-1.5 block text-sm font-medium text-foreground">Date de fin</label>
+            <input type="date" value={demandeForm.dateFin} onChange={(e) => setDemandeForm((f) => ({ ...f, dateFin: e.target.value }))} className="h-10 w-full rounded-xl border border-border bg-card px-3 text-sm" />
+          </div>
+          <div>
+            <label className="mb-1.5 block text-sm font-medium text-foreground">Motif</label>
+            <textarea
+              value={demandeForm.motif}
+              onChange={(e) => setDemandeForm((f) => ({ ...f, motif: e.target.value }))}
+              className="min-h-20 w-full rounded-2xl border border-border bg-card p-3 text-sm outline-none focus:border-brand"
+              placeholder="Raison de la demande..."
+            />
+          </div>
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={() => setDemandeOpen(false)}>Annuler</Button>
+            <Button
+              disabled={!demandeForm.dateDebut || !demandeForm.dateFin || !demandeForm.motif.trim()}
+              onClick={async () => {
+                try {
+                  await api.createRequest({ type: 'absence', ...demandeForm });
+                  toast.success("Demande soumise.");
+                  setDemandeOpen(false);
+                  setDemandeForm({ dateDebut: "", dateFin: "", motif: "" });
+                } catch { toast.error("Échec de l'envoi."); }
+              }}
+            >
+              Soumettre
+            </Button>
+          </div>
+        </div>
+      </Modal>
 
       <Modal
         open={requestOpen}

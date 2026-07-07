@@ -1,5 +1,5 @@
 "use client"
-import { createContext, useContext, useState, useCallback, type ReactNode } from "react"
+import { createContext, useContext, useState, useCallback, useEffect, type ReactNode } from "react"
 import { authService } from "@/lib/auth-service"
 import { api } from "@/lib/api"
 
@@ -32,6 +32,10 @@ function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
+  useEffect(() => {
+    if (authService.getToken()) refreshUser()
+  }, [])
+
   const login = useCallback(async ({ email, password }: LoginParams) => {
     setIsLoading(true)
     setError(null)
@@ -47,7 +51,7 @@ function AuthProvider({ children }: { children: ReactNode }) {
       }
       const data = await res.json()
       authService.setToken(data.access_token)
-      const userData: User = { id: data.user.id, email: data.user.email, role: data.user.role, prenom: data.user.prenom, nom: data.user.nom }
+      const userData: User = { id: data.user.id, email: data.user.email, role: data.user.role, prenom: data.user.prenom, nom: data.user.nom, photo_url: data.user.photo_url }
       authService.setUser(userData)
       setUser(userData)
       return { success: true, user: userData }

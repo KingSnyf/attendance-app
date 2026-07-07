@@ -40,7 +40,7 @@ export class UsersService {
     return this.formatUser(user);
   }
 
-  async create(data: { email: string; password: string; firstName?: string; lastName?: string; prenom?: string; nom?: string; role?: string; departement?: string }) {
+  async create(data: { email: string; password: string; firstName?: string; lastName?: string; prenom?: string; nom?: string; role?: string; departement?: string; telephone?: string }) {
     const existing = await this.prisma.user.findUnique({ where: { email: data.email } });
     if (existing) throw new ConflictException('Email already in use');
 
@@ -53,6 +53,7 @@ export class UsersService {
         passwordHash,
         role: data.role || 'employe',
         departement: data.departement,
+        telephone: data.telephone,
         statutActuel: 'absent',
       },
     });
@@ -67,7 +68,7 @@ export class UsersService {
     return this.formatUser(user);
   }
 
-  async update(id: string, data: { email?: string; firstName?: string; lastName?: string; role?: string; departement?: string; actif?: boolean; statutActuel?: string }) {
+  async update(id: string, data: { email?: string; firstName?: string; lastName?: string; role?: string; departement?: string; telephone?: string; actif?: boolean; statutActuel?: string }) {
     const user = await this.prisma.user.findUnique({ where: { id } });
     if (!user) throw new NotFoundException('User not found');
 
@@ -77,6 +78,7 @@ export class UsersService {
     if (data.lastName !== undefined) updateData.lastName = data.lastName;
     if (data.role !== undefined) updateData.role = data.role;
     if (data.departement !== undefined) updateData.departement = data.departement;
+    if (data.telephone !== undefined) updateData.telephone = data.telephone;
     if (data.actif !== undefined) updateData.actif = data.actif;
     if (data.statutActuel !== undefined) updateData.statutActuel = data.statutActuel;
 
@@ -214,9 +216,11 @@ export class UsersService {
       tentatives_pin: u.tentativesPin ?? 0,
       blocage_pin_jusqua: u.blocagePinJusqua?.toISOString() || null,
       date_creation: u.dateCreation.toISOString(),
+      telephone: u.telephone || null,
       appareil: u.devices?.[0] ? {
         id: u.devices[0].id,
         identifiant_appareil: u.devices[0].identifiantAppareil,
+        marque: u.devices[0].marque,
         modele: u.devices[0].modele,
         actif: u.devices[0].actif,
       } : null,

@@ -69,6 +69,15 @@ export class SessionsController {
     return this.sessions.getMonthlyStats(year ? parseInt(year) : undefined);
   }
 
+  @Get('stats/monthly/employees')
+  @Roles('gestionnaire', 'admin')
+  async getMonthlyEmployeeStats(@Query('year') year?: string, @Query('month') month?: string) {
+    return this.sessions.getMonthlyEmployeeStats(
+      year ? parseInt(year) : undefined,
+      month ? parseInt(month) : undefined,
+    );
+  }
+
   @Post('detect-pauses')
   @Roles('gestionnaire', 'admin')
   async detecterPausesDepassees(@User() user: any) {

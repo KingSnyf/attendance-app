@@ -27,14 +27,17 @@ export const api = {
 
   getEmployees: () => request<Utilisateur[]>("/auth/users"),
 
-  createEmployee: (data: { nom: string; prenom: string; email: string; departement: string }) =>
+  createEmployee: (data: { nom: string; prenom: string; email: string; departement: string; telephone?: string }) =>
     request("/auth/register", { method: "POST", body: JSON.stringify({ ...data, password: "pass123", role: "employe" }) }),
+
+  createUser: (data: { nom: string; prenom: string; email: string; role: string; departement: string; telephone?: string }) =>
+    request("/users", { method: "POST", body: JSON.stringify({ ...data, password: "pass123" }) }),
 
   getEmployeeDetail: (id: string) => request<EmployeDetail | null>(`/users/${id}`),
 
   deactivateDevice: (userId: string) => request(`/users/${userId}/device/deactivate`, { method: "PATCH" }),
 
-  resetPin: (userId: string) => request(`/users/${userId}/reset-pin`, { method: "POST" }),
+  resetPin: (userId: string) => request<{ success: boolean; newPin: string }>(`/users/${userId}/reset-pin`, { method: "POST" }),
 
   toggleAccount: (userId: string) => request(`/users/${userId}/toggle-active`, { method: "PATCH" }),
 
@@ -70,5 +73,20 @@ export const api = {
 
   getDashboardData: () => request<DashboardData>("/sessions/stats"),
 
+  getMonthlyStats: (year?: number) => request(`/sessions/stats/monthly${year ? `?year=${year}` : ""}`),
+
+  getMonthlyEmployeeStats: (year?: number, month?: number) =>
+    request(`/sessions/stats/monthly/employees?year=${year || new Date().getFullYear()}&month=${month || new Date().getMonth() + 1}`),
+
   getSessions: (userId: string) => request(`/sessions/${userId}`),
+
+  createRequest: (data: { type: string; dateDebut?: string; dateFin?: string; motif: string }) =>
+    request("/requests", { method: "POST", body: JSON.stringify(data) }),
+
+  getRequests: () => request("/requests"),
+
+  getPendingRequests: () => request<{ count: number }>("/requests/pending"),
+
+  processRequest: (id: string, action: string, commentaire?: string) =>
+    request(`/requests/${id}/process`, { method: "POST", body: JSON.stringify({ action, commentaire }) }),
 }

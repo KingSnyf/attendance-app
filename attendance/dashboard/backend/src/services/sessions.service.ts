@@ -144,8 +144,9 @@ export class SessionsService {
 
     // Calcul du retard
     const tolerance = settings.toleranceRetardMinutes ?? 15;
+    const [hDebut, mDebut] = (settings.heureDebutJournee || '08:00').split(':').map(Number);
     const scheduledStart = new Date(today);
-    scheduledStart.setHours(8, 0, 0, 0);
+    scheduledStart.setHours(hDebut, mDebut, 0, 0);
     const lateMinutes = now > scheduledStart ? Math.round((now.getTime() - scheduledStart.getTime()) / 60000) : 0;
     const retard = Math.max(0, lateMinutes - tolerance);
 
@@ -207,7 +208,7 @@ export class SessionsService {
 
     await this.prisma.user.update({ where: { id: userId }, data: { statutActuel: 'present' } });
 
-    return this.formatSession(session);
+    return this.formatSession(session, settings.heureFinJournee || '17:00');
   }
 
   private calculerDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
@@ -311,7 +312,9 @@ export class SessionsService {
     const presents = await this.prisma.user.count({ where: { statutActuel: 'present' } });
     const enPause = await this.prisma.user.count({ where: { statutActuel: 'en_attente' } });
 
-    // Calcul heures supplémentaires (sessions avec départ après 17h)
+    // Calcul heures supplémentaires (sessions avec départ après l'heure de fin)
+    const settings = await this.prisma.setting.findFirst();
+    const [hFin, mFin] = (settings?.heureFinJournee || '17:00').split(':').map(Number);
     const sessions = await this.prisma.sessionPresence.findMany({
       where: { ...where, heureDepart: { not: null } },
     });
@@ -319,10 +322,10 @@ export class SessionsService {
     for (const s of sessions) {
       if (s.heureDepart) {
         const fin = new Date(s.heureDepart);
-        const dixSept = new Date(fin);
-        dixSept.setHours(17, 0, 0, 0);
-        if (fin > dixSept) {
-          totalHeuresSupMinutes += Math.round((fin.getTime() - dixSept.getTime()) / 60000);
+        const finJournee = new Date(fin);
+        finJournee.setHours(hFin, mFin, 0, 0);
+        if (fin > finJournee) {
+          totalHeuresSupMinutes += Math.round((fin.getTime() - finJournee.getTime()) / 60000);
         }
       }
     }
@@ -478,6 +481,8 @@ export class SessionsService {
 
   async getMonthlyStats(year?: number) {
     const annee = year || new Date().getFullYear();
+    const settings = await this.prisma.setting.findFirst();
+    const [hFin, mFin] = (settings?.heureFinJournee || '17:00').split(':').map(Number);
     const result: any[] = [];
 
     for (let mois = 0; mois < 12; mois++) {
@@ -502,10 +507,10 @@ export class SessionsService {
           totalMinutes += duree;
 
           const finDate = new Date(s.heureDepart);
-          const dixSept = new Date(finDate);
-          dixSept.setHours(17, 0, 0, 0);
-          if (finDate > dixSept) {
-            heuresSupMinutes += Math.round((finDate.getTime() - dixSept.getTime()) / 60000);
+          const finJournee = new Date(finDate);
+          finJournee.setHours(hFin, mFin, 0, 0);
+          if (finDate > finJournee) {
+            heuresSupMinutes += Math.round((finDate.getTime() - finJournee.getTime()) / 60000);
           }
         }
       }
@@ -530,6 +535,72 @@ export class SessionsService {
     }
 
     return result;
+  }
+
+  async getMonthlyEmployeeStats(year?: number, month?: number) {
+    const annee = year || new Date().getFullYear();
+    const mois = month !== undefined ? month - 1 : new Date().getMonth();
+    const debut = new Date(annee, mois, 1);
+    const fin = new Date(annee, mois + 1, 1);
+
+    const settings = await this.prisma.setting.findFirst();
+    const [hFin, mFin] = (settings?.heureFinJournee || '17:00').split(':').map(Number);
+
+    const sessions = await this.prisma.sessionPresence.findMany({
+      where: { date: { gte: debut, lt: fin } },
+      include: { user: true },
+    });
+
+    const employees = await this.prisma.user.findMany({
+      where: { actif: true, role: 'employe' },
+    });
+
+    const employeeMap = new Map<string, { totalMinutes: number; sessions: number; retards: number; departs: number }>();
+    for (const emp of employees) {
+      employeeMap.set(emp.id, { totalMinutes: 0, sessions: 0, retards: 0, departs: 0 });
+    }
+
+    for (const s of sessions) {
+      const stats = employeeMap.get(s.userId);
+      if (!stats) continue;
+      stats.sessions++;
+      if ((s.retardMinutes ?? 0) > 0) stats.retards++;
+      if (s.heureDepart) {
+        stats.departs++;
+        const duree = Math.round((s.heureDepart.getTime() - s.heureArrivee.getTime()) / 60000);
+        stats.totalMinutes += duree;
+      }
+    }
+
+    const joursOuvres = this.getJoursOuvres(mois, annee).length;
+    const employeeStats = employees
+      .map((emp) => {
+        const s = employeeMap.get(emp.id) || { totalMinutes: 0, sessions: 0, retards: 0, departs: 0 };
+        const heures = Math.round(s.totalMinutes / 60 * 100) / 100;
+        return {
+          id: emp.id,
+          nom: emp.lastName || '',
+          prenom: emp.firstName || '',
+          photo_url: emp.photoUrl || null,
+          departement: emp.departement || '',
+          totalSessions: s.sessions,
+          totalHeures: heures,
+          moyenneHeuresParJour: s.departs > 0 ? Math.round((s.totalMinutes / s.departs) / 60 * 100) / 100 : 0,
+          retards: s.retards,
+          joursPresence: s.departs,
+          joursOuvres,
+          tauxPresence: joursOuvres > 0 ? Math.round((s.departs / joursOuvres) * 10000) / 100 : 0,
+        };
+      })
+      .sort((a, b) => b.totalHeures - a.totalHeures);
+
+    return {
+      annee,
+      mois: mois + 1,
+      employeeStats,
+      topPresent: employeeStats.slice(0, 5),
+      topAbsent: [...employeeStats].reverse().slice(0, 5),
+    };
   }
 
   private getJoursOuvres(mois: number, annee: number): Date[] {
@@ -613,14 +684,15 @@ export class SessionsService {
     return { deleted: true, id };
   }
 
-  private formatSession(s: any) {
+  private formatSession(s: any, heureFin?: string) {
     let heuresSupMinutes = 0;
     if (s.heureDepart) {
       const fin = new Date(s.heureDepart);
-      const dixSept = new Date(fin);
-      dixSept.setHours(17, 0, 0, 0);
-      if (fin > dixSept) {
-        heuresSupMinutes = Math.round((fin.getTime() - dixSept.getTime()) / 60000);
+      const [hFin, mFin] = (heureFin || '17:00').split(':').map(Number);
+      const finJournee = new Date(fin);
+      finJournee.setHours(hFin, mFin, 0, 0);
+      if (fin > finJournee) {
+        heuresSupMinutes = Math.round((fin.getTime() - finJournee.getTime()) / 60000);
       }
     }
 

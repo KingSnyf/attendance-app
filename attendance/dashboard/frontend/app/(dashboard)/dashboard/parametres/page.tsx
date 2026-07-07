@@ -354,6 +354,34 @@ export default function ParametresPage() {
         </div>
       </SectionCard>
 
+      {/* === HORAIRES STANDARD === */}
+      <SectionCard icon={Clock} title="Horaires standard">
+        <div className="grid gap-6 lg:grid-cols-2">
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-foreground">
+              Début de journée
+            </label>
+            <Input
+              type="time"
+              value={settings.heure_debut_journee || "08:00"}
+              onChange={(e) => update("heure_debut_journee", e.target.value)}
+              disabled={isReadOnly}
+            />
+          </div>
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-foreground">
+              Fin de journée
+            </label>
+            <Input
+              type="time"
+              value={settings.heure_fin_journee || "17:00"}
+              onChange={(e) => update("heure_fin_journee", e.target.value)}
+              disabled={isReadOnly}
+            />
+          </div>
+        </div>
+      </SectionCard>
+
       {/* === CALENDRIER === */}
       <SectionCard icon={CalendarDays} title="Calendrier">
         <div className="grid gap-6 lg:grid-cols-2">

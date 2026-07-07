@@ -2,6 +2,7 @@ import { Body, Controller, Get, Put, UsePipes, ValidationPipe } from '@nestjs/co
 import { SettingsService } from '../services/settings.service';
 import { LogsService } from '../services/logs.service';
 import { Roles } from '../auth/roles.decorator';
+import { Public } from '../auth/public.decorator';
 import { User } from '../auth/user.decorator';
 import { UpdateSettingsDto } from '../dto/update-settings.dto';
 
@@ -11,6 +12,12 @@ export class SettingsController {
     private readonly settings: SettingsService,
     private readonly logs: LogsService,
   ) {}
+
+  @Public()
+  @Get('privacy')
+  async getPrivacy() {
+    return this.settings.getPrivacy();
+  }
 
   @Get()
   async get() {

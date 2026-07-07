@@ -20,12 +20,19 @@ export class SettingsService {
           geolocalisationSecoursActive: false,
           geofencingActif: false,
           rayonGeofencingMetres: 120,
+          heureDebutJournee: '08:00',
+          heureFinJournee: '17:00',
           latitudeBureau: 3.848,
           longitudeBureau: 11.5021,
         },
       });
     }
     return this.formatSettings(settings);
+  }
+
+  async getPrivacy() {
+    const settings = await this.prisma.setting.findFirst();
+    return { politique_confidentialite: settings?.politiqueConfidentialite || '' };
   }
 
   async update(payload: any) {
@@ -45,6 +52,8 @@ export class SettingsService {
     if (payload.coordonnees_bureau?.lng !== undefined) data.longitudeBureau = payload.coordonnees_bureau.lng;
     if (payload.politique_confidentialite !== undefined) data.politiqueConfidentialite = payload.politique_confidentialite;
     if (payload.geolocalisation_secours_active !== undefined) data.geolocalisationSecoursActive = payload.geolocalisation_secours_active;
+    if (payload.heure_debut_journee !== undefined) data.heureDebutJournee = payload.heure_debut_journee;
+    if (payload.heure_fin_journee !== undefined) data.heureFinJournee = payload.heure_fin_journee;
 
     const updated = await this.prisma.setting.update({
       where: { id: settings.id },
@@ -65,6 +74,8 @@ export class SettingsService {
       geolocalisation_secours_active: s.geolocalisationSecoursActive ?? false,
       geofencing_actif: s.geofencingActif,
       rayon_geofencing_metres: s.rayonGeofencingMetres,
+      heure_debut_journee: s.heureDebutJournee || '08:00',
+      heure_fin_journee: s.heureFinJournee || '17:00',
       coordonnees_bureau: {
         lat: s.latitudeBureau,
         lng: s.longitudeBureau,

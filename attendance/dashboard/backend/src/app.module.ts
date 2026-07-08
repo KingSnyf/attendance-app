@@ -11,6 +11,7 @@ import { ExportController } from './controllers/export.controller';
 import { MobileController } from './controllers/mobile.controller';
 import { UploadController } from './controllers/upload.controller';
 import { RequestsController } from './controllers/absences.controller';
+import { SearchController } from './controllers/search.controller';
 import { SessionsService } from './services/sessions.service';
 import { SettingsService } from './services/settings.service';
 import { AnomaliesService } from './services/anomalies.service';
@@ -22,6 +23,7 @@ import { SchedulerService } from './services/scheduler.service';
 import { ModificationsModule } from './modules/modifications.module';
 import { LogsModule } from './modules/logs.module';
 import { PrismaService } from './prisma.service';
+import { EventsGateway } from './gateways/events.gateway';
 
 @Module({
   imports: [AuthModule, ModificationsModule, LogsModule],
@@ -35,6 +37,7 @@ import { PrismaService } from './prisma.service';
     MobileController,
     RequestsController,
     UploadController,
+    SearchController,
   ],
   providers: [
     PrismaService,
@@ -46,6 +49,7 @@ import { PrismaService } from './prisma.service';
     DevicesService,
     EmailService,
     SchedulerService,
+    EventsGateway,
     { provide: APP_GUARD, useClass: RateLimiterGuard },
   ],
 })

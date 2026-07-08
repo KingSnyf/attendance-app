@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { CheckCircle2, XCircle } from "lucide-react";
 import toast from "react-hot-toast";
 import { Avatar } from "@/components/dashboard/avatar";
@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Spinner } from "@/components/ui/spinner";
 import { Table, TableHeadCell, TableWrapper } from "@/components/ui/table";
-import { api } from "@/lib/api";
+import { useRequests, useProcessRequest } from "@/lib/hooks/use-requests";
 import { formatDate } from "@/lib/utils";
 
 type Demande = {
@@ -32,17 +32,11 @@ const STATUT_LABEL: Record<string, string> = { en_attente: "En attente", approuv
 const STATUT_VARIANT: Record<string, "warning" | "success" | "danger"> = { en_attente: "warning", approuve: "success", refuse: "danger" }
 
 export default function DemandesPage() {
-  const [requests, setRequests] = useState<Demande[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data: requestsData, isLoading } = useRequests();
+  const processMutation = useProcessRequest();
+  const requests = (requestsData as Demande[]) ?? [];
 
-  const load = () => {
-    setLoading(true);
-    api.getRequests().then((r) => { setRequests(r as Demande[]); setLoading(false); }).catch(() => setLoading(false));
-  };
-
-  useEffect(() => { load(); }, []);
-
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="flex min-h-[30vh] items-center justify-center gap-3 text-muted-foreground">
         <Spinner />
@@ -105,13 +99,7 @@ export default function DemandesPage() {
                             variant="outline"
                             size="sm"
                             className="border-success text-success-foreground hover:bg-success"
-                            onClick={async () => {
-                              try {
-                                await api.processRequest(r.id, "approve");
-                                toast.success("Demande approuvée");
-                                load();
-                              } catch { toast.error("Erreur"); }
-                            }}
+                            onClick={() => processMutation.mutate({ id: r.id, action: "approve" })}
                           >
                             <CheckCircle2 className="size-4" />
                             Approuver
@@ -120,13 +108,7 @@ export default function DemandesPage() {
                             variant="outline"
                             size="sm"
                             className="border-destructive text-destructive-foreground hover:bg-destructive"
-                            onClick={async () => {
-                              try {
-                                await api.processRequest(r.id, "reject");
-                                toast.success("Demande refusée");
-                                load();
-                              } catch { toast.error("Erreur"); }
-                            }}
+                            onClick={() => processMutation.mutate({ id: r.id, action: "reject" })}
                           >
                             <XCircle className="size-4" />
                             Refuser

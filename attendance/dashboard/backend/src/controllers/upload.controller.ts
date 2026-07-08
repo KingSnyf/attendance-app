@@ -1,11 +1,14 @@
-import { Controller, Post, UploadedFile, UseInterceptors, BadRequestException, Req } from '@nestjs/common';
+import { Controller, Post, UploadedFile, UseInterceptors, BadRequestException, Req, UseGuards } from '@nestjs/common';
+import { AuthGuard } from '@nestjs/passport';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { extname, join } from 'path';
 import { v4 as uuid } from 'uuid';
 import { Request } from 'express';
+import { RolesGuard } from '../auth/roles.guard';
 
 @Controller('upload')
+@UseGuards(AuthGuard('jwt'), RolesGuard)
 export class UploadController {
   @Post()
   @UseInterceptors(

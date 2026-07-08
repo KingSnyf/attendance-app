@@ -1,10 +1,14 @@
 import { Injectable, NotFoundException, BadRequestException, ForbiddenException } from '@nestjs/common';
 import * as bcrypt from 'bcryptjs';
 import { PrismaService } from '../prisma.service';
+import { EventsGateway } from '../gateways/events.gateway';
 
 @Injectable()
 export class SessionsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly events: EventsGateway,
+  ) {}
 
   private localDateStr(d: Date): string {
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
@@ -98,24 +102,21 @@ export class SessionsService {
       }
     }
 
-    // Vérification plage IP locale
-    if (settings.plageIpLocale && settings.plageIpLocale !== '192.168.1.0/24' && ipLocale) {
-      const ipParts = ipLocale.split('.').map(Number);
-      if (ipParts.length === 4) {
-        const ipInt = (ipParts[0] << 24) + (ipParts[1] << 16) + (ipParts[2] << 8) + ipParts[3];
-        const [range, bits] = settings.plageIpLocale.split('/');
-        const rangeParts = range.split('.').map(Number);
-        const rangeInt = (rangeParts[0] << 24) + (rangeParts[1] << 16) + (rangeParts[2] << 8) + rangeParts[3];
-        const mask = ~(2 ** (32 - parseInt(bits)) - 1);
-        if ((ipInt & mask) !== (rangeInt & mask)) {
-          anomalies.push({
+    // Vérification plage IP locale — bloquante
+    if (settings.plageIpLocale && settings.plageIpLocale !== '192.168.1.0/24') {
+      const ipDansPlage = ipLocale && this.estIpDansPlage(ipLocale, settings.plageIpLocale);
+      if (!ipDansPlage) {
+        await this.prisma.anomaly.create({
+          data: {
             userId,
             type: 'hors_reseau',
-            description: `IP hors plage autorisée: ${ipLocale} (attendu: ${settings.plageIpLocale})`,
+            description: `Pointage refusé — IP hors plage autorisée: ${ipLocale || 'non transmise'} (attendu: ${settings.plageIpLocale})`,
             dateDetection: now,
-            traitee: false,
-          });
-        }
+            traitee: true,
+          },
+        });
+        this.events.emitNotification({ type: 'anomalie', message: 'Pointage refusé — IP hors plage' });
+        throw new ForbiddenException('Réseau non autorisé. Vous devez être connecté au réseau de l\'entreprise pour pointer.');
       }
     }
 
@@ -140,6 +141,9 @@ export class SessionsService {
     // Créer les anomalies
     for (const a of anomalies) {
       await this.prisma.anomaly.create({ data: a });
+    }
+    if (anomalies.length > 0) {
+      this.events.emitNotification({ type: 'anomalie', message: `${anomalies.length} anomalie(s) créée(s)`, count: anomalies.length });
     }
 
     // Calcul du retard
@@ -173,22 +177,36 @@ export class SessionsService {
       }
     }
 
-    // Un seul appareil actif par employé
-    if (deviceId) {
-      const activeDevice = await this.prisma.device.findFirst({
-        where: { userId, actif: true, id: { not: deviceId } },
+    // Vérification appareil connu — bloquante
+    if (!deviceId) {
+      await this.prisma.anomaly.create({
+        data: {
+          userId,
+          type: 'device_inconnu',
+          description: 'Pointage refusé — aucun identifiant d\'appareil transmis',
+          dateDetection: now,
+          traitee: true,
+        },
       });
-      if (activeDevice) {
-        await this.prisma.anomaly.create({
-          data: {
-            userId,
-            type: 'device_different',
-            description: `Badge depuis un appareil inconnu (ID: ${deviceId}) alors qu'un autre appareil est actif`,
-            dateDetection: now,
-            traitee: false,
-          },
-        });
-      }
+      this.events.emitNotification({ type: 'anomalie', message: 'Pointage refusé — aucun appareil transmis' });
+      throw new ForbiddenException('Appareil non reconnu. Associez cet appareil à votre compte avant de pointer.');
+    }
+
+    const device = await this.prisma.device.findFirst({
+      where: { identifiantAppareil: deviceId, userId, actif: true },
+    });
+    if (!device) {
+      await this.prisma.anomaly.create({
+        data: {
+          userId,
+          type: 'device_inconnu',
+          description: `Pointage refusé — appareil non reconnu ou inactif (ID: ${deviceId})`,
+          dateDetection: now,
+          traitee: true,
+        },
+      });
+      this.events.emitNotification({ type: 'anomalie', message: 'Pointage refusé — appareil non reconnu' });
+      throw new ForbiddenException('Appareil non reconnu. Associez cet appareil à votre compte avant de pointer.');
     }
 
     const session = await this.prisma.sessionPresence.create({
@@ -223,6 +241,18 @@ export class SessionsService {
 
   private toRad(deg: number): number {
     return (deg * Math.PI) / 180;
+  }
+
+  private estIpDansPlage(ip: string, plage: string): boolean {
+    const ipParts = ip.split('.').map(Number);
+    if (ipParts.length !== 4) return false;
+    const ipInt = (ipParts[0] << 24) + (ipParts[1] << 16) + (ipParts[2] << 8) + ipParts[3];
+    const [range, bits] = plage.split('/');
+    const rangeParts = range.split('.').map(Number);
+    if (rangeParts.length !== 4) return false;
+    const rangeInt = (rangeParts[0] << 24) + (rangeParts[1] << 16) + (rangeParts[2] << 8) + rangeParts[3];
+    const mask = ~(2 ** (32 - parseInt(bits)) - 1);
+    return (ipInt & mask) === (rangeInt & mask);
   }
 
   async checkout(userId: string, deviceId?: string) {
@@ -516,7 +546,7 @@ export class SessionsService {
       }
 
       const utilisateursActifs = await this.prisma.user.count({ where: { actif: true } });
-      const joursOuvres = this.getJoursOuvres(mois, annee);
+      const joursOuvres = await this.getJoursOuvres(mois, annee);
 
       result.push({
         mois: mois + 1,
@@ -572,7 +602,7 @@ export class SessionsService {
       }
     }
 
-    const joursOuvres = this.getJoursOuvres(mois, annee).length;
+    const joursOuvres = (await this.getJoursOuvres(mois, annee)).length;
     const employeeStats = employees
       .map((emp) => {
         const s = employeeMap.get(emp.id) || { totalMinutes: 0, sessions: 0, retards: 0, departs: 0 };
@@ -603,22 +633,40 @@ export class SessionsService {
     };
   }
 
-  private getJoursOuvres(mois: number, annee: number): Date[] {
+  private async getJoursOuvres(mois: number, annee: number): Promise<Date[]> {
     const jours: Date[] = [];
-    const settings = this.prisma.setting.findFirst();
-    // Fallback: lundi-vendredi
-    const joursOuvresNoms = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'];
+    const settings = await this.prisma.setting.findFirst();
+
+    let joursOuvresNoms = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'];
+    if (settings?.joursOuvres) {
+      try {
+        const parsed = JSON.parse(settings.joursOuvres);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          joursOuvresNoms = parsed.map((j: string) => j.toLowerCase());
+        }
+      } catch { /* fallback lundi-vendredi */ }
+    }
+
+    const joursFeries = new Set<string>();
+    if (settings?.joursFeries) {
+      try {
+        const parsed = JSON.parse(settings.joursFeries);
+        if (Array.isArray(parsed)) {
+          parsed.forEach((d: string) => joursFeries.add(new Date(d).toISOString().slice(0, 10)));
+        }
+      } catch { /* aucun jour férié exclu */ }
+    }
 
     const dernierJour = new Date(annee, mois + 1, 0).getDate();
     for (let jour = 1; jour <= dernierJour; jour++) {
       const d = new Date(annee, mois, jour);
       const dayName = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'][d.getDay()];
-      if (joursOuvresNoms.includes(dayName)) {
+      const isoDate = d.toISOString().slice(0, 10);
+      if (joursOuvresNoms.includes(dayName) && !joursFeries.has(isoDate)) {
         jours.push(d);
       }
     }
 
-    // Enlever les jours fériés (asynchrone non pratique ici, faire confiance aux settings)
     return jours;
   }
 

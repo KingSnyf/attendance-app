@@ -1,12 +1,16 @@
-import { Controller, Get, Query, Res } from '@nestjs/common';
+import { Controller, Get, Query, Res, UseGuards } from '@nestjs/common';
+import { AuthGuard } from '@nestjs/passport';
 import { Response } from 'express';
-const ExcelJS = require('exceljs');
+import ExcelJS from 'exceljs';
+import PDFDocument from 'pdfkit';
 import { Roles } from '../auth/roles.decorator';
+import { RolesGuard } from '../auth/roles.guard';
 import { PrismaService } from '../prisma.service';
 import { LogsService } from '../services/logs.service';
 import { User } from '../auth/user.decorator';
 
 @Controller('export')
+@UseGuards(AuthGuard('jwt'), RolesGuard)
 export class ExportController {
   constructor(
     private readonly prisma: PrismaService,
@@ -278,5 +282,138 @@ export class ExportController {
     res.setHeader('Content-Disposition', `attachment; filename="sessions_${todayStr}.xlsx"`);
     await wb.xlsx.write(res);
     res.end();
+  }
+
+  @Get('sessions/pdf')
+  @Roles('gestionnaire', 'admin')
+  async exportSessionsPdf(
+    @User() user: any,
+    @Res() res: Response,
+    @Query('date_from') dateFrom?: string,
+    @Query('date_to') dateTo?: string,
+  ) {
+    const where: any = {};
+    if (dateFrom || dateTo) {
+      where.date = {};
+      if (dateFrom) where.date.gte = new Date(dateFrom);
+      if (dateTo) where.date.lte = new Date(dateTo);
+    }
+
+    const sessions = await this.prisma.sessionPresence.findMany({
+      where,
+      orderBy: { date: 'desc' },
+      include: {
+        user: { select: { firstName: true, lastName: true, email: true } },
+      },
+    });
+
+    const doc = new PDFDocument({ margin: 30, size: 'A4', layout: 'landscape' });
+    const todayStr = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}-${String(new Date().getDate()).padStart(2, '0')}`;
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="sessions_${todayStr}.pdf"`);
+    doc.pipe(res);
+
+    doc.fontSize(16).text('Rapport des sessions', { align: 'center' });
+    doc.fontSize(10).text(`Généré le ${todayStr}`, { align: 'center' });
+    doc.moveDown(1.5);
+
+    const headers = ['Date', 'Employé', 'Email', 'Arrivée', 'Départ', 'Retard', 'Valide'];
+    const colWidths = [90, 130, 190, 130, 130, 60, 60];
+    const startX = 30;
+    let y = doc.y;
+
+    doc.fontSize(8).font('Helvetica-Bold');
+    let x = startX;
+    headers.forEach((h, i) => { doc.text(h, x, y, { width: colWidths[i] }); x += colWidths[i]; });
+    doc.moveDown(0.5);
+    doc.font('Helvetica');
+
+    for (const s of sessions) {
+      x = startX;
+      y = doc.y;
+      if (y > 550) { doc.addPage(); y = 30; }
+      const dateStr = `${s.date.getFullYear()}-${String(s.date.getMonth() + 1).padStart(2, '0')}-${String(s.date.getDate()).padStart(2, '0')}`;
+      const employe = `${s.user?.firstName || ''} ${s.user?.lastName || ''}`;
+      const arrivee = s.heureArrivee.toISOString();
+      const depart = s.heureDepart ? s.heureDepart.toISOString() : '';
+      doc.fontSize(7).text(dateStr, x, y, { width: colWidths[0] }); x += colWidths[0];
+      doc.text(employe, x, y, { width: colWidths[1] }); x += colWidths[1];
+      doc.text(s.user?.email || '', x, y, { width: colWidths[2] }); x += colWidths[2];
+      doc.text(arrivee, x, y, { width: colWidths[3] }); x += colWidths[3];
+      doc.text(depart, x, y, { width: colWidths[4] }); x += colWidths[4];
+      doc.text(String(s.retardMinutes ?? 0), x, y, { width: colWidths[5] }); x += colWidths[5];
+      doc.text(s.valide ? 'Oui' : 'Non', x, y, { width: colWidths[6] });
+    }
+
+    await this.logs.create({
+      auteurId: user.userId,
+      action: 'export_sessions_pdf',
+      cibleId: user.userId,
+    });
+
+    doc.end();
+  }
+
+  @Get('anomalies/pdf')
+  @Roles('gestionnaire', 'admin')
+  async exportAnomaliesPdf(
+    @User() user: any,
+    @Res() res: Response,
+    @Query('type') type?: string,
+    @Query('traitee') traitee?: string,
+  ) {
+    const where: any = {};
+    if (type && type !== 'all') where.type = type;
+    if (traitee !== undefined) where.traitee = traitee === 'true';
+
+    const anomalies = await this.prisma.anomaly.findMany({
+      where,
+      orderBy: { dateDetection: 'desc' },
+      include: {
+        user: { select: { firstName: true, lastName: true, email: true } },
+      },
+    });
+
+    const doc = new PDFDocument({ margin: 30, size: 'A4', layout: 'landscape' });
+    const todayStr = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}-${String(new Date().getDate()).padStart(2, '0')}`;
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="anomalies_${todayStr}.pdf"`);
+    doc.pipe(res);
+
+    doc.fontSize(16).text('Rapport des anomalies', { align: 'center' });
+    doc.fontSize(10).text(`Généré le ${todayStr}`, { align: 'center' });
+    doc.moveDown(1.5);
+
+    const headers = ['Date', 'Employé', 'Email', 'Type', 'Description', 'Traitée'];
+    const colWidths = [100, 120, 170, 80, 200, 60];
+    const startX = 30;
+    let y = doc.y;
+
+    doc.fontSize(8).font('Helvetica-Bold');
+    let x = startX;
+    headers.forEach((h, i) => { doc.text(h, x, y, { width: colWidths[i] }); x += colWidths[i]; });
+    doc.moveDown(0.5);
+    doc.font('Helvetica');
+
+    for (const a of anomalies) {
+      x = startX;
+      y = doc.y;
+      if (y > 550) { doc.addPage(); y = 30; }
+      doc.fontSize(7)
+        .text(a.dateDetection.toISOString(), x, y, { width: colWidths[0] }); x += colWidths[0];
+      doc.text(`${a.user?.firstName || ''} ${a.user?.lastName || ''}`, x, y, { width: colWidths[1] }); x += colWidths[1];
+      doc.text(a.user?.email || '', x, y, { width: colWidths[2] }); x += colWidths[2];
+      doc.text(a.type, x, y, { width: colWidths[3] }); x += colWidths[3];
+      doc.text(a.description || '', x, y, { width: colWidths[4] }); x += colWidths[4];
+      doc.text(a.traitee ? 'Oui' : 'Non', x, y, { width: colWidths[5] });
+    }
+
+    await this.logs.create({
+      auteurId: user.userId,
+      action: 'export_anomalies_pdf',
+      cibleId: user.userId,
+    });
+
+    doc.end();
   }
 }

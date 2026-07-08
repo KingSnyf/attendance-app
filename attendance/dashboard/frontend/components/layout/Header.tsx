@@ -1,10 +1,10 @@
 "use client"
-import { useEffect, useRef, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import { usePathname, useRouter } from "next/navigation"
-import { Bell, CheckCircle2, AlertTriangle, FileEdit, ClipboardList } from "lucide-react"
-import { api } from "@/lib/api"
+import { Bell, CheckCircle2, AlertTriangle, FileEdit, ClipboardList, Search, Users, FileText } from "lucide-react"
 import { navigation } from "@/components/layout/navigation"
 import { useAuth } from "@/hooks/useAuth"
+import { useNotifications } from "@/lib/hooks/use-notifications"
 
 function Header() {
   const pathname = usePathname()
@@ -14,27 +14,39 @@ function Header() {
     (item) => pathname === item.href || pathname.startsWith(item.href + "/"),
   )
   const [open, setOpen] = useState(false)
-  const [anomalies, setAnomalies] = useState(0)
-  const [modifications, setModifications] = useState(0)
-  const [requests, setRequests] = useState(0)
   const ref = useRef<HTMLDivElement>(null)
+  const { data: notifs } = useNotifications()
+
+  const [searchOpen, setSearchOpen] = useState(false)
+  const [searchQuery, setSearchQuery] = useState("")
+  const [searchResults, setSearchResults] = useState<{ employes: any[]; anomalies: any[]; logs: any[] }>({ employes: [], anomalies: [], logs: [] })
+  const searchRef = useRef<HTMLDivElement>(null)
+  const searchTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
 
   const initials = user ? `${(user.prenom?.[0] ?? "").toUpperCase()}${(user.nom?.[0] ?? "").toUpperCase()}` : ""
 
-  useEffect(() => {
-    const fetch = () => {
-      api.getAnomalies().then((list) => setAnomalies(list.filter((a: any) => !a.traitee).length)).catch(() => {})
-      api.getModificationRequests().then((list) => setModifications((list as any[]).filter((m: any) => m.statut === "en_attente").length)).catch(() => {})
-      api.getPendingRequests().then((r) => setRequests(r.count)).catch(() => {})
-    }
-    fetch()
-    const interval = setInterval(fetch, 30000)
-    return () => clearInterval(interval)
+  const anomalies = notifs?.anomalies ?? 0
+  const modifications = notifs?.modifications ?? 0
+  const requests = notifs?.requests ?? 0
+
+  const handleSearch = useCallback(async (q: string) => {
+    setSearchQuery(q)
+    if (q.length < 2) { setSearchResults({ employes: [], anomalies: [], logs: [] }); return }
+    if (searchTimer.current) clearTimeout(searchTimer.current)
+    searchTimer.current = setTimeout(async () => {
+      try {
+        const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:3002/api"}/search?q=${encodeURIComponent(q)}`, {
+          headers: { Authorization: `Bearer ${localStorage.getItem("attendance_token")}` },
+        })
+        if (res.ok) setSearchResults(await res.json())
+      } catch {}
+    }, 300)
   }, [])
 
   useEffect(() => {
     const handleClick = (e: MouseEvent) => {
       if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
+      if (searchRef.current && !searchRef.current.contains(e.target as Node)) setSearchOpen(false)
     }
     document.addEventListener("mousedown", handleClick)
     return () => document.removeEventListener("mousedown", handleClick)
@@ -49,6 +61,62 @@ function Header() {
       </h1>
 
       <div className="flex items-center gap-5">
+        <div ref={searchRef} className="relative">
+          <div className="flex items-center gap-2 rounded-xl border border-border bg-muted/30 px-3 py-1.5">
+            <Search className="size-4 text-muted-foreground" />
+            <input
+              type="text"
+              placeholder="Rechercher..."
+              value={searchQuery}
+              onChange={(e) => { handleSearch(e.target.value); setSearchOpen(true); }}
+              onFocus={() => setSearchOpen(true)}
+              className="w-48 bg-transparent text-sm outline-none text-foreground placeholder:text-muted-foreground"
+            />
+          </div>
+          {searchOpen && searchQuery.length >= 2 && (
+            <div className="absolute right-0 top-12 w-lg rounded-2xl border border-border bg-card p-4 shadow-lg z-50">
+              {searchResults.employes.length > 0 && (
+                <div className="mb-3">
+                  <p className="mb-2 text-xs font-semibold uppercase text-muted-foreground flex items-center gap-1"><Users className="size-3" /> Employés</p>
+                  {searchResults.employes.map((emp: any) => (
+                    <button key={emp.id} onClick={() => { router.push(`/dashboard/employes/${emp.id}`); setSearchOpen(false); setSearchQuery(""); }}
+                      className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-sm hover:bg-muted transition text-left">
+                      <span className="font-medium">{emp.prenom} {emp.nom}</span>
+                      <span className="text-muted-foreground text-xs">{emp.email}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+              {searchResults.anomalies.length > 0 && (
+                <div className="mb-3">
+                  <p className="mb-2 text-xs font-semibold uppercase text-muted-foreground flex items-center gap-1"><AlertTriangle className="size-3" /> Anomalies</p>
+                  {searchResults.anomalies.map((a: any) => (
+                    <button key={a.id} onClick={() => { router.push("/dashboard/anomalies"); setSearchOpen(false); setSearchQuery(""); }}
+                      className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-sm hover:bg-muted transition text-left">
+                      <span className="font-medium">{a.type}</span>
+                      <span className="text-muted-foreground text-xs truncate">{a.description}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+              {searchResults.logs.length > 0 && (
+                <div>
+                  <p className="mb-2 text-xs font-semibold uppercase text-muted-foreground flex items-center gap-1"><FileText className="size-3" /> Logs</p>
+                  {searchResults.logs.map((l: any) => (
+                    <button key={l.id} onClick={() => { router.push("/dashboard/logs"); setSearchOpen(false); setSearchQuery(""); }}
+                      className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-sm hover:bg-muted transition text-left">
+                      <span className="font-medium">{l.action}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+              {searchResults.employes.length === 0 && searchResults.anomalies.length === 0 && searchResults.logs.length === 0 && (
+                <p className="text-sm text-muted-foreground">Aucun résultat</p>
+              )}
+            </div>
+          )}
+        </div>
+
         <div ref={ref} className="relative">
           <button
             onClick={() => setOpen(!open)}

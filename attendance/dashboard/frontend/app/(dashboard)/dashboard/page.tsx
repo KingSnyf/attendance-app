@@ -15,7 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/spinner";
-import { useDashboardData } from "@/hooks/useDashboardData";
+import { useDashboardData } from "@/lib/hooks/use-dashboard-data";
 import { exporterVersCSV, formatDuree, formatHeure, telechargerCSV } from "@/lib/utils";
 import { api } from "@/lib/api";
 

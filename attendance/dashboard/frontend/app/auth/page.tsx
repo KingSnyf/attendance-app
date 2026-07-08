@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Fingerprint, Mail, Lock, User, ArrowRight, ShieldCheck, ArrowLeft } from "lucide-react";
 import toast from "react-hot-toast";
 import { api } from "@/lib/api";
+import { loginSchema } from "@/lib/schemas";
 
 const ROLES_DASHBOARD = ["admin", "gestionnaire"];
 
@@ -21,6 +22,7 @@ export default function AuthPage() {
   const [isLogin, setIsLogin] = useState(true);
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [forgotEmail, setForgotEmail] = useState("");
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const [formData, setFormData] = useState({
     email: "",
     password: "",
@@ -30,9 +32,17 @@ export default function AuthPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setErrors({});
 
     if (isLogin) {
-      const result = await login({ email: formData.email, password: formData.password });
+      const parsed = loginSchema.safeParse({ email: formData.email, password: formData.password });
+      if (!parsed.success) {
+        const fieldErrors: Record<string, string> = {};
+        parsed.error.issues.forEach((err) => { fieldErrors[err.path[0] as string] = err.message; });
+        setErrors(fieldErrors);
+        return;
+      }
+      const result = await login(parsed.data);
       if (result.success) {
         if (ROLES_DASHBOARD.includes(result.user?.role || "")) {
           toast.success("Connexion réussie!");
@@ -191,6 +201,7 @@ export default function AuthPage() {
                   className="pl-9"
                 />
               </div>
+              {errors.email && <p className="mt-1 text-xs text-destructive">{errors.email}</p>}
             </div>
 
             <div>
@@ -208,6 +219,7 @@ export default function AuthPage() {
                   className="pl-9"
                 />
               </div>
+              {errors.password && <p className="mt-1 text-xs text-destructive">{errors.password}</p>}
             </div>
 
             {isLogin && (
@@ -255,7 +267,7 @@ export default function AuthPage() {
 
       {/* Modale mot de passe oublié */}
       {showForgotPassword && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40" onClick={() => setShowForgotPassword(false)}>
+        <div className="fixed inset-0 z-100 flex items-center justify-center bg-black/40" onClick={() => setShowForgotPassword(false)}>
           <div className="w-full max-w-sm rounded-2xl border border-border bg-card p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
             <h2 className="text-lg font-semibold text-foreground">Mot de passe oublié</h2>
             <p className="mt-1 text-sm text-muted-foreground">

@@ -33,6 +33,8 @@ export type Anomalie = {
   geoloc_verifiee: boolean
   commentaire?: string
   employe?: { prenom: string; nom: string }
+  score?: number
+  criticite?: 'faible' | 'moyen' | 'critique'
 }
 
 export type DemandeModification = {

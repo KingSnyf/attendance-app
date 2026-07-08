@@ -3,28 +3,26 @@
 
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { MapPinned, ShieldCheck, SendHorizonal } from "lucide-react";
 import toast from "react-hot-toast";
 import { Badge } from "@/components/dashboard/status-badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { DataTable } from "@/components/ui/data-table";
 import { Modal } from "@/components/ui/modal";
 import { Spinner } from "@/components/ui/spinner";
-import { Table, TableHeadCell, TableWrapper } from "@/components/ui/table";
-import { api } from "@/lib/api";
+import { useAnomalies, useResolveAnomaly } from "@/lib/hooks/use-anomalies";
+import { useEmployees } from "@/lib/hooks/use-employees";
 import { getNomComplet } from "@/lib/data";
 import { useAuth } from "@/hooks/useAuth";
-import type { Anomalie, Utilisateur } from "@/lib/types";
+import type { Anomalie } from "@/lib/types";
 import { formatDateTime } from "@/lib/utils";
 import { anomalieTypeLabel } from "@/lib/labels";
 
 export default function AnomaliesPage() {
   const { user } = useAuth();
   const isAdmin = user?.role === "admin";
-  const [anomalies, setAnomalies] = useState<Anomalie[]>([]);
-  const [employees, setEmployees] = useState<Utilisateur[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState("all");
   const [typeFilter, setTypeFilter] = useState("all");
   const [employeeFilter, setEmployeeFilter] = useState("all");
@@ -33,13 +31,9 @@ export default function AnomaliesPage() {
   const [comment, setComment] = useState("");
   const [geolocVerified, setGeolocVerified] = useState(false);
 
-  useEffect(() => {
-    api.getAnomalies().then((result) => {
-      setAnomalies(result);
-      setIsLoading(false);
-    }).catch(() => setIsLoading(false));
-    api.getEmployees().then(setEmployees).catch(() => setEmployees([]));
-  }, []);
+  const { data: anomalies = [], isLoading } = useAnomalies();
+  const { data: employees = [] } = useEmployees();
+  const resolveMutation = useResolveAnomaly();
 
   const filtered = useMemo(
     () =>
@@ -110,82 +104,51 @@ export default function AnomaliesPage() {
       </Card>
 
       <Card>
-        <TableWrapper className="border-0">
-          <Table>
-            <thead className="bg-muted/50">
-              <tr>
-                <TableHeadCell>Type</TableHeadCell>
-                <TableHeadCell>Employé</TableHeadCell>
-                <TableHeadCell>Description</TableHeadCell>
-                <TableHeadCell>Date</TableHeadCell>
-                <TableHeadCell>Statut</TableHeadCell>
-                <TableHeadCell>Géoloc vérifiée</TableHeadCell>
-                <TableHeadCell>Actions</TableHeadCell>
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map((anomalie) => {
-                return (
-                  <tr key={anomalie.id} className="border-t border-border">
-                    <td className="px-4 py-3 text-muted-foreground">{anomalieTypeLabel[anomalie.type] ?? anomalie.type}</td>
-                    <td className="px-4 py-3 text-muted-foreground">
-                      {anomalie.employe ? getNomComplet(anomalie.employe) : "Inconnu"}
-                    </td>
-                    <td className="px-4 py-3 text-muted-foreground">{anomalie.description}</td>
-                    <td className="px-4 py-3 text-muted-foreground">
-                      {formatDateTime(anomalie.date_detection)}
-                    </td>
-                    <td className="px-4 py-3">
-                      <Badge variant={anomalie.traitee ? "success" : "danger"}>
-                        {anomalie.traitee ? "Traitée" : "Non traitée"}
-                      </Badge>
-                    </td>
-                    <td className="px-4 py-3 text-muted-foreground">
-                      {anomalie.geoloc_verifiee ? "Oui" : "Non"}
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex flex-wrap gap-2">
-                        {isAdmin ? (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => setSelected(anomalie)}
-                          >
-                            <ShieldCheck className="size-4" />
-                            Traiter
-                          </Button>
-                        ) : (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => {
-                              toast.success("Demande de validation envoyée à l'administrateur.");
-                            }}
-                          >
-                            <SendHorizonal className="size-4" />
-                            Demander validation
-                          </Button>
-                        )}
-                        {anomalie.type === "geofencing_incoherent" ? (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() =>
-                              toast.success("Vue carte simulée depuis la fiche employé.")
-                            }
-                          >
-                            <MapPinned className="size-4" />
-                            Voir sur la carte
-                          </Button>
-                        ) : null}
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </Table>
-        </TableWrapper>
+        <DataTable
+          columns={[
+            { accessorKey: "type", header: "Type", enableSorting: true, cell: ({ row }) => anomalieTypeLabel[row.original.type] ?? row.original.type },
+            { accessorKey: "score", header: "Criticité", enableSorting: true, cell: ({ row }) => {
+              const a = row.original;
+              return a.criticite ? (
+                <Badge variant={a.criticite === 'critique' ? 'danger' : a.criticite === 'moyen' ? 'warning' : 'info'}>
+                  {a.criticite === 'critique' ? 'Critique' : a.criticite === 'moyen' ? 'Moyen' : 'Faible'}
+                </Badge>
+              ) : <span className="text-muted-foreground">—</span>;
+            }},
+            { accessorKey: "employe", header: "Employé", enableSorting: true, cell: ({ row }) => row.original.employe ? getNomComplet(row.original.employe) : "Inconnu" },
+            { accessorKey: "description", header: "Description", enableSorting: false, cell: ({ row }) => row.original.description },
+            { accessorKey: "date_detection", header: "Date", enableSorting: true, cell: ({ row }) => formatDateTime(row.original.date_detection) },
+            { accessorKey: "traitee", header: "Statut", enableSorting: true, cell: ({ row }) => (
+              <Badge variant={row.original.traitee ? "success" : "danger"}>
+                {row.original.traitee ? "Traitée" : "Non traitée"}
+              </Badge>
+            )},
+            { accessorKey: "geoloc_verifiee", header: "Géoloc", enableSorting: true, cell: ({ row }) => row.original.geoloc_verifiee ? "Oui" : "Non" },
+            { id: "actions", header: "Actions", enableSorting: false, cell: ({ row }) => {
+              const a = row.original;
+              return (
+                <div className="flex flex-wrap gap-2">
+                  {isAdmin ? (
+                    <Button variant="outline" size="sm" onClick={() => setSelected(a)}>
+                      <ShieldCheck className="size-4" /> Traiter
+                    </Button>
+                  ) : (
+                    <Button variant="outline" size="sm" onClick={() => toast.success("Demande de validation envoyée à l'administrateur.")}>
+                      <SendHorizonal className="size-4" /> Demander validation
+                    </Button>
+                  )}
+                  {a.type === "geofencing_incoherent" ? (
+                    <Button variant="ghost" size="sm" onClick={() => toast.success("Vue carte simulée depuis la fiche employé.")}>
+                      <MapPinned className="size-4" /> Voir sur la carte
+                    </Button>
+                  ) : null}
+                </div>
+              );
+            }},
+          ]}
+          data={filtered}
+          pageSize={10}
+        />
       </Card>
 
       <Modal
@@ -214,16 +177,12 @@ export default function AnomaliesPage() {
               Annuler
             </Button>
             <Button
-              onClick={async () => {
+              onClick={() => {
                 if (!selected) return;
-                await api.resolveAnomaly(selected.id, comment, geolocVerified);
-                toast.success("Anomalie traitée.");
-                setAnomalies((prev) =>
-                  prev.map((a) => (a.id === selected.id ? { ...a, traitee: true, geoloc_verifiee: geolocVerified } : a)),
+                resolveMutation.mutate(
+                  { id: selected.id, comment, geolocVerified },
+                  { onSuccess: () => { setSelected(null); setComment(""); setGeolocVerified(false); } },
                 );
-                setSelected(null);
-                setComment("");
-                setGeolocVerified(false);
               }}
             >
               Confirmer

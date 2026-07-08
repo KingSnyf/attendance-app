@@ -1,5 +1,5 @@
 import { Body, Controller, Get, Param, Post, Query } from '@nestjs/common';
-import { AnomaliesService } from '../services/anomalies.service';
+import { AnomaliesService, calculerScore, niveauCriticite } from '../services/anomalies.service';
 import { LogsService } from '../services/logs.service';
 import { ResolveAnomalyDto } from '../dto/resolve-anomaly.dto';
 import { Roles } from '../auth/roles.decorator';
@@ -20,16 +20,21 @@ export class AnomaliesController {
       where: { userId: user.userId },
       orderBy: { dateDetection: 'desc' },
     }) as any[];
-    return anomalies.map((a: any) => ({
-      id: a.id,
-      user_id: a.userId,
-      type: a.type,
-      description: a.description,
-      date_detection: a.dateDetection.toISOString(),
-      traitee: a.traitee,
-      commentaire: a.commentaire,
-      geoloc_verifiee: a.geolocVerifiee,
-    }));
+    return anomalies.map((a: any) => {
+      const score = calculerScore(a.type, a.dateDetection, a.traitee);
+      return {
+        id: a.id,
+        user_id: a.userId,
+        type: a.type,
+        description: a.description,
+        date_detection: a.dateDetection.toISOString(),
+        traitee: a.traitee,
+        commentaire: a.commentaire,
+        geoloc_verifiee: a.geolocVerifiee,
+        score: Math.round(score * 100) / 100,
+        criticite: niveauCriticite(score),
+      };
+    });
   }
 
   @Get()

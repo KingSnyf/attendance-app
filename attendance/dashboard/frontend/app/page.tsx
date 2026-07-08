@@ -19,11 +19,6 @@ export default function Page() {
         return;
       }
 
-      if (token === "mock-token-attendance") {
-        setState("dashboard");
-        return;
-      }
-
       try {
         const res = await fetch(
           `${process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:3002/api"}/auth/me`,

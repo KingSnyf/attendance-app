@@ -106,7 +106,7 @@ export class SessionsService {
     if (settings.plageIpLocale && settings.plageIpLocale !== '192.168.1.0/24') {
       const ipDansPlage = ipLocale && this.estIpDansPlage(ipLocale, settings.plageIpLocale);
       if (!ipDansPlage) {
-        await this.prisma.anomaly.create({
+        const created = await this.prisma.anomaly.create({
           data: {
             userId,
             type: 'hors_reseau',
@@ -115,7 +115,7 @@ export class SessionsService {
             traitee: true,
           },
         });
-        this.events.emitNotification({ type: 'anomalie', message: 'Pointage refusé — IP hors plage' });
+        this.events.emitAnomalieCreee(created);
         throw new ForbiddenException('Réseau non autorisé. Vous devez être connecté au réseau de l\'entreprise pour pointer.');
       }
     }
@@ -139,11 +139,12 @@ export class SessionsService {
     }
 
     // Créer les anomalies
+    const anomaliesCreees: any[] = [];
     for (const a of anomalies) {
-      await this.prisma.anomaly.create({ data: a });
+      anomaliesCreees.push(await this.prisma.anomaly.create({ data: a }));
     }
-    if (anomalies.length > 0) {
-      this.events.emitNotification({ type: 'anomalie', message: `${anomalies.length} anomalie(s) créée(s)`, count: anomalies.length });
+    for (const created of anomaliesCreees) {
+      this.events.emitAnomalieCreee(created);
     }
 
     // Calcul du retard
@@ -164,7 +165,7 @@ export class SessionsService {
         const breakMinutes = Math.round((now.getTime() - prevSession.heureDepart.getTime()) / 60000);
         const maxPause = settings.dureePauseMaxMinutes ?? 90;
         if (breakMinutes > maxPause) {
-          await this.prisma.anomaly.create({
+          const created = await this.prisma.anomaly.create({
             data: {
               userId,
               type: 'pause_depassee',
@@ -173,13 +174,14 @@ export class SessionsService {
               traitee: false,
             },
           });
+          this.events.emitAnomalieCreee(created);
         }
       }
     }
 
     // Vérification appareil connu — bloquante
     if (!deviceId) {
-      await this.prisma.anomaly.create({
+      const created = await this.prisma.anomaly.create({
         data: {
           userId,
           type: 'device_inconnu',
@@ -188,7 +190,7 @@ export class SessionsService {
           traitee: true,
         },
       });
-      this.events.emitNotification({ type: 'anomalie', message: 'Pointage refusé — aucun appareil transmis' });
+      this.events.emitAnomalieCreee(created);
       throw new ForbiddenException('Appareil non reconnu. Associez cet appareil à votre compte avant de pointer.');
     }
 
@@ -196,7 +198,7 @@ export class SessionsService {
       where: { identifiantAppareil: deviceId, userId, actif: true },
     });
     if (!device) {
-      await this.prisma.anomaly.create({
+      const created = await this.prisma.anomaly.create({
         data: {
           userId,
           type: 'device_inconnu',
@@ -205,7 +207,7 @@ export class SessionsService {
           traitee: true,
         },
       });
-      this.events.emitNotification({ type: 'anomalie', message: 'Pointage refusé — appareil non reconnu' });
+      this.events.emitAnomalieCreee(created);
       throw new ForbiddenException('Appareil non reconnu. Associez cet appareil à votre compte avant de pointer.');
     }
 

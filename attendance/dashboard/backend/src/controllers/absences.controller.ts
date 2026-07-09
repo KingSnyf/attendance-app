@@ -3,17 +3,19 @@ import { Roles } from '../auth/roles.decorator';
 import { User } from '../auth/user.decorator';
 import { PrismaService } from '../prisma.service';
 import { LogsService } from '../services/logs.service';
+import { EventsGateway } from '../gateways/events.gateway';
 
 @Controller('requests')
 export class RequestsController {
   constructor(
     private readonly prisma: PrismaService,
     private readonly logs: LogsService,
+    private readonly events: EventsGateway,
   ) {}
 
   @Post()
   async create(@Body() body: { type: string; dateDebut?: string; dateFin?: string; motif: string }, @User() user: any) {
-    return this.prisma.request.create({
+    const request = await this.prisma.request.create({
       data: {
         userId: user.userId,
         type: body.type || 'absence',
@@ -23,6 +25,8 @@ export class RequestsController {
         statut: 'en_attente',
       },
     });
+    this.events.emitDemandeCreee(request);
+    return request;
   }
 
   @Get('mine')

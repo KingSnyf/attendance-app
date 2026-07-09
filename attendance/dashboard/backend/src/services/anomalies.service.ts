@@ -94,7 +94,7 @@ export class AnomaliesService {
         traitee: false,
       },
     });
-    this.events.emitNotification({ type: 'anomalie', message: `Nouvelle anomalie: ${data.type}` });
+    this.events.emitAnomalieCreee(anomaly);
     return {
       id: anomaly.id,
       user_id: anomaly.userId,

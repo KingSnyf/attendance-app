@@ -21,6 +21,8 @@ import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/spinner";
 import { useAuth } from "@/hooks/useAuth";
 import { api } from "@/lib/api";
+import { useSettings, useUpdateSettings } from "@/lib/hooks/use-settings";
+import { updateSettingsSchema } from "@/lib/schemas";
 import type { ParametresSysteme } from "@/lib/types";
 
 const GeofenceMap = dynamic(
@@ -57,8 +59,9 @@ function SectionCard({
 
 export default function ParametresPage() {
   const { user, refreshUser } = useAuth();
+  const { data: settingsData, isLoading: settingsLoading } = useSettings();
+  const updateSettingsMutation = useUpdateSettings();
   const [settings, setSettings] = useState<ParametresSysteme | null>(null);
-  const [settingsLoaded, setSettingsLoaded] = useState(false);
   const [saving, setSaving] = useState(false);
   const [profile, setProfile] = useState({
     nom: "",
@@ -69,7 +72,10 @@ export default function ParametresPage() {
   const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    api.getSettings().then((s) => { setSettings(s); setSettingsLoaded(true); }).catch(() => setSettingsLoaded(true));
+    if (settingsData) setSettings(settingsData);
+  }, [settingsData]);
+
+  useEffect(() => {
     if (user)
       setProfile({
         nom: user.nom || "",
@@ -103,7 +109,7 @@ export default function ParametresPage() {
 
   const isReadOnly = user?.role === "gestionnaire"
 
-  if (!settingsLoaded) {
+  if (settingsLoading) {
     return (
       <div className="flex min-h-[30vh] items-center justify-center gap-3 text-muted-foreground">
         <Spinner />
@@ -123,9 +129,14 @@ export default function ParametresPage() {
   }
 
   const saveSettings = async () => {
+    const parsed = updateSettingsSchema.safeParse(settings)
+    if (!parsed.success) {
+      toast.error("Certains champs sont invalides.")
+      return
+    }
     setSaving(true);
     try {
-      const updated = await api.updateSettings(settings) as ParametresSysteme;
+      const updated = await updateSettingsMutation.mutateAsync(settings) as ParametresSysteme;
       setSettings(updated);
       toast.success("Paramètres système sauvegardés.");
     } catch {

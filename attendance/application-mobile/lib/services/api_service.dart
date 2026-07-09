@@ -20,7 +20,9 @@ class ApiService {
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({'email': email, 'password': password}),
     );
-    if (res.statusCode != 200) throw Exception(jsonDecode(res.body)['message'] ?? 'Erreur connexion');
+    if (res.statusCode != 200 && res.statusCode != 201) {
+      throw Exception(jsonDecode(res.body)['message'] ?? 'Erreur connexion');
+}
     return jsonDecode(res.body);
   }
 
@@ -30,6 +32,7 @@ class ApiService {
       headers: await _headers(),
       body: jsonEncode({'bssid': bssid}),
     );
+    print(res.body);
     return jsonDecode(res.body);
   }
 

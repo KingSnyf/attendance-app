@@ -70,7 +70,7 @@ function CommandSearch() {
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === "k") { e.preventDefault(); setOpen((prev) => !prev) }
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") { e.preventDefault(); setOpen((prev) => !prev) }
       if (e.key === "Escape") close()
     }
     document.addEventListener("keydown", handler)
@@ -104,7 +104,7 @@ function CommandSearch() {
       </button>
 
       {open && (
-        <div className="fixed inset-0 z-[200] flex items-start justify-center pt-[15vh]">
+        <div className="fixed inset-0 z-200 flex items-start justify-center pt-[15vh]">
           <div className="absolute inset-0 bg-black/40" onClick={close} />
           <div className="relative z-10 w-full max-w-xl rounded-2xl border border-border bg-card shadow-2xl">
             <div className="flex items-center gap-3 border-b border-border px-5 py-4">

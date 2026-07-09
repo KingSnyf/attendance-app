@@ -74,7 +74,7 @@ export default function ModificationsPage() {
     {
       header: "Actions",
       cell: ({ row }) => {
-        if (user?.role !== "admin") return <span className="text-sm text-muted-foreground">Lecture seule</span>
+        if (user?.role !== "admin" && user?.role !== "gestionnaire") return <span className="text-sm text-muted-foreground">Lecture seule</span>
         return (
           <div className="flex gap-2">
             <Button variant="outline" size="sm" onClick={() => setSelectedAction({ id: row.original.id, action: "approve" })}>Valider</Button>

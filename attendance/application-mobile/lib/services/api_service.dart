@@ -4,7 +4,7 @@ import 'package:http/http.dart' as http;
 import 'auth_service.dart';
 
 class ApiService {
-  static const String baseUrl = 'http://192.168.1.100:3002/api';
+  static const String baseUrl = 'http://192.168.1.181:3002/api';
 
   static Future<Map<String, String>> _headers() async {
     final token = await AuthService.getToken();

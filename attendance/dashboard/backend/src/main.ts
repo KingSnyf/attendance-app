@@ -17,7 +17,7 @@ async function bootstrap() {
   app.use('/uploads', express.static(join(process.cwd(), 'uploads')));
 
   const port = process.env.PORT ? parseInt(process.env.PORT, 10) : 3002;
-  await app.listen(port);
+  await app.listen(port, '0.0.0.0');
   console.log(`Attendance backend listening on http://localhost:${port}`);
 }
 

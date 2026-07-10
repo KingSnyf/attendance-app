@@ -1,4 +1,5 @@
 "use client"
+import { Avatar } from "@/components/dashboard/avatar"
 import { Badge } from "@/components/dashboard/status-badge"
 import { Button } from "@/components/ui/button"
 import { statutBadgeVariant, statutLabel } from "@/lib/labels"
@@ -10,6 +11,7 @@ type EmployeeRow = {
   email: string
   departement: string
   statut_actuel: string
+  photo_url?: string | null
   geofencing_alert?: boolean
   premiere_arrivee?: string | null
   temps_cumule?: string | null
@@ -26,21 +28,24 @@ function EmployeesPresence({ employees, onViewEmployee }: EmployeesPresenceProps
       <table className="w-full text-sm">
         <thead className="border-b border-border text-left">
           <tr>
-            <th className="pb-3 text-xs font-medium uppercase text-muted-foreground">Employé</th>
-            <th className="pb-3 text-xs font-medium uppercase text-muted-foreground">Département</th>
-            <th className="pb-3 text-xs font-medium uppercase text-muted-foreground">Statut</th>
-            <th className="pb-3 text-xs font-medium uppercase text-muted-foreground">Arrivée</th>
-            <th className="pb-3 text-xs font-medium uppercase text-muted-foreground">Temps</th>
-            <th className="pb-3 text-xs font-medium uppercase text-muted-foreground">Actions</th>
+            <th className="pb-3 text-xs font-medium uppercase tracking-wider text-muted-foreground">Employé</th>
+            <th className="pb-3 text-xs font-medium uppercase tracking-wider text-muted-foreground">Département</th>
+            <th className="pb-3 text-xs font-medium uppercase tracking-wider text-muted-foreground">Statut</th>
+            <th className="pb-3 text-xs font-medium uppercase tracking-wider text-muted-foreground">Arrivée</th>
+            <th className="pb-3 text-xs font-medium uppercase tracking-wider text-muted-foreground">Temps</th>
+            <th className="pb-3 text-xs font-medium uppercase tracking-wider text-muted-foreground">Actions</th>
           </tr>
         </thead>
-        <tbody>
+        <tbody className="divide-y divide-border">
           {employees.map((employee) => (
-            <tr key={employee.id} className="border-b border-border">
+            <tr key={employee.id} className="group transition-colors hover:bg-muted/40">
               <td className="py-3 pr-4">
-                <div>
-                  <p className="font-medium text-foreground">{employee.prenom} {employee.nom}</p>
-                  <p className="text-xs text-muted-foreground">{employee.email}</p>
+                <div className="flex items-center gap-3">
+                  <Avatar nom={`${employee.prenom} ${employee.nom}`} src={employee.photo_url} size="sm" />
+                  <div>
+                    <p className="font-medium text-foreground">{employee.prenom} {employee.nom}</p>
+                    <p className="text-xs text-muted-foreground">{employee.email}</p>
+                  </div>
                 </div>
               </td>
               <td className="py-3 pr-4 text-muted-foreground">{employee.departement}</td>
@@ -49,8 +54,8 @@ function EmployeesPresence({ employees, onViewEmployee }: EmployeesPresenceProps
                   {statutLabel[employee.statut_actuel] ?? employee.statut_actuel}
                 </Badge>
               </td>
-              <td className="py-3 pr-4 text-muted-foreground">{employee.premiere_arrivee ?? "—"}</td>
-              <td className="py-3 pr-4 text-muted-foreground">{employee.temps_cumule ?? "—"}</td>
+              <td className="font-data py-3 pr-4 text-muted-foreground">{employee.premiere_arrivee ?? "—"}</td>
+              <td className="font-data py-3 pr-4 text-muted-foreground">{employee.temps_cumule ?? "—"}</td>
               <td className="py-3">
                 <Button variant="outline" size="sm" onClick={() => onViewEmployee(employee.id)}>
                   Voir

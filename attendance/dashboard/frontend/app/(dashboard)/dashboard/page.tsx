@@ -18,6 +18,12 @@ import { Spinner } from "@/components/ui/spinner";
 import { useDashboardData } from "@/lib/hooks/use-dashboard-data";
 import { exporterVersCSV, formatDuree, formatHeure, telechargerCSV } from "@/lib/utils";
 
+const AUJOURDHUI = new Intl.DateTimeFormat("fr-FR", {
+  weekday: "long",
+  day: "numeric",
+  month: "long",
+}).format(new Date());
+
 export default function VueEnsemblePage() {
   const router = useRouter();
   const { data, isLoading, error } = useDashboardData();
@@ -62,6 +68,8 @@ export default function VueEnsemblePage() {
       });
   }, [data?.employees, data?.geofencingAlerts, filterDepartement, filterGeofencing, filterStatut, searchQuery]);
 
+  const totalEmployes = data?.employees.length ?? 0;
+
   const handleExportCSV = () => {
     const csv = exporterVersCSV(
       employees.map((employee) => ({
@@ -98,69 +106,89 @@ export default function VueEnsemblePage() {
 
   return (
     <div className="space-y-6">
-      <AnomaliesWidget />
+      {/* En-tête de page */}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <h2 className="font-heading text-[28px] font-bold leading-tight text-foreground">
+            Vue d'ensemble
+          </h2>
+          <p className="text-sm capitalize text-muted-foreground">
+            Bienvenue, voici le point sur l'activité — {AUJOURDHUI}.
+          </p>
+        </div>
+        <div className="flex gap-1 rounded-lg border border-border bg-card p-1 shadow-sm">
+          <button
+            onClick={() => setPeriod("semaine")}
+            className={
+              period === "semaine"
+                ? "rounded-md bg-brand px-4 py-1.5 text-sm font-medium text-white"
+                : "rounded-md px-4 py-1.5 text-sm font-medium text-muted-foreground transition hover:bg-muted"
+            }
+          >
+            Semaine
+          </button>
+          <button
+            onClick={() => setPeriod("mois")}
+            className={
+              period === "mois"
+                ? "rounded-md bg-brand px-4 py-1.5 text-sm font-medium text-white"
+                : "rounded-md px-4 py-1.5 text-sm font-medium text-muted-foreground transition hover:bg-muted"
+            }
+          >
+            Mois
+          </button>
+        </div>
+      </div>
 
+      {/* Grille de statistiques */}
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <StatCard
           icon={CheckCircle2}
           label="Présents"
           value={data.stats.presents}
           variant="success"
+          hint={totalEmployes > 0 ? `${Math.round((data.stats.presents / totalEmployes) * 100)}% de l'effectif` : undefined}
         />
         <StatCard
           icon={XCircle}
           label="Absents"
           value={data.stats.absents}
           variant="danger"
+          hint={totalEmployes > 0 ? `${Math.round((data.stats.absents / totalEmployes) * 100)}% de l'effectif` : undefined}
         />
         <StatCard
           icon={Coffee}
           label="En pause"
           value={data.stats.enPause}
           variant="warning"
+          progress={totalEmployes > 0 ? (data.stats.enPause / totalEmployes) * 100 : 0}
         />
         <StatCard
           icon={AlertTriangle}
           label="Anomalies"
           value={data.stats.anomaliesNonTraitees}
           variant="info"
+          hint={data.stats.anomaliesNonTraitees > 0 ? "Vérifier les pointages →" : "Rien à signaler"}
         />
       </div>
 
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h2 className="text-lg font-semibold text-foreground">Présence collective</h2>
-          <p className="text-sm text-muted-foreground">
-            Comparez la semaine en cours et la tendance mensuelle.
-          </p>
+      {/* Graphique + anomalies à traiter, côte à côte */}
+      <div className="grid gap-4 lg:grid-cols-3">
+        <div className="lg:col-span-2">
+          <PresenceChart
+            data={period === "semaine" ? data.weeklyPresence : data.monthlyPresence}
+            period={period}
+            title="Présence collective"
+            subtitle="Comparez la semaine en cours et la tendance mensuelle"
+          />
         </div>
-        <div className="flex gap-2">
-          <Button
-            variant={period === "semaine" ? "default" : "outline"}
-            onClick={() => setPeriod("semaine")}
-            size="sm"
-          >
-            Semaine
-          </Button>
-          <Button
-            variant={period === "mois" ? "default" : "outline"}
-            onClick={() => setPeriod("mois")}
-            size="sm"
-          >
-            Mois
-          </Button>
-        </div>
+        <AnomaliesWidget />
       </div>
-
-      <PresenceChart
-        data={period === "semaine" ? data.weeklyPresence : data.monthlyPresence}
-        period={period}
-      />
 
       <Card>
         <div className="mb-5 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <h2 className="text-lg font-semibold text-foreground">Présence des employés</h2>
+            <h2 className="font-heading text-lg font-semibold text-foreground">Présence des employés</h2>
             <p className="text-sm text-muted-foreground">
               Statut en temps réel, appareil associé et temps cumulé du jour.
             </p>

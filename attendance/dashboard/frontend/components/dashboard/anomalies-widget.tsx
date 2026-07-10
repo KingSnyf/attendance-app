@@ -30,30 +30,37 @@ function AnomaliesWidget() {
 
   if (nonTraitees.length === 0) {
     return (
-      <div className="flex items-center gap-3 rounded-2xl border border-success bg-success p-4">
-        <CheckCircle2 className="size-5 shrink-0 text-success-foreground" />
-        <p className="font-medium text-success-foreground">
-          Aucune anomalie non traitée. Tout est sous contrôle.
-        </p>
+      <div className="flex h-full flex-col items-center justify-center gap-3 rounded-xl border border-border bg-card p-8 text-center shadow-sm">
+        <span className="flex size-14 shrink-0 items-center justify-center rounded-full bg-success text-success-foreground">
+          <CheckCircle2 className="size-6" />
+        </span>
+        <div>
+          <p className="font-medium text-foreground">Tout est sous contrôle</p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Aucune anomalie n'attend d'être traitée.
+          </p>
+        </div>
       </div>
     )
   }
 
   return (
-    <div className="rounded-2xl border border-warning bg-warning p-4">
-      <div className="flex items-start gap-3">
-        <AlertTriangle className="mt-0.5 size-5 shrink-0 text-warning-foreground" />
+    <div className="flex h-full flex-col rounded-xl border border-border bg-card p-5 shadow-sm">
+      <div className="flex items-start gap-4">
+        <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-signal/10 text-signal">
+          <AlertTriangle className="size-5" />
+        </span>
         <div className="flex-1">
-          <p className="font-medium text-warning-foreground">
+          <p className="font-medium text-foreground">
             {nonTraitees.length} anomalie{nonTraitees.length > 1 ? "s" : ""} à traiter — triées par criticité
           </p>
-          <ul className="mt-3 space-y-2">
+          <ul className="mt-3 divide-y divide-border">
             {nonTraitees.map((anomalie) => {
               const criticite = anomalie.criticite ?? "faible"
               return (
                 <li
                   key={anomalie.id}
-                  className="flex items-center justify-between gap-3 rounded-xl bg-card/60 px-3 py-2.5"
+                  className="flex items-center justify-between gap-3 py-3 first:pt-0 last:pb-0"
                 >
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">

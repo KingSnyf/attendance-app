@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
-import { CheckCircle2, XCircle } from "lucide-react";
+import { useMemo, useState } from "react";
+import { CheckCircle2, Clock, FileText, XCircle } from "lucide-react";
 import toast from "react-hot-toast";
 import { Avatar } from "@/components/dashboard/avatar";
 import { Badge } from "@/components/dashboard/status-badge";
+import { StatCard } from "@/components/dashboard/stat-card";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Spinner } from "@/components/ui/spinner";
@@ -36,6 +37,16 @@ export default function DemandesPage() {
   const processMutation = useProcessRequest();
   const requests = (requestsData as Demande[]) ?? [];
 
+  const stats = useMemo(
+    () => ({
+      total: requests.length,
+      enAttente: requests.filter((r) => r.statut === "en_attente").length,
+      approuvees: requests.filter((r) => r.statut === "approuve").length,
+      refusees: requests.filter((r) => r.statut === "refuse").length,
+    }),
+    [requests],
+  );
+
   if (isLoading) {
     return (
       <div className="flex min-h-[30vh] items-center justify-center gap-3 text-muted-foreground">
@@ -48,8 +59,15 @@ export default function DemandesPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-lg font-semibold text-foreground">Demandes</h2>
-        <p className="text-sm text-muted-foreground">Valide ou refuse les demandes des employés.</p>
+        <h2 className="text-2xl font-semibold tracking-tight text-foreground">Demandes</h2>
+        <p className="mt-1 text-sm text-muted-foreground">Valide ou refuse les demandes des employés.</p>
+      </div>
+
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <StatCard icon={FileText} label="Total demandes" value={stats.total} variant="info" />
+        <StatCard icon={Clock} label="En attente" value={stats.enAttente} variant="warning" />
+        <StatCard icon={CheckCircle2} label="Approuvées" value={stats.approuvees} variant="success" />
+        <StatCard icon={XCircle} label="Refusées" value={stats.refusees} variant="danger" />
       </div>
 
       {requests.length === 0 ? (

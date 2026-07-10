@@ -1,11 +1,11 @@
 import { cn } from "@/lib/utils"
 
 const variantStyles = {
-  success: "border-success-foreground/40 text-success-foreground",
-  danger: "border-danger-foreground/40 text-danger-foreground",
-  warning: "border-warning-foreground/40 text-warning-foreground",
-  info: "border-signal/40 text-signal",
-  brand: "border-brand/40 text-brand",
+  success: "bg-success-foreground/10 text-success-foreground",
+  danger: "bg-danger-foreground/10 text-danger-foreground",
+  warning: "bg-warning-foreground/10 text-warning-foreground",
+  info: "bg-signal/10 text-signal",
+  brand: "bg-brand/10 text-brand",
 }
 
 type BadgeProps = {
@@ -18,7 +18,7 @@ function Badge({ variant = "info", children, className }: BadgeProps) {
   return (
     <span
       className={cn(
-        "stamp-badge inline-block rounded-md px-2 py-0.5 text-[10px] font-semibold",
+        "inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold",
         variantStyles[variant],
         className,
       )}

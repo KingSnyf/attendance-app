@@ -35,7 +35,7 @@ function Header() {
   const total = anomalies + modifications + requests
 
   return (
-    <header className="flex h-20 min-h-20 items-center justify-between border-b border-border bg-card px-8">
+    <header className="glass-header sticky top-0 z-40 flex h-20 min-h-20 items-center justify-between border-b border-border px-8 shadow-sm">
       <h1 className="text-xl font-semibold text-foreground">
         {current?.label ?? "Tableau de bord"}
       </h1>
@@ -104,9 +104,19 @@ function Header() {
         {initials && (
           <button
             onClick={() => router.push("/dashboard/parametres")}
-            className="flex size-11 items-center justify-center rounded-full bg-brand/10 text-base font-semibold text-brand transition hover:bg-brand/20"
+            className="group flex items-center gap-3 rounded-full py-1 pl-1 pr-1 transition hover:bg-muted sm:pr-3"
           >
-            {initials}
+            <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-brand text-sm font-semibold text-white">
+              {initials}
+            </span>
+            <span className="hidden text-left sm:block">
+              <span className="block text-sm font-medium leading-tight text-foreground">
+                {user?.prenom} {user?.nom}
+              </span>
+              <span className="block text-xs capitalize leading-tight text-muted-foreground">
+                {user?.role}
+              </span>
+            </span>
           </button>
         )}
       </div>

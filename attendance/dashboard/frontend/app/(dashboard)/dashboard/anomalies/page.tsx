@@ -4,9 +4,10 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { MapPinned, ShieldCheck, SendHorizonal } from "lucide-react";
+import { AlertTriangle, CheckCircle2, MapPinned, ShieldCheck, SendHorizonal } from "lucide-react";
 import toast from "react-hot-toast";
 import { Badge } from "@/components/dashboard/status-badge";
+import { StatCard } from "@/components/dashboard/stat-card";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { DataTable } from "@/components/ui/data-table";
@@ -35,6 +36,17 @@ export default function AnomaliesPage() {
   const { data: employees = [] } = useEmployees();
   const resolveMutation = useResolveAnomaly();
 
+  const stats = useMemo(() => {
+    const total = anomalies.length;
+    const traitees = anomalies.filter((a) => a.traitee).length;
+    return {
+      nonTraitees: total - traitees,
+      geofencing: anomalies.filter((a) => a.type === "geofencing_incoherent").length,
+      critiques: anomalies.filter((a) => a.criticite === "critique").length,
+      tauxResolution: total > 0 ? Math.round((traitees / total) * 100) : 0,
+    };
+  }, [anomalies]);
+
   const filtered = useMemo(
     () =>
       anomalies.filter((anomalie) => {
@@ -60,6 +72,22 @@ export default function AnomaliesPage() {
 
   return (
     <div className="space-y-6">
+      <div>
+        <h2 className="text-2xl font-semibold tracking-tight text-foreground">
+          Gestion des anomalies
+        </h2>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Surveillance des irrégularités de présence et de géolocalisation.
+        </p>
+      </div>
+
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <StatCard icon={AlertTriangle} label="Non traitées" value={stats.nonTraitees} variant="danger" />
+        <StatCard icon={MapPinned} label="Écarts géofencing" value={stats.geofencing} variant="info" />
+        <StatCard icon={ShieldCheck} label="Criticité élevée" value={stats.critiques} variant="warning" />
+        <StatCard icon={CheckCircle2} label="Taux de résolution" value={`${stats.tauxResolution}%`} variant="success" />
+      </div>
+
       <Card className="grid gap-3 lg:grid-cols-4">
         <select
           value={statusFilter}

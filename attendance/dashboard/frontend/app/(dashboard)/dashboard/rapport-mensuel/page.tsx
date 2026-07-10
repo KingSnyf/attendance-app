@@ -86,8 +86,8 @@ export default function RapportMensuelPage() {
       {/* HEADER */}
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h2 className="text-lg font-semibold text-foreground">Rapport mensuel</h2>
-          <p className="text-sm text-muted-foreground">
+          <h2 className="text-2xl font-semibold tracking-tight text-foreground">Rapport mensuel</h2>
+          <p className="mt-1 text-sm text-muted-foreground">
             Analyse des présences, retards et tendances.
           </p>
         </div>

@@ -2,11 +2,12 @@
 
 import { useMemo, useState } from "react"
 import Link from "next/link"
-import { Plus, Users } from "lucide-react"
+import { CheckCircle2, Coffee, Plus, UserX, Users } from "lucide-react"
 import { ColumnDef } from "@tanstack/react-table"
 import toast from "react-hot-toast"
 import { Avatar } from "@/components/dashboard/avatar"
 import { Badge } from "@/components/dashboard/status-badge"
+import { StatCard } from "@/components/dashboard/stat-card"
 import { EmployeeFilters } from "@/components/dashboard/employee-filters"
 import { DataTable } from "@/components/ui/data-table"
 import { Button } from "@/components/ui/button"
@@ -39,6 +40,16 @@ export default function EmployesPage() {
     nom: "", prenom: "", email: "", telephone: "", role: "employe",
     departement: departementsDisponibles[0] ?? "Production",
   })
+
+  const stats = useMemo(() => {
+    const actifs = employees.filter((e) => e.actif)
+    return {
+      total: employees.length,
+      presents: actifs.filter((e) => e.statut_actuel === "present").length,
+      enPause: actifs.filter((e) => e.statut_actuel === "en_attente").length,
+      absents: actifs.filter((e) => e.statut_actuel === "absent" || e.statut_actuel === "conge").length,
+    }
+  }, [employees])
 
   const filtered = useMemo(
     () =>
@@ -155,6 +166,13 @@ export default function EmployesPage() {
           <Link href="/dashboard/employes/desactives"><Button variant="outline"><Users className="size-4" /> Désactivés</Button></Link>
           <Button onClick={() => setCreateOpen(true)}><Plus className="size-4" /> Nouvel employé</Button>
         </div>
+      </div>
+
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <StatCard icon={Users} label="Total effectif" value={stats.total} variant="info" />
+        <StatCard icon={CheckCircle2} label="Présents" value={stats.presents} variant="success" />
+        <StatCard icon={Coffee} label="En pause" value={stats.enPause} variant="warning" />
+        <StatCard icon={UserX} label="Absents / en congé" value={stats.absents} variant="danger" />
       </div>
 
       <EmployeeFilters

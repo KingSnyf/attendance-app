@@ -1,12 +1,13 @@
 "use client"
 
 import { useMemo, useState } from "react"
-import { Download, Settings2 } from "lucide-react"
+import { Activity, Clock, Download, ShieldAlert, Settings2 } from "lucide-react"
 import { ColumnDef } from "@tanstack/react-table"
 import toast from "react-hot-toast"
 import { DataTable } from "@/components/ui/data-table"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
+import { StatCard } from "@/components/dashboard/stat-card"
 import { Input } from "@/components/ui/input"
 import { Modal } from "@/components/ui/modal"
 import { Spinner } from "@/components/ui/spinner"
@@ -15,7 +16,7 @@ import { useLogs } from "@/lib/hooks/use-logs"
 import { useEmployees } from "@/lib/hooks/use-employees"
 import { getNomComplet } from "@/lib/data"
 import type { JournalActivite } from "@/lib/types"
-import { exporterVersCSV, formatDateTime, telechargerCSV } from "@/lib/utils"
+import { exporterVersCSV, formatDateTime, formatHeure, telechargerCSV } from "@/lib/utils"
 
 const COLONNES_EXPORT = [
   { key: "auteur", label: "Auteur" },
@@ -36,6 +37,17 @@ export default function LogsPage() {
   const [to, setTo] = useState("")
   const [exportOpen, setExportOpen] = useState(false)
   const [colonnes, setColonnes] = useState<string[]>(COLONNES_EXPORT.map((c) => c.key))
+
+  const stats = useMemo(() => {
+    const today = new Date().toDateString()
+    const aujourdhui = logs.filter((log: JournalActivite) => new Date(log.date).toDateString() === today).length
+    const securite = logs.filter((log: JournalActivite) => log.type_action === "securite").length
+    const derniere = logs.length
+      ? logs.reduce((latest: JournalActivite, log: JournalActivite) =>
+          new Date(log.date) > new Date(latest.date) ? log : latest, logs[0])
+      : null
+    return { total: logs.length, aujourdhui, securite, derniere }
+  }, [logs])
 
   const filtered = useMemo(
     () =>
@@ -85,6 +97,27 @@ export default function LogsPage() {
 
   return (
     <div className="space-y-6">
+      <div>
+        <h2 className="text-2xl font-semibold tracking-tight text-foreground">
+          Journal d'activité
+        </h2>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Historique des actions administratives sur la plateforme.
+        </p>
+      </div>
+
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <StatCard icon={Activity} label="Total actions" value={stats.total} variant="info" />
+        <StatCard icon={Clock} label="Aujourd'hui" value={stats.aujourdhui} variant="success" />
+        <StatCard icon={ShieldAlert} label="Actions sécurité" value={stats.securite} variant="warning" />
+        <StatCard
+          icon={Clock}
+          label="Dernière action"
+          value={stats.derniere ? formatHeure(stats.derniere.date) : "—"}
+          variant="info"
+        />
+      </div>
+
       <Card className="grid gap-3 lg:grid-cols-4">
         <select value={authorFilter} onChange={(e) => setAuthorFilter(e.target.value)}
           className="h-10 rounded-xl border border-border bg-card px-3 text-sm">

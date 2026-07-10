@@ -4,7 +4,7 @@ import { forwardRef } from "react"
 
 const variants = {
   default: "bg-brand text-white hover:bg-brand/90 shadow-sm",
-  destructive: "bg-red-600 text-white hover:bg-red-700 shadow-sm",
+  destructive: "bg-destructive text-white hover:bg-destructive/90 shadow-sm",
   outline: "border border-border bg-card text-foreground hover:bg-muted",
   ghost: "text-foreground hover:bg-muted",
 } as const

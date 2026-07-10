@@ -7,9 +7,12 @@ import {
   Camera,
   CalendarDays,
   Clock,
+  Lock,
   MapPinned,
+  Router,
   Save,
   Shield,
+  Timer,
   User,
   Wifi,
 } from "lucide-react";
@@ -19,6 +22,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/spinner";
+import { Switch } from "@/components/ui/switch";
 import { useAuth } from "@/hooks/useAuth";
 import { api } from "@/lib/api";
 import { useSettings, useUpdateSettings } from "@/lib/hooks/use-settings";
@@ -35,25 +39,60 @@ const joursSemaine = [
   "lundi", "mardi", "mercredi", "jeudi", "vendredi", "samedi", "dimanche",
 ];
 
-function SectionCard({
+function SectionHeader({
   icon: Icon,
   title,
-  children,
+  description,
+  tone = "brand",
 }: {
   icon: any;
   title: string;
+  description?: string;
+  tone?: "brand" | "signal";
+}) {
+  return (
+    <div className="flex items-center gap-3">
+      <div
+        className={
+          tone === "brand"
+            ? "flex size-12 items-center justify-center rounded-xl bg-brand/10 text-brand"
+            : "flex size-12 items-center justify-center rounded-xl bg-signal/10 text-signal"
+        }
+      >
+        <Icon className="size-5" />
+      </div>
+      <div>
+        <h3 className="text-lg font-semibold text-foreground">{title}</h3>
+        {description && (
+          <p className="text-sm text-muted-foreground">{description}</p>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function RuleCard({
+  icon: Icon,
+  label,
+  description,
+  children,
+}: {
+  icon: any;
+  label: string;
+  description: string;
   children: React.ReactNode;
 }) {
   return (
-    <Card className="overflow-hidden">
-      <div className="flex items-center gap-3 border-b border-border bg-muted/30 px-6 py-4">
-        <div className="flex size-9 items-center justify-center rounded-xl bg-brand/10 text-brand">
-          <Icon className="size-5" />
-        </div>
-        <h2 className="text-lg font-semibold text-foreground">{title}</h2>
+    <div className="group rounded-2xl border border-border bg-muted/30 p-4 transition-colors hover:border-brand/40">
+      <div className="mb-3 flex items-center gap-3">
+        <Icon className="size-5 text-brand transition-transform group-hover:scale-110" />
+        <h4 className="text-xs font-semibold uppercase tracking-wide text-foreground">
+          {label}
+        </h4>
       </div>
-      <div className="p-6">{children}</div>
-    </Card>
+      <p className="mb-4 text-sm text-muted-foreground">{description}</p>
+      {children}
+    </div>
   );
 }
 
@@ -89,7 +128,7 @@ export default function ParametresPage() {
     const file = e.target.files?.[0];
     if (!file) return;
     try {
-      const result = await api.uploadFile(file) as { url: string };
+      const result = (await api.uploadFile(file)) as { url: string };
       setProfile((p) => ({ ...p, photoUrl: result.url }));
       toast.success("Photo uploadée.");
     } catch {
@@ -107,7 +146,7 @@ export default function ParametresPage() {
     );
   }
 
-  const isReadOnly = user?.role === "gestionnaire"
+  const isReadOnly = user?.role === "gestionnaire";
 
   if (settingsLoading) {
     return (
@@ -129,14 +168,16 @@ export default function ParametresPage() {
   }
 
   const saveSettings = async () => {
-    const parsed = updateSettingsSchema.safeParse(settings)
+    const parsed = updateSettingsSchema.safeParse(settings);
     if (!parsed.success) {
-      toast.error("Certains champs sont invalides.")
-      return
+      toast.error("Certains champs sont invalides.");
+      return;
     }
     setSaving(true);
     try {
-      const updated = await updateSettingsMutation.mutateAsync(settings) as ParametresSysteme;
+      const updated = (await updateSettingsMutation.mutateAsync(
+        settings,
+      )) as ParametresSysteme;
       setSettings(updated);
       toast.success("Paramètres système sauvegardés.");
     } catch {
@@ -168,105 +209,151 @@ export default function ParametresPage() {
 
   return (
     <div className="space-y-6">
-      {/* === PROFIL === */}
-      <SectionCard icon={User} title="Mon profil">
-        <div className="flex flex-col gap-6 lg:flex-row lg:items-start">
-          <button
-            type="button"
-            onClick={() => fileRef.current?.click()}
-            className="group relative shrink-0"
-          >
-            <Avatar
-              nom={`${profile.prenom} ${profile.nom}`}
-              src={profile.photoUrl}
-              size="xl"
-            />
-            <div className="absolute inset-0 flex items-center justify-center rounded-full bg-black/40 opacity-0 transition group-hover:opacity-100">
-              <Camera className="size-5 text-white" />
-            </div>
-            <input
-              ref={fileRef}
-              type="file"
-              accept="image/*"
-              className="hidden"
-              onChange={handlePhoto}
-            />
-          </button>
-          <div className="grid flex-1 gap-4 sm:grid-cols-2">
-            <Input
-              value={profile.prenom}
-              onChange={(e) =>
-                setProfile((p) => ({ ...p, prenom: e.target.value }))
-              }
-              placeholder="Prénom"
-            />
-            <Input
-              value={profile.nom}
-              onChange={(e) =>
-                setProfile((p) => ({ ...p, nom: e.target.value }))
-              }
-              placeholder="Nom"
-            />
-            <Input
-              value={profile.email}
-              onChange={(e) =>
-                setProfile((p) => ({ ...p, email: e.target.value }))
-              }
-              placeholder="Email"
-              className="sm:col-span-2"
-            />
-          </div>
-          <Button onClick={saveProfile}>
-            <Save className="size-4" />
-            Enregistrer
-          </Button>
-        </div>
-      </SectionCard>
+      {/* === EN-TÊTE === */}
+      <div>
+        <h2 className="text-2xl font-semibold tracking-tight text-foreground">
+          Paramètres système
+        </h2>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Configure les protocoles de sécurité et de présence de l'organisation.
+        </p>
+      </div>
 
-      {/* === RÉSEAU & SÉCURITÉ === */}
-      <SectionCard icon={Shield} title="Réseau & sécurité">
-        <div className="grid gap-4 lg:grid-cols-2">
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-foreground">
-              BSSID WiFi
-            </label>
-            <Input
-              value={settings.reseau_bssid}
-              onChange={(e) => update("reseau_bssid", e.target.value)}
-              disabled={isReadOnly}
-              placeholder="00:11:22:33:44:55"
-            />
+      {/* === BENTO ROW: PROFIL + SÉCURITÉ === */}
+      <div className="grid gap-6 lg:grid-cols-12">
+        {/* Profil */}
+        <Card className="lg:col-span-8">
+          <SectionHeader icon={User} title="Mon profil" description="Identité et photo affichées dans l'application." />
+          <div className="mt-6 flex flex-col gap-6 lg:flex-row lg:items-start">
+            <button
+              type="button"
+              onClick={() => fileRef.current?.click()}
+              className="group relative shrink-0"
+            >
+              <Avatar
+                nom={`${profile.prenom} ${profile.nom}`}
+                src={profile.photoUrl}
+                size="xl"
+              />
+              <div className="absolute inset-0 flex items-center justify-center rounded-full bg-black/40 opacity-0 transition group-hover:opacity-100">
+                <Camera className="size-5 text-white" />
+              </div>
+              <input
+                ref={fileRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handlePhoto}
+              />
+            </button>
+            <div className="grid flex-1 gap-4 sm:grid-cols-2">
+              <Input
+                value={profile.prenom}
+                onChange={(e) =>
+                  setProfile((p) => ({ ...p, prenom: e.target.value }))
+                }
+                placeholder="Prénom"
+              />
+              <Input
+                value={profile.nom}
+                onChange={(e) =>
+                  setProfile((p) => ({ ...p, nom: e.target.value }))
+                }
+                placeholder="Nom"
+              />
+              <Input
+                value={profile.email}
+                onChange={(e) =>
+                  setProfile((p) => ({ ...p, email: e.target.value }))
+                }
+                placeholder="Email"
+                className="sm:col-span-2"
+              />
+            </div>
           </div>
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-foreground">
-              Plage IP locale
+          <div className="mt-6 flex justify-end">
+            <Button onClick={saveProfile}>
+              <Save className="size-4" />
+              Enregistrer le profil
+            </Button>
+          </div>
+        </Card>
+
+        {/* Statut sécurité réseau -- carte accent sombre */}
+        <div className="relative flex flex-col justify-between overflow-hidden rounded-2xl bg-primary p-6 text-primary-foreground shadow-sm lg:col-span-4">
+          <div className="pointer-events-none absolute -right-10 -top-10 size-40 rounded-full bg-brand/20 blur-3xl" />
+          <div className="relative">
+            <div className="mb-4 flex items-center justify-between">
+              <span className="inline-flex items-center rounded-md border border-white/20 bg-white/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white">
+                {settings.geofencing_actif ? "Sécurité active" : "Sécurité désactivée"}
+              </span>
+              <Shield className="size-5 text-primary-foreground/70" />
+            </div>
+            <h4 className="mb-1 text-lg font-bold">Intégrité réseau</h4>
+            <p className="text-sm text-primary-foreground/70">
+              Accès restreint au Wi-Fi et à la plage IP du bureau.
+            </p>
+          </div>
+          <div className="relative mt-6 space-y-3">
+            <label className="block space-y-1.5">
+              <span className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-primary-foreground/60">
+                <Router className="size-3.5" /> BSSID autorisé
+              </span>
+              <input
+                value={settings.reseau_bssid}
+                onChange={(e) => update("reseau_bssid", e.target.value)}
+                disabled={isReadOnly}
+                placeholder="00:11:22:33:44:55"
+                className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 font-mono text-sm text-white outline-none placeholder:text-white/30 focus:border-white/30 disabled:opacity-60"
+              />
             </label>
-            <Input
-              value={settings.plage_ip_locale}
-              onChange={(e) => update("plage_ip_locale", e.target.value)}
-              disabled={isReadOnly}
-              placeholder="192.168.1.0/24"
-            />
+            <label className="block space-y-1.5">
+              <span className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-primary-foreground/60">
+                <Wifi className="size-3.5" /> Plage IP locale
+              </span>
+              <input
+                value={settings.plage_ip_locale}
+                onChange={(e) => update("plage_ip_locale", e.target.value)}
+                disabled={isReadOnly}
+                placeholder="192.168.1.0/24"
+                className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 font-mono text-sm text-white outline-none placeholder:text-white/30 focus:border-white/30 disabled:opacity-60"
+              />
+            </label>
           </div>
         </div>
-      </SectionCard>
+      </div>
 
       {/* === GÉOFENCING === */}
-      <SectionCard icon={MapPinned} title="Géofencing">
-        <div className="grid gap-6 lg:grid-cols-2">
-          <div className="space-y-4">
-              <label className="flex items-center gap-3 text-sm text-foreground">
-              <input
-                type="checkbox"
+      <Card className="overflow-hidden p-0">
+        <div className="flex flex-wrap items-center justify-between gap-4 border-b border-border p-6">
+          <SectionHeader
+            icon={MapPinned}
+            tone="signal"
+            title="Périmètre de présence (géofencing)"
+            description="Zone géographique autorisée pour l'émargement mobile."
+          />
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 rounded-lg border border-border bg-muted/40 px-3 py-1.5 text-sm text-foreground">
+              Rayon : <span className="font-semibold">{settings.rayon_geofencing_metres}m</span>
+            </div>
+            <label className="flex items-center gap-2 text-sm font-medium text-foreground">
+              Activer
+              <Switch
                 checked={settings.geofencing_actif}
-                onChange={(e) =>
-                  update("geofencing_actif", e.target.checked)
-                }
+                onChange={(checked) => update("geofencing_actif", checked)}
                 disabled={isReadOnly}
-                className="size-4 accent-brand"
               />
-              <span className="font-medium">Activer le géofencing</span>
             </label>
+          </div>
+        </div>
+        <div className="grid gap-0 lg:grid-cols-2">
+          <div className="p-6">
+            <GeofenceMap
+              center={settings.coordonnees_bureau}
+              radius={settings.rayon_geofencing_metres}
+            />
+          </div>
+          <div className="grid gap-4 border-t border-border p-6 sm:grid-cols-2 lg:border-l lg:border-t-0">
             <div className="space-y-2">
               <label className="text-sm font-medium text-foreground">
                 Rayon de sécurité (mètres)
@@ -280,69 +367,66 @@ export default function ParametresPage() {
                 disabled={isReadOnly}
               />
             </div>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-foreground">
-                  Latitude
-                </label>
-                <Input
-                  type="number"
-                  step="0.0001"
-                  value={settings.coordonnees_bureau.lat}
-                  onChange={(e) =>
-                    setSettings(
-                      (prev) =>
-                        prev && {
-                          ...prev,
-                          coordonnees_bureau: {
-                            ...prev.coordonnees_bureau,
-                            lat: Number(e.target.value),
-                          },
+            <div />
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-foreground">Latitude</label>
+              <Input
+                type="number"
+                step="0.0001"
+                value={settings.coordonnees_bureau.lat}
+                onChange={(e) =>
+                  setSettings(
+                    (prev) =>
+                      prev && {
+                        ...prev,
+                        coordonnees_bureau: {
+                          ...prev.coordonnees_bureau,
+                          lat: Number(e.target.value),
                         },
-                    )
-                  }
-                  disabled={isReadOnly}
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-foreground">
-                  Longitude
-                </label>
-                <Input
-                  type="number"
-                  step="0.0001"
-                  value={settings.coordonnees_bureau.lng}
-                  onChange={(e) =>
-                    setSettings(
-                      (prev) =>
-                        prev && {
-                          ...prev,
-                          coordonnees_bureau: {
-                            ...prev.coordonnees_bureau,
-                            lng: Number(e.target.value),
-                          },
+                      },
+                  )
+                }
+                disabled={isReadOnly}
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-foreground">Longitude</label>
+              <Input
+                type="number"
+                step="0.0001"
+                value={settings.coordonnees_bureau.lng}
+                onChange={(e) =>
+                  setSettings(
+                    (prev) =>
+                      prev && {
+                        ...prev,
+                        coordonnees_bureau: {
+                          ...prev.coordonnees_bureau,
+                          lng: Number(e.target.value),
                         },
-                    )
-                  }
-                  disabled={isReadOnly}
-                />
-              </div>
+                      },
+                  )
+                }
+                disabled={isReadOnly}
+              />
             </div>
           </div>
-          <GeofenceMap
-            center={settings.coordonnees_bureau}
-            radius={settings.rayon_geofencing_metres}
-          />
         </div>
-      </SectionCard>
+      </Card>
 
       {/* === RÈGLES DE PRÉSENCE === */}
-      <SectionCard icon={Clock} title="Règles de présence">
-        <div className="grid gap-6 lg:grid-cols-2">
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-foreground">
-              Tolérance de retard (minutes)
-            </label>
+      <Card>
+        <SectionHeader
+          icon={Building2}
+          title="Règles de présence & conformité"
+          description="Paramètre les seuils de tolérance et les méthodes de validation."
+        />
+        <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          <RuleCard
+            icon={Timer}
+            label="Tolérance retard"
+            description="Délai autorisé après l'heure de début sans marquage « Retard »."
+          >
             <Input
               type="number"
               value={settings.tolerance_retard_minutes}
@@ -351,11 +435,12 @@ export default function ParametresPage() {
               }
               disabled={isReadOnly}
             />
-          </div>
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-foreground">
-              Durée max de pause (minutes)
-            </label>
+          </RuleCard>
+          <RuleCard
+            icon={Clock}
+            label="Durée max de pause"
+            description="Durée maximale tolérée pour une pause avant anomalie."
+          >
             <Input
               type="number"
               value={settings.duree_pause_max_minutes}
@@ -364,13 +449,48 @@ export default function ParametresPage() {
               }
               disabled={isReadOnly}
             />
-          </div>
+          </RuleCard>
+          <RuleCard
+            icon={MapPinned}
+            label="Géofencing"
+            description="Exiger que le pointage se fasse dans le périmètre autorisé."
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-semibold text-foreground">
+                {settings.geofencing_actif ? "Activé" : "Désactivé"}
+              </span>
+              <Switch
+                checked={settings.geofencing_actif}
+                onChange={(checked) => update("geofencing_actif", checked)}
+                disabled={isReadOnly}
+              />
+            </div>
+          </RuleCard>
+          <RuleCard
+            icon={Lock}
+            label="Géolocalisation de secours"
+            description="Autoriser une validation manuelle si le GPS échoue."
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-semibold text-foreground">
+                {settings.geolocalisation_secours_active ? "Activé" : "Désactivé"}
+              </span>
+              <Switch
+                checked={Boolean(settings.geolocalisation_secours_active)}
+                onChange={(checked) =>
+                  update("geolocalisation_secours_active", checked)
+                }
+                disabled={isReadOnly}
+              />
+            </div>
+          </RuleCard>
         </div>
-      </SectionCard>
+      </Card>
 
       {/* === HORAIRES STANDARD === */}
-      <SectionCard icon={Clock} title="Horaires standard">
-        <div className="grid gap-6 lg:grid-cols-2">
+      <Card>
+        <SectionHeader icon={Clock} title="Horaires standard" description="Plage horaire de référence pour le calcul des retards." />
+        <div className="mt-6 grid gap-6 lg:grid-cols-2">
           <div className="space-y-2">
             <label className="text-sm font-medium text-foreground">
               Début de journée
@@ -394,11 +514,12 @@ export default function ParametresPage() {
             />
           </div>
         </div>
-      </SectionCard>
+      </Card>
 
       {/* === CALENDRIER === */}
-      <SectionCard icon={CalendarDays} title="Calendrier">
-        <div className="grid gap-6 lg:grid-cols-2">
+      <Card>
+        <SectionHeader icon={CalendarDays} title="Calendrier" description="Jours fériés et jours ouvrés de l'organisation." />
+        <div className="mt-6 grid gap-6 lg:grid-cols-2">
           <div className="space-y-2">
             <label className="text-sm font-medium text-foreground">
               Jours fériés (un par ligne)
@@ -427,7 +548,7 @@ export default function ParametresPage() {
               {joursSemaine.map((jour) => (
                 <label
                   key={jour}
-                  className="flex cursor-pointer items-center gap-3 rounded-xl border border-border px-4 py-3 text-sm text-foreground transition hover:bg-muted has-[:checked]:border-brand has-[:checked]:bg-brand/5"
+                  className="flex cursor-pointer items-center gap-3 rounded-xl border border-border px-4 py-3 text-sm text-foreground transition hover:bg-muted has-checked:border-brand has-checked:bg-brand/5"
                 >
                   <input
                     type="checkbox"
@@ -453,7 +574,7 @@ export default function ParametresPage() {
             </div>
           </div>
         </div>
-      </SectionCard>
+      </Card>
 
       {/* === SAUVEGARDE GLOBALE === */}
       {!isReadOnly && (
@@ -468,11 +589,7 @@ export default function ParametresPage() {
             </p>
           </div>
           <Button onClick={saveSettings} disabled={saving}>
-            {saving ? (
-              <Spinner />
-            ) : (
-              <Save className="size-4" />
-            )}
+            {saving ? <Spinner /> : <Save className="size-4" />}
             {saving ? "Sauvegarde…" : "Sauvegarder"}
           </Button>
         </div>

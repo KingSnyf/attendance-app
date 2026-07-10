@@ -61,64 +61,66 @@
 :root {
   color-scheme: light;
   --font-inter: 'Inter', ui-sans-serif, system-ui, sans-serif;
-  --font-display: 'Space Grotesk', 'Inter', ui-sans-serif, system-ui, sans-serif;
-  --font-data-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
+  /* Système Stitch "AttendX Enterprise" : une seule famille (Inter) pour tout,
+     y compris les titres -- plus de police d'accroche séparée. */
+  --font-display: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --font-data-mono: 'Inter', ui-sans-serif, system-ui, sans-serif;
 
-  /* Papier -- fond froid et neutre, pas le crème chaud par défaut */
-  --background: #eef0f2;
-  --foreground: #1c2130;
+  /* Surface -- fond bleu-gris très clair (palette Stitch) */
+  --background: #f7f9fb;
+  --foreground: #191c1e;
 
   --card: #ffffff;
-  --card-foreground: #1c2130;
+  --card-foreground: #191c1e;
   --popover: #ffffff;
-  --popover-foreground: #1c2130;
+  --popover-foreground: #191c1e;
 
-  --primary: #1c2130;
+  --primary: #191c1e;
   --primary-foreground: #ffffff;
-  --secondary: #e4e6ea;
-  --secondary-foreground: #1c2130;
-  --muted: #e4e6ea;
-  --muted-foreground: #676f80;
-  --accent: #eef0f2;
-  --accent-foreground: #a66b25;
-  --destructive: #b23b33;
-  --border: #d8dbe1;
-  --input: #d8dbe1;
-  --ring: #a66b25;
+  --secondary: #f2f4f6;
+  --secondary-foreground: #191c1e;
+  --muted: #f2f4f6;
+  --muted-foreground: #4c4546;
+  --accent: #eef2f9;
+  --accent-foreground: #085ac0;
+  --destructive: #ba1a1a;
+  --border: #e0e3e5;
+  --input: #e0e3e5;
+  --ring: #085ac0;
 
-  /* Laiton -- accent principal, plaque de pointeuse murale */
-  --brand: #a66b25;
+  /* Accent principal -- bleu institutionnel (palette Stitch "secondary") */
+  --brand: #085ac0;
   --brand-foreground: #ffffff;
-  --brand-accent: #8f5a1c;
+  --brand-accent: #064a9e;
 
-  /* Teal encre -- accent secondaire (info, géofencing) */
-  --signal: #2b6f6b;
+  /* Accent secondaire -- brun chaud, réservé aux signalements/urgences */
+  --signal: #995c2e;
   --signal-foreground: #ffffff;
 
-  --success: #e3efe6;
-  --success-foreground: #2f7d4f;
-  --warning: #f3e7d7;
-  --warning-foreground: #a66b25;
-  --danger: #f6e2e0;
-  --danger-foreground: #b23b33;
+  --success: #e1f5ee;
+  --success-foreground: #009668;
+  --warning: #e4eefb;
+  --warning-foreground: #0058be;
+  --danger: #ffdad6;
+  --danger-foreground: #93000a;
 
-  --chart-1: #a66b25;
-  --chart-2: #2b6f6b;
-  --chart-3: #c99a5b;
-  --chart-4: #1c2130;
-  --chart-5: #2f7d4f;
+  --chart-1: #085ac0;
+  --chart-2: #995c2e;
+  --chart-3: #009668;
+  --chart-4: #191c1e;
+  --chart-5: #0058be;
 
   --radius: 0.75rem;
 
-  /* Boîtier de pointeuse -- encre profonde */
-  --sidebar: #1c2130;
-  --sidebar-foreground: #aeb4c2;
-  --sidebar-primary: #a66b25;
+  /* Boîtier sidebar -- bleu marine profond (palette Stitch "sidebar-bg") */
+  --sidebar: #131b2e;
+  --sidebar-foreground: #9aa0b4;
+  --sidebar-primary: #085ac0;
   --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #262c3f;
+  --sidebar-accent: #1c2438;
   --sidebar-accent-foreground: #ffffff;
-  --sidebar-border: #2c3348;
-  --sidebar-ring: #a66b25;
+  --sidebar-border: #1a2033;
+  --sidebar-ring: #085ac0;
 }
 
 @layer base {
@@ -133,32 +135,33 @@
   }
   h1, h2, h3, h4 {
     font-family: var(--font-display);
-    letter-spacing: -0.01em;
+    letter-spacing: -0.02em;
   }
 }
 
 @layer utilities {
-  /* Chiffres tabulaires pour toute donnée numérique (heures, stats, ID) */
+  /* Chiffres tabulaires pour toute donnée numérique (heures, stats, ID) --
+     même famille Inter que le reste, juste alignement tabulaire activé. */
   .font-data {
     font-family: var(--font-data-mono);
     font-variant-numeric: tabular-nums;
   }
 
   .gradient-brand {
-    background: linear-gradient(135deg, #a66b25 0%, #8f5a1c 100%);
+    background: linear-gradient(135deg, #085ac0 0%, #064a9e 100%);
   }
   .gradient-sidebar {
-    background: linear-gradient(180deg, #1c2130 0%, #161a26 100%);
+    background: #131b2e;
   }
   .glass-header {
-    background: rgba(255, 255, 255, 0.85);
+    background: rgba(247, 249, 251, 0.8);
     backdrop-filter: blur(12px);
   }
   .stat-card-glow {
-    box-shadow: 0 1px 3px rgba(28, 33, 48, 0.05), 0 8px 24px rgba(166, 107, 37, 0.08);
+    box-shadow: 0 1px 3px rgba(25, 28, 30, 0.05), 0 8px 24px rgba(8, 90, 192, 0.08);
   }
 
-  /* Encoche perforée façon carte de pointage, découpée dans le coin de la carte */
+  /* Encoche perforée -- conservée mais discrète, cohérente avec le nouveau fond */
   .punch-notch {
     position: relative;
   }
@@ -175,7 +178,7 @@
     border-top: none;
   }
 
-  /* Badge "tamponné" -- bordure fine, majuscules espacées, sans fond pastel */
+  /* Badge "tamponné" -- bordure fine, majuscules espacées, sans fond plein */
   .stamp-badge {
     font-family: var(--font-data-mono);
     letter-spacing: 0.06em;

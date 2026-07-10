@@ -11,9 +11,12 @@ export const roleLabel: Record<string, string> = {
 
 export const anomalieTypeLabel: Record<string, string> = {
   device_different: "Appareil différent",
+  device_inconnu: "Appareil non reconnu",
   double_badge: "Double badge",
   hors_reseau: "Hors réseau",
   geofencing_incoherent: "Géofencing incohérent",
+  pause_depassee: "Pause dépassée",
+  retard: "Retard",
 };
 
 export const modificationStatutLabel: Record<string, string> = {

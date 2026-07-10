@@ -28,10 +28,10 @@ export const api = {
   getEmployees: () => request<Utilisateur[]>("/auth/users"),
 
   createEmployee: (data: { nom: string; prenom: string; email: string; departement: string; telephone?: string }) =>
-    request("/auth/register", { method: "POST", body: JSON.stringify({ ...data, password: "pass123", role: "employe" }) }),
+    request("/auth/register", { method: "POST", body: JSON.stringify({ ...data, role: "employe" }) }),
 
   createUser: (data: { nom: string; prenom: string; email: string; role: string; departement: string; telephone?: string }) =>
-    request("/users", { method: "POST", body: JSON.stringify({ ...data, password: "pass123" }) }),
+    request("/users", { method: "POST", body: JSON.stringify(data) }),
 
   getEmployeeDetail: (id: string) => request<EmployeDetail | null>(`/users/${id}`),
 

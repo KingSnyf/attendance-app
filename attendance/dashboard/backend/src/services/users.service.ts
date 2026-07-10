@@ -2,6 +2,7 @@ import { Injectable, NotFoundException, ConflictException } from '@nestjs/common
 import * as bcrypt from 'bcryptjs';
 import { PrismaService } from '../prisma.service';
 import { EmailService } from './email.service';
+import { genererMotDePasseTemporaire } from '../utils/password.util';
 
 @Injectable()
 export class UsersService {
@@ -40,11 +41,12 @@ export class UsersService {
     return this.formatUser(user);
   }
 
-  async create(data: { email: string; password: string; firstName?: string; lastName?: string; prenom?: string; nom?: string; role?: string; departement?: string; telephone?: string }) {
+  async create(data: { email: string; password?: string; firstName?: string; lastName?: string; prenom?: string; nom?: string; role?: string; departement?: string; telephone?: string }) {
     const existing = await this.prisma.user.findUnique({ where: { email: data.email } });
     if (existing) throw new ConflictException('Email already in use');
 
-    const passwordHash = await bcrypt.hash(data.password, 10);
+    const motDePasseTemporaire = genererMotDePasseTemporaire();
+    const passwordHash = await bcrypt.hash(motDePasseTemporaire, 10);
     const user = await this.prisma.user.create({
       data: {
         email: data.email,
@@ -60,7 +62,7 @@ export class UsersService {
 
     // Envoi email d'accueil (ne bloque pas si échoue)
     try {
-      await this.emailService.sendWelcomeEmail(user.email, user.firstName || '', data.password);
+      await this.emailService.sendWelcomeEmail(user.email, user.firstName || '', motDePasseTemporaire);
     } catch (e) {
       // log l'erreur sans faire échouer la création
     }

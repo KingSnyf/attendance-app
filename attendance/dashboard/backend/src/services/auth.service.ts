@@ -3,6 +3,7 @@ import * as bcrypt from 'bcryptjs';
 import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '../prisma.service';
 import { EmailService } from './email.service';
+import { genererMotDePasseTemporaire } from '../utils/password.util';
 
 @Injectable()
 export class AuthService {
@@ -36,12 +37,13 @@ export class AuthService {
     };
   }
 
-  async register(payload: { email: string; password: string; firstName?: string; lastName?: string; prenom?: string; nom?: string; role?: string; telephone?: string }) {
+  async register(payload: { email: string; password?: string; firstName?: string; lastName?: string; prenom?: string; nom?: string; role?: string; telephone?: string }) {
     const existing = await this.prisma.user.findUnique({ where: { email: payload.email } });
     if (existing) {
       throw new ConflictException('Email already in use');
     }
-    const passwordHash = await bcrypt.hash(payload.password, 10);
+    const motDePasseTemporaire = genererMotDePasseTemporaire();
+    const passwordHash = await bcrypt.hash(motDePasseTemporaire, 10);
     const user = await this.prisma.user.create({
       data: {
         email: payload.email,
@@ -53,6 +55,12 @@ export class AuthService {
         telephone: payload.telephone,
       }
     });
+
+    try {
+      await this.emailService.sendWelcomeEmail(user.email, user.firstName || '', motDePasseTemporaire);
+    } catch (e) {
+      // L'envoi d'email ne doit pas faire échouer la création du compte
+    }
 
     // Récupérer la politique de confidentialité pour la retourner
     let politique = '';

@@ -8,7 +8,7 @@ import { useRouter } from "next/navigation";
 import { AlertTriangle, CheckCircle2, Coffee, Download, XCircle } from "lucide-react";
 import toast from "react-hot-toast";
 import { EmployeesPresence } from "@/components/dashboard/employeesPresence";
-import { GeofencingAlert } from "@/components/dashboard/geofencing-alert";
+import { AnomaliesWidget } from "@/components/dashboard/anomalies-widget";
 import { PresenceChart } from "@/components/dashboard/presence-chart";
 import { StatCard } from "@/components/dashboard/stat-card";
 import { Button } from "@/components/ui/button";
@@ -17,11 +17,10 @@ import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/spinner";
 import { useDashboardData } from "@/lib/hooks/use-dashboard-data";
 import { exporterVersCSV, formatDuree, formatHeure, telechargerCSV } from "@/lib/utils";
-import { api } from "@/lib/api";
 
 export default function VueEnsemblePage() {
   const router = useRouter();
-  const { data, isLoading, error, refetch } = useDashboardData();
+  const { data, isLoading, error } = useDashboardData();
   const [searchQuery, setSearchQuery] = useState("");
   const [filterDepartement, setFilterDepartement] = useState("all");
   const [filterStatut, setFilterStatut] = useState("all");
@@ -99,19 +98,7 @@ export default function VueEnsemblePage() {
 
   return (
     <div className="space-y-6">
-      <GeofencingAlert
-        anomalies_geofencing={data.geofencingAlerts}
-        users={data.employees}
-        onVerify={async () => {
-          await Promise.all(
-            data.geofencingAlerts.map((alert) =>
-              api.resolveAnomaly(alert.id, "Vérifiée depuis le tableau de bord", true),
-            ),
-          );
-          toast.success("Alerte(s) géofencing marquée(s) comme vérifiée(s).");
-          refetch();
-        }}
-      />
+      <AnomaliesWidget />
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <StatCard

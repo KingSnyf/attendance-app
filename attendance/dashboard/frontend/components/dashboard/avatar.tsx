@@ -8,11 +8,12 @@ type AvatarProps = {
 
 function Avatar({ nom, src, size = "sm" }: AvatarProps) {
   const initials = nom
-    .split(" ")
-    .map((part) => part[0])
-    .join("")
-    .toUpperCase()
+    .trim()
+    .split(/[\s-]+/)
+    .filter(Boolean)
+    .map((part) => part[0].toUpperCase())
     .slice(0, 2)
+    .join("")
 
   return (
     <div

@@ -12,7 +12,6 @@ import {
 
 type PresenceChartProps = {
   data: Array<{ label: string; presents: number; absents: number }>
-  period: "semaine" | "mois"
   title?: string
   subtitle?: string
   action?: React.ReactNode

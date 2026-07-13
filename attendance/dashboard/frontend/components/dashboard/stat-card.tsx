@@ -32,7 +32,7 @@ function StatCard({ icon: Icon, label, value, variant = "info", hint, progress }
           <Icon className="size-5" />
         </div>
       </div>
-      <p className="stamp-badge text-[11px] font-medium text-muted-foreground">{label}</p>
+      <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">{label}</p>
       <p className="font-data mt-1 text-[32px] font-bold leading-tight text-foreground">{value}</p>
       {typeof progress === "number" ? (
         <div className="mt-4 h-1.5 w-full overflow-hidden rounded-full bg-muted">

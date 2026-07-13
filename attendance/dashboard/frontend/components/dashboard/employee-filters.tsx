@@ -8,8 +8,8 @@ type EmployeeFiltersProps = {
   setStatut: (value: string) => void
   filterDepartement: string
   setFilterDepartement: (value: string) => void
-  geofencing: string
-  setGeofencing: (value: string) => void
+  geofencing?: string
+  setGeofencing?: (value: string) => void
   departements: string[]
 }
 
@@ -51,15 +51,17 @@ function EmployeeFilters({
           <option key={dept} value={dept}>{dept}</option>
         ))}
       </select>
-      <select
-        value={geofencing}
-        onChange={(e) => setGeofencing(e.target.value)}
-        className="h-10 rounded-xl border border-border bg-card px-3 text-sm"
-      >
-        <option value="all">Tous (géofencing)</option>
-        <option value="alert">Alerte seulement</option>
-        <option value="safe">Sans alerte</option>
-      </select>
+      {geofencing !== undefined && setGeofencing !== undefined && (
+        <select
+          value={geofencing}
+          onChange={(e) => setGeofencing(e.target.value)}
+          className="h-10 rounded-xl border border-border bg-card px-3 text-sm"
+        >
+          <option value="all">Tous (géofencing)</option>
+          <option value="alert">Alerte seulement</option>
+          <option value="safe">Sans alerte</option>
+        </select>
+      )}
     </div>
   )
 }

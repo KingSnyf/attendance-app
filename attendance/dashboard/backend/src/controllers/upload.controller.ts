@@ -3,6 +3,7 @@ import { AuthGuard } from '@nestjs/passport';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { extname, join } from 'path';
+import { existsSync, mkdirSync } from 'fs';
 import { v4 as uuid } from 'uuid';
 import { Request } from 'express';
 import { RolesGuard } from '../auth/roles.guard';
@@ -14,7 +15,11 @@ export class UploadController {
   @UseInterceptors(
     FileInterceptor('file', {
       storage: diskStorage({
-        destination: join(process.cwd(), 'uploads'),
+        destination: (_req, _file, cb) => {
+          const dir = join(process.cwd(), 'uploads');
+          if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
+          cb(null, dir);
+        },
         filename: (_req, file, cb) => {
           const name = uuid() + extname(file.originalname);
           cb(null, name);

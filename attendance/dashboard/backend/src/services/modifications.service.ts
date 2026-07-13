@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 
 @Injectable()
@@ -71,8 +71,28 @@ export class ModificationsService {
   }
 
   async process(id: string, statut: string, adminId: string) {
-    const request = await this.prisma.requestModification.findUnique({ where: { id } });
+    const request = await this.prisma.requestModification.findUnique({
+      where: { id },
+      include: { session: true },
+    });
     if (!request) throw new NotFoundException('Modification request not found');
+
+    if (statut === 'validee' && request.session && request.modificationProposee) {
+      try {
+        const changes = JSON.parse(request.modificationProposee);
+        const updateData: any = {};
+        if (changes.heure_arrivee) updateData.heureArrivee = new Date(changes.heure_arrivee);
+        if (changes.heure_depart) updateData.heureDepart = new Date(changes.heure_depart);
+        if (Object.keys(updateData).length > 0) {
+          await this.prisma.sessionPresence.update({
+            where: { id: request.sessionPresenceId },
+            data: updateData,
+          });
+        }
+      } catch {
+        // modificationProposee n'est pas du JSON structuré → appliquée manuellement
+      }
+    }
 
     const updated = await this.prisma.requestModification.update({
       where: { id },

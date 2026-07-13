@@ -46,13 +46,16 @@ export class UsersService {
     if (existing) throw new ConflictException('Email already in use');
 
     const motDePasseTemporaire = genererMotDePasseTemporaire();
+    const pinInitial = Math.floor(1000 + Math.random() * 9000).toString();
     const passwordHash = await bcrypt.hash(motDePasseTemporaire, 10);
+    const codePinHash = await bcrypt.hash(pinInitial, 10);
     const user = await this.prisma.user.create({
       data: {
         email: data.email,
         firstName: data.firstName || data.prenom,
         lastName: data.lastName || data.nom,
         passwordHash,
+        codePinHash,
         role: data.role || 'employe',
         departement: data.departement,
         telephone: data.telephone,
@@ -62,7 +65,7 @@ export class UsersService {
 
     // Envoi email d'accueil (ne bloque pas si échoue)
     try {
-      await this.emailService.sendWelcomeEmail(user.email, user.firstName || '', motDePasseTemporaire);
+      await this.emailService.sendWelcomeEmail(user.email, user.firstName || '', motDePasseTemporaire, pinInitial);
     } catch (e) {
       // log l'erreur sans faire échouer la création
     }
@@ -102,13 +105,14 @@ export class UsersService {
     const codePinHash = await bcrypt.hash(newPin, 10);
     await this.prisma.user.update({ where: { id }, data: { codePinHash } });
 
+    const pinResetLink = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/dashboard?pin=${newPin}`;
     try {
-      await this.emailService.sendPasswordResetEmail(user.email, newPin);
+      await this.emailService.sendPasswordResetEmail(user.email, `Votre nouveau code PIN est : ${newPin}. Transmettez-le de manière sécurisée.`);
     } catch (e) {
       // log sans bloquer
     }
 
-    return { success: true, newPin };
+    return { success: true };
   }
 
   async debloquerPin(id: string) {

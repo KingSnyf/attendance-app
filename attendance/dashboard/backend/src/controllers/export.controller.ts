@@ -9,6 +9,8 @@ import { PrismaService } from '../prisma.service';
 import { LogsService } from '../services/logs.service';
 import { User } from '../auth/user.decorator';
 
+const EXPORT_LIMIT = 10000;
+
 @Controller('export')
 @UseGuards(AuthGuard('jwt'), RolesGuard)
 export class ExportController {
@@ -37,6 +39,7 @@ export class ExportController {
     const sessions = await this.prisma.sessionPresence.findMany({
       where,
       orderBy: { date: 'desc' },
+      take: 10000,
       include: {
         user: { select: { firstName: true, lastName: true, email: true, departement: true } },
       },
@@ -164,6 +167,7 @@ export class ExportController {
     const anomalies = await this.prisma.anomaly.findMany({
       where,
       orderBy: { dateDetection: 'desc' },
+      take: EXPORT_LIMIT,
       include: {
         user: { select: { firstName: true, lastName: true, email: true } },
       },
@@ -228,6 +232,7 @@ export class ExportController {
     const sessions = await this.prisma.sessionPresence.findMany({
       where,
       orderBy: { date: 'desc' },
+      take: EXPORT_LIMIT,
       include: {
         user: { select: { firstName: true, lastName: true, email: true, departement: true } },
       },
@@ -302,6 +307,7 @@ export class ExportController {
     const sessions = await this.prisma.sessionPresence.findMany({
       where,
       orderBy: { date: 'desc' },
+      take: EXPORT_LIMIT,
       include: {
         user: { select: { firstName: true, lastName: true, email: true } },
       },
@@ -369,6 +375,7 @@ export class ExportController {
     const anomalies = await this.prisma.anomaly.findMany({
       where,
       orderBy: { dateDetection: 'desc' },
+      take: EXPORT_LIMIT,
       include: {
         user: { select: { firstName: true, lastName: true, email: true } },
       },

@@ -22,3 +22,14 @@ export function useProcessModification() {
     },
   })
 }
+
+export function useCreateModificationRequest() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (data: { gestionnaireId: string; sessionPresenceId: string; modificationProposee: string; raison: string }) =>
+      api.createModificationRequest(data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["modification-requests"] })
+    },
+  })
+}

@@ -12,7 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Fingerprint, Mail, Lock, User, ArrowRight, ShieldCheck, ArrowLeft } from "lucide-react";
 import toast from "react-hot-toast";
 import { api } from "@/lib/api";
-import { loginSchema } from "@/lib/schemas";
+import { loginSchema, registerSchema } from "@/lib/schemas";
 
 const ROLES_DASHBOARD = ["admin", "gestionnaire"];
 
@@ -55,11 +55,18 @@ export default function AuthPage() {
         toast.error(result.error || "Erreur de connexion");
       }
     } else {
+      const parsed = registerSchema.safeParse(formData);
+      if (!parsed.success) {
+        const fieldErrors: Record<string, string> = {};
+        parsed.error.issues.forEach((err) => { fieldErrors[err.path[0] as string] = err.message; });
+        setErrors(fieldErrors);
+        return;
+      }
       const result = await register({
-        email: formData.email,
-        password: formData.password,
-        firstName: formData.firstName,
-        lastName: formData.lastName,
+        email: parsed.data.email,
+        password: parsed.data.password,
+        firstName: parsed.data.firstName,
+        lastName: parsed.data.lastName,
         role: "employe",
       });
       if (result.success) {

@@ -4,8 +4,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { AlertTriangle, CheckCircle2, MapPinned, ShieldCheck, SendHorizonal } from "lucide-react";
-import toast from "react-hot-toast";
+import { AlertTriangle, CheckCircle2, MapPinned, ShieldCheck } from "lucide-react";
 import { Badge } from "@/components/dashboard/status-badge";
 import { StatCard } from "@/components/dashboard/stat-card";
 import { Button } from "@/components/ui/button";
@@ -15,7 +14,7 @@ import { Modal } from "@/components/ui/modal";
 import { Spinner } from "@/components/ui/spinner";
 import { useAnomalies, useResolveAnomaly } from "@/lib/hooks/use-anomalies";
 import { useEmployees } from "@/lib/hooks/use-employees";
-import { getNomComplet } from "@/lib/data";
+import { getNomComplet } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
 import type { Anomalie } from "@/lib/types";
 import { formatDateTime } from "@/lib/utils";
@@ -32,7 +31,7 @@ export default function AnomaliesPage() {
   const [comment, setComment] = useState("");
   const [geolocVerified, setGeolocVerified] = useState(false);
 
-  const { data: anomalies = [], isLoading } = useAnomalies();
+  const { data: anomalies = [], isLoading, error } = useAnomalies();
   const { data: employees = [] } = useEmployees();
   const resolveMutation = useResolveAnomaly();
 
@@ -52,7 +51,7 @@ export default function AnomaliesPage() {
       anomalies.filter((anomalie) => {
         return (
           (statusFilter === "all" ||
-            (statusFilter === "traitee" ? anomalie.traitee : !anomalie.traitee)) &&
+            (statusFilter === "traitee" ? anomalie.traitee : statusFilter === "non_traitee" ? !anomalie.traitee : true)) &&
           (typeFilter === "all" || anomalie.type === typeFilter) &&
           (employeeFilter === "all" || anomalie.user_id === employeeFilter) &&
           (!geoOnly || anomalie.type === "geofencing_incoherent")
@@ -66,6 +65,14 @@ export default function AnomaliesPage() {
       <div className="flex min-h-[30vh] items-center justify-center gap-3 text-muted-foreground">
         <Spinner />
         <span>Chargement des anomalies...</span>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex min-h-[30vh] items-center justify-center">
+        <p className="text-sm text-destructive">Erreur lors du chargement des anomalies.</p>
       </div>
     );
   }
@@ -154,22 +161,11 @@ export default function AnomaliesPage() {
             { accessorKey: "geoloc_verifiee", header: "Géoloc", enableSorting: true, cell: ({ row }) => row.original.geoloc_verifiee ? "Oui" : "Non" },
             { id: "actions", header: "Actions", enableSorting: false, cell: ({ row }) => {
               const a = row.original;
-              return (
+              return a.traitee ? null : (
                 <div className="flex flex-wrap gap-2">
-                  {isAdmin ? (
-                    <Button variant="outline" size="sm" onClick={() => setSelected(a)}>
-                      <ShieldCheck className="size-4" /> Traiter
-                    </Button>
-                  ) : (
-                    <Button variant="outline" size="sm" onClick={() => toast.success("Demande de validation envoyée à l'administrateur.")}>
-                      <SendHorizonal className="size-4" /> Demander validation
-                    </Button>
-                  )}
-                  {a.type === "geofencing_incoherent" ? (
-                    <Button variant="ghost" size="sm" onClick={() => toast.success("Vue carte simulée depuis la fiche employé.")}>
-                      <MapPinned className="size-4" /> Voir sur la carte
-                    </Button>
-                  ) : null}
+                  <Button variant="outline" size="sm" onClick={() => setSelected(a)}>
+                    <ShieldCheck className="size-4" /> Traiter
+                  </Button>
                 </div>
               );
             }},

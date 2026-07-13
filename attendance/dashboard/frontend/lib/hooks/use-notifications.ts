@@ -8,22 +8,23 @@ export function useNotifications() {
   return useQuery({
     queryKey: ["notifications"],
     queryFn: async () => {
-      const anomalies = await api.getAnomalies()
-      const nonTraitees = (anomalies as Anomalie[]).filter((a) => !a.traitee).length
+      const [anomaliesRes, modificationsRes, pendingRes] = await Promise.allSettled([
+        api.getAnomalies(),
+        api.getModificationRequests(),
+        api.getPendingRequests(),
+      ])
 
-      let modifications = 0
-      try {
-        const list = await api.getModificationRequests()
-        modifications = (list as any[]).filter((m) => m.statut === "en_attente").length
-      } catch {}
+      const anomalies = anomaliesRes.status === "fulfilled"
+        ? (anomaliesRes.value as Anomalie[]).filter((a) => !a.traitee).length
+        : 0
+      const modifications = modificationsRes.status === "fulfilled"
+        ? (modificationsRes.value as any[]).filter((m) => m.statut === "en_attente").length
+        : 0
+      const requests = pendingRes.status === "fulfilled"
+        ? pendingRes.value.count
+        : 0
 
-      let requests = 0
-      try {
-        const r = await api.getPendingRequests()
-        requests = r.count
-      } catch {}
-
-      return { anomalies: nonTraitees, modifications, requests }
+      return { anomalies, modifications, requests }
     },
     refetchInterval: 30_000,
   })

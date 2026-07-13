@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException, ConflictException } from '@nestjs/common';
+import { Injectable, UnauthorizedException, ConflictException, BadRequestException } from '@nestjs/common';
 import * as bcrypt from 'bcryptjs';
 import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '../prisma.service';
@@ -43,21 +43,24 @@ export class AuthService {
       throw new ConflictException('Email already in use');
     }
     const motDePasseTemporaire = genererMotDePasseTemporaire();
+    const pinInitial = Math.floor(1000 + Math.random() * 9000).toString();
     const passwordHash = await bcrypt.hash(motDePasseTemporaire, 10);
+    const codePinHash = await bcrypt.hash(pinInitial, 10);
     const user = await this.prisma.user.create({
       data: {
         email: payload.email,
         firstName: payload.firstName || payload.prenom,
         lastName: payload.lastName || payload.nom,
         passwordHash,
+        codePinHash,
         methodeAuth: 'pin',
-        role: payload.role || 'employe',
+        role: 'employe',
         telephone: payload.telephone,
       }
     });
 
     try {
-      await this.emailService.sendWelcomeEmail(user.email, user.firstName || '', motDePasseTemporaire);
+      await this.emailService.sendWelcomeEmail(user.email, user.firstName || '', motDePasseTemporaire, pinInitial);
     } catch (e) {
       // L'envoi d'email ne doit pas faire échouer la création du compte
     }
@@ -172,11 +175,30 @@ export class AuthService {
     const user = await this.prisma.user.findUnique({ where: { email } });
     if (!user) return { success: true };
 
-    const newPassword = Math.random().toString(36).slice(-10) + 'A1!';
-    const hash = await bcrypt.hash(newPassword, 10);
-    await this.prisma.user.update({ where: { id: user.id }, data: { passwordHash: hash } });
-    await this.emailService.sendPasswordResetEmail(email, newPassword);
+    const token = this.jwtService.sign(
+      { sub: user.id, email: user.email, purpose: 'reset-password' },
+      { expiresIn: '15m' },
+    );
+    const resetLink = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/auth/reset-password?token=${token}`;
 
+    await this.emailService.sendPasswordResetEmail(email, resetLink);
+
+    return { success: true };
+  }
+
+  async resetPassword(token: string, newPassword: string) {
+    let payload: any;
+    try {
+      payload = this.jwtService.verify(token);
+    } catch {
+      throw new BadRequestException('Token invalide ou expiré');
+    }
+    if (payload.purpose !== 'reset-password') {
+      throw new BadRequestException('Token invalide');
+    }
+
+    const hash = await bcrypt.hash(newPassword, 10);
+    await this.prisma.user.update({ where: { id: payload.sub }, data: { passwordHash: hash } });
     return { success: true };
   }
 }

@@ -104,8 +104,8 @@ function CommandSearch() {
       </button>
 
       {open && (
-        <div className="fixed inset-0 z-200 flex items-start justify-center pt-[15vh]">
-          <div className="absolute inset-0 bg-black/40" onClick={close} />
+        <div className="fixed inset-0 z-50 flex items-start justify-center pt-[15vh]">
+          <div className="absolute inset-0 bg-black/10 backdrop-blur-sm transition-opacity duration-200" onClick={close} />
           <div className="relative z-10 w-full max-w-xl rounded-2xl border border-border bg-card shadow-2xl">
             <div className="flex items-center gap-3 border-b border-border px-5 py-4">
               {loading ? (

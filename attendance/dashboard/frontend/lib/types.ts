@@ -40,10 +40,25 @@ export type Anomalie = {
 export type DemandeModification = {
   id: string
   session_presence_id: string
+  gestionnaire_id?: string
+  admin_id?: string
   modification_proposee: string
   raison: string
   statut: string
   date_demande: string
+  date_traitement?: string | null
+  session?: {
+    id: string
+    user_id: string
+    date: string
+    heure_arrivee: string
+    heure_depart?: string | null
+  } | null
+  employe?: {
+    id: string
+    nom: string
+    prenom: string
+  } | null
 }
 
 export type SessionPresence = {

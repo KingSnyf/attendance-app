@@ -14,7 +14,7 @@ import { Spinner } from "@/components/ui/spinner"
 import { useAuth } from "@/hooks/useAuth"
 import { useLogs } from "@/lib/hooks/use-logs"
 import { useEmployees } from "@/lib/hooks/use-employees"
-import { getNomComplet } from "@/lib/data"
+import { getNomComplet } from "@/lib/utils"
 import type { JournalActivite } from "@/lib/types"
 import { exporterVersCSV, formatDateTime, formatHeure, telechargerCSV } from "@/lib/utils"
 

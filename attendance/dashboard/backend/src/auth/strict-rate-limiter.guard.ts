@@ -6,7 +6,7 @@ interface RateLimitEntry {
 }
 
 @Injectable()
-export class RateLimiterGuard implements CanActivate, OnModuleDestroy {
+export class StrictRateLimiterGuard implements CanActivate, OnModuleDestroy {
   private store = new Map<string, RateLimitEntry>();
   private cleanupTimer: ReturnType<typeof setInterval>;
 
@@ -28,7 +28,7 @@ export class RateLimiterGuard implements CanActivate, OnModuleDestroy {
   canActivate(context: ExecutionContext): boolean {
     const request = context.switchToHttp().getRequest();
     const ip = request.ip || request.connection?.remoteAddress || 'unknown';
-    const key = `${ip}:${request.route?.path || request.url}`;
+    const key = `${ip}:verify-pin`;
 
     const now = Date.now();
     const entry = this.store.get(key);
@@ -39,8 +39,8 @@ export class RateLimiterGuard implements CanActivate, OnModuleDestroy {
     }
 
     entry.count++;
-    if (entry.count > 20) {
-      throw new HttpException('Too many requests', HttpStatus.TOO_MANY_REQUESTS);
+    if (entry.count > 5) {
+      throw new HttpException('Trop de tentatives. Réessayez dans une minute.', HttpStatus.TOO_MANY_REQUESTS);
     }
 
     return true;

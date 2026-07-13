@@ -5,7 +5,7 @@ import { Badge } from "@/components/dashboard/status-badge"
 import { Button } from "@/components/ui/button"
 import { useAnomalies, useResolveAnomaly } from "@/lib/hooks/use-anomalies"
 import { anomalieTypeLabel } from "@/lib/labels"
-import { getNomComplet } from "@/lib/data"
+import { getNomComplet } from "@/lib/utils"
 import toast from "react-hot-toast"
 
 const CRITICITE_VARIANT = {

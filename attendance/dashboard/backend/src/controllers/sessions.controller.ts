@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Post, Put, Delete, Query, ForbiddenException } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Put, Delete, Query, ForbiddenException, UseGuards } from '@nestjs/common';
 import { SessionsService } from '../services/sessions.service';
 import { LogsService } from '../services/logs.service';
 import { CheckinDto } from '../dto/checkin.dto';
@@ -6,6 +6,7 @@ import { CheckoutDto } from '../dto/checkout.dto';
 import { Roles } from '../auth/roles.decorator';
 import { Public } from '../auth/public.decorator';
 import { User } from '../auth/user.decorator';
+import { StrictRateLimiterGuard } from '../auth/strict-rate-limiter.guard';
 
 @Controller('sessions')
 export class SessionsController {
@@ -15,6 +16,7 @@ export class SessionsController {
   ) {}
 
   @Public()
+  @UseGuards(StrictRateLimiterGuard)
   @Post('checkin')
   async checkin(@Body() body: CheckinDto) {
     return this.sessions.checkin(

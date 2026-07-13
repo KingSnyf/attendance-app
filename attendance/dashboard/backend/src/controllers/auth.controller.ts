@@ -59,4 +59,13 @@ export class AuthController {
   async forgotPassword(@Body() body: ForgotPasswordDto) {
     return this.authService.forgotPassword(body.email);
   }
+
+  @Public()
+  @Post('reset-password')
+  async resetPassword(@Body() body: { token: string; newPassword: string }) {
+    if (!body.newPassword || body.newPassword.length < 6) {
+      throw new ForbiddenException('Le mot de passe doit contenir au moins 6 caractères');
+    }
+    return this.authService.resetPassword(body.token, body.newPassword);
+  }
 }

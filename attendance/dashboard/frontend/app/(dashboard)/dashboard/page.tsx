@@ -18,12 +18,6 @@ import { Spinner } from "@/components/ui/spinner";
 import { useDashboardData } from "@/lib/hooks/use-dashboard-data";
 import { exporterVersCSV, formatDuree, formatHeure, telechargerCSV } from "@/lib/utils";
 
-const AUJOURDHUI = new Intl.DateTimeFormat("fr-FR", {
-  weekday: "long",
-  day: "numeric",
-  month: "long",
-}).format(new Date());
-
 export default function VueEnsemblePage() {
   const router = useRouter();
   const { data, isLoading, error } = useDashboardData();
@@ -32,6 +26,10 @@ export default function VueEnsemblePage() {
   const [filterStatut, setFilterStatut] = useState("all");
   const [filterGeofencing, setFilterGeofencing] = useState("all");
   const [period, setPeriod] = useState<"semaine" | "mois">("semaine");
+  const aujourdhui = useMemo(
+    () => new Intl.DateTimeFormat("fr-FR", { weekday: "long", day: "numeric", month: "long" }).format(new Date()),
+    [],
+  );
 
   const departements = useMemo(() => {
     const uniques = new Set(
@@ -113,7 +111,7 @@ export default function VueEnsemblePage() {
             Vue d'ensemble
           </h2>
           <p className="text-sm capitalize text-muted-foreground">
-            Bienvenue, voici le point sur l'activité — {AUJOURDHUI}.
+            Bienvenue, voici le point sur l'activité — {aujourdhui}.
           </p>
         </div>
         <div className="flex gap-1 rounded-lg border border-border bg-card p-1 shadow-sm">
@@ -177,9 +175,8 @@ export default function VueEnsemblePage() {
         <div className="lg:col-span-2">
           <PresenceChart
             data={period === "semaine" ? data.weeklyPresence : data.monthlyPresence}
-            period={period}
             title="Présence collective"
-            subtitle="Comparez la semaine en cours et la tendance mensuelle"
+            subtitle={period === "semaine" ? "Semaine en cours" : "Tendance mensuelle"}
           />
         </div>
         <AnomaliesWidget />

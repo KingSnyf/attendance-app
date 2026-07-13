@@ -12,6 +12,12 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
       signal: controller.signal,
       headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}), ...options?.headers },
     })
+    if (res.status === 401 && typeof window !== "undefined") {
+      localStorage.removeItem("attendance_token")
+      localStorage.removeItem("attendance_user")
+      window.location.replace("/auth")
+      throw new Error("Session expirée")
+    }
     if (!res.ok) throw new Error(`API error: ${res.status} ${res.statusText}`)
     return res.json()
   } finally {
@@ -24,6 +30,11 @@ export const api = {
 
   resolveAnomaly: (id: string, comment: string, geolocVerified: boolean) =>
     request(`/anomalies/${id}/resolve`, { method: "POST", body: JSON.stringify({ comment, geoloc_verifiee: geolocVerified }) }),
+
+  getUser: () => request<any>("/auth/me"),
+
+  login: (email: string, password: string) =>
+    request<{ access_token: string; user: any }>("/auth/login", { method: "POST", body: JSON.stringify({ email, password }) }),
 
   getEmployees: () => request<Utilisateur[]>("/auth/users"),
 
@@ -94,17 +105,21 @@ export const api = {
 
   getMyAnomalies: () => request("/anomalies/mine"),
 
+  search: (q: string) => request<any>(`/search?q=${encodeURIComponent(q)}`),
+
   selfAssociateDevice: (data: { identifiantAppareil: string; modele?: string; marque?: string }) =>
     request("/devices/self", { method: "POST", body: JSON.stringify(data) }),
 
-  uploadFile: (file: File) => {
+  uploadFile: async (file: File) => {
     const form = new FormData();
     form.append("file", file);
     const token = typeof window !== "undefined" ? localStorage.getItem("attendance_token") : null;
-    return fetch(`${BACKEND_URL}/upload`, {
+    const res = await fetch(`${BACKEND_URL}/upload`, {
       method: "POST",
       headers: token ? { Authorization: `Bearer ${token}` } : {},
       body: form,
-    }).then((r) => r.json());
+    });
+    if (!res.ok) throw new Error(`Upload error: ${res.status}`);
+    return res.json();
   },
 }

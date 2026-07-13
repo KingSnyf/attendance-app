@@ -1,6 +1,7 @@
-import { Controller, Post, Body, BadRequestException } from '@nestjs/common';
+import { Controller, Post, Body, BadRequestException, UseGuards } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import { Public } from '../auth/public.decorator';
+import { StrictRateLimiterGuard } from '../auth/strict-rate-limiter.guard';
 
 @Controller('mobile')
 export class MobileController {
@@ -40,6 +41,7 @@ export class MobileController {
   }
 
   @Public()
+  @UseGuards(StrictRateLimiterGuard)
   @Post('verify-pin')
   async verifyPin(@Body() body: { email: string; codePin: string }) {
     const user = await this.prisma.user.findUnique({ where: { email: body.email } });

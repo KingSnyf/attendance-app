@@ -17,14 +17,14 @@ import { Spinner } from "@/components/ui/spinner"
 import { useEmployees, useCreateEmployee, useToggleAccount, useResetPin } from "@/lib/hooks/use-employees"
 import { useAuth } from "@/hooks/useAuth"
 import { createEmployeeSchema } from "@/lib/schemas"
-import { departementsDisponibles, getNomComplet } from "@/lib/data"
+import { getNomComplet } from "@/lib/utils"
 import { roleLabel, statutBadgeVariant, statutLabel } from "@/lib/labels"
-import type { Utilisateur } from "@/lib/types"
+import { Utilisateur } from "@/lib/types"
 
 export default function EmployesPage() {
   const { user } = useAuth()
   const isAdmin = user?.role === "admin"
-  const { data: employees = [], isLoading } = useEmployees()
+  const { data: employees = [], isLoading, error } = useEmployees()
   const createEmployee = useCreateEmployee()
   const toggleAccount = useToggleAccount()
   const resetPin = useResetPin()
@@ -32,13 +32,14 @@ export default function EmployesPage() {
   const [searchQuery, setSearchQuery] = useState("")
   const [filterDepartement, setFilterDepartement] = useState("all")
   const [filterStatut, setFilterStatut] = useState("all")
-  const [filterGeofencing, setFilterGeofencing] = useState("all")
   const [filterActif, setFilterActif] = useState("actifs")
   const [createOpen, setCreateOpen] = useState(false)
+  const [pinResult, setPinResult] = useState<string | null>(null)
   const [formErrors, setFormErrors] = useState<Record<string, string>>({})
+  const departements = useMemo(() => [...new Set(employees.map((e) => e.departement).filter(Boolean))], [employees])
   const [form, setForm] = useState({
     nom: "", prenom: "", email: "", telephone: "", role: "employe",
-    departement: departementsDisponibles[0] ?? "Production",
+    departement: departements[0] ?? "Production",
   })
 
   const stats = useMemo(() => {
@@ -78,7 +79,7 @@ export default function EmployesPage() {
       toast.success("Employé créé.")
       setCreateOpen(false)
       setFormErrors({})
-      setForm({ nom: "", prenom: "", email: "", telephone: "", role: "employe", departement: departementsDisponibles[0] ?? "Production" })
+      setForm({ nom: "", prenom: "", email: "", telephone: "", role: "employe", departement: departements[0] ?? "Production" })
     } catch { toast.error("Erreur lors de la création. Vérifiez les champs.") }
   }
 
@@ -94,7 +95,6 @@ export default function EmployesPage() {
             <Avatar nom={getNomComplet(emp)} src={emp.photo_url} size="sm" />
             <div>
               <p className="text-sm font-medium text-foreground leading-tight">{getNomComplet(emp)}</p>
-              <p className="text-[11px] text-muted-foreground">{emp.id}</p>
             </div>
           </div>
         )
@@ -143,7 +143,7 @@ export default function EmployesPage() {
           <Button variant="outline" size="sm" className="h-7 text-[11px] px-2 border-warning text-warning-foreground hover:bg-warning" onClick={async () => {
             try {
               const result = await resetPin.mutateAsync(row.original.id)
-              toast.success(result?.newPin ? `PIN : ${result.newPin}` : "PIN réinitialisé")
+              setPinResult(result?.newPin ?? null)
             } catch { toast.error("Erreur") }
           }}>PIN</Button>
         </div>
@@ -155,17 +155,18 @@ export default function EmployesPage() {
     return <div className="flex min-h-[30vh] items-center justify-center gap-3 text-muted-foreground"><Spinner /><span>Chargement des employés...</span></div>
   }
 
+  if (error) {
+    return <div className="flex min-h-[30vh] items-center justify-center"><p className="text-sm text-destructive">Erreur lors du chargement des employés.</p></div>
+  }
+
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h2 className="text-lg font-semibold text-foreground">Répertoire des employés</h2>
           <p className="text-sm text-muted-foreground">Gèrez les comptes, appareils associés et accès de pointage.</p>
         </div>
-        <div className="flex gap-2">
-          <Link href="/dashboard/employes/desactives"><Button variant="outline"><Users className="size-4" /> Désactivés</Button></Link>
-          <Button onClick={() => setCreateOpen(true)}><Plus className="size-4" /> Nouvel employé</Button>
-        </div>
+        <Button onClick={() => setCreateOpen(true)} className="self-start sm:self-auto"><Plus className="size-4" /> Nouvel employé</Button>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -179,11 +180,10 @@ export default function EmployesPage() {
         searchQuery={searchQuery} setSearchQuery={setSearchQuery}
         statut={filterStatut} setStatut={setFilterStatut}
         filterDepartement={filterDepartement} setFilterDepartement={setFilterDepartement}
-        geofencing={filterGeofencing} setGeofencing={setFilterGeofencing}
-        departements={departementsDisponibles}
+        departements={departements}
       />
 
-      <div className="flex gap-2">
+      <div className="flex flex-wrap gap-2">
         {(["actifs", "desactives", "tous"] as const).map((opt) => (
           <button key={opt} onClick={() => setFilterActif(opt)}
             className={`rounded-xl px-4 py-1.5 text-sm font-medium transition ${filterActif === opt ? "bg-brand text-white" : "border border-border bg-card text-muted-foreground hover:bg-muted"}`}
@@ -213,11 +213,22 @@ export default function EmployesPage() {
           )}
           <select value={form.departement} onChange={(e) => setForm((prev) => ({ ...prev, departement: e.target.value }))}
             className="h-10 rounded-xl border border-border bg-card px-3 text-sm">
-            {departementsDisponibles.map((departement) => (<option key={departement} value={departement}>{departement}</option>))}
+            {departements.map((departement) => (<option key={departement} value={departement}>{departement}</option>))}
           </select>
           <div className="flex justify-end gap-2">
             <Button variant="outline" onClick={() => setCreateOpen(false)}>Annuler</Button>
             <Button onClick={handleCreate} disabled={createEmployee.isPending}>Créer</Button>
+          </div>
+        </div>
+      </Modal>
+
+      <Modal open={pinResult !== null} onClose={() => setPinResult(null)} title="PIN réinitialisé">
+        <div className="space-y-4">
+          <p className="text-sm text-muted-foreground">Le nouveau code PIN de l'employé est :</p>
+          <p className="text-3xl font-bold text-center tracking-widest text-brand">{pinResult}</p>
+          <p className="text-xs text-muted-foreground text-center">Transmettez ce code de manière sécurisée.</p>
+          <div className="flex justify-end">
+            <Button onClick={() => setPinResult(null)}>Fermer</Button>
           </div>
         </div>
       </Modal>

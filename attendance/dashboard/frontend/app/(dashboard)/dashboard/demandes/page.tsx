@@ -3,13 +3,15 @@
 import { useMemo, useState } from "react";
 import { CheckCircle2, Clock, FileText, XCircle } from "lucide-react";
 import toast from "react-hot-toast";
+import { ColumnDef } from "@tanstack/react-table";
 import { Avatar } from "@/components/dashboard/avatar";
 import { Badge } from "@/components/dashboard/status-badge";
 import { StatCard } from "@/components/dashboard/stat-card";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { DataTable } from "@/components/ui/data-table";
+import { Modal } from "@/components/ui/modal";
 import { Spinner } from "@/components/ui/spinner";
-import { Table, TableHeadCell, TableWrapper } from "@/components/ui/table";
 import { useRequests, useProcessRequest } from "@/lib/hooks/use-requests";
 import { formatDate } from "@/lib/utils";
 
@@ -33,9 +35,10 @@ const STATUT_LABEL: Record<string, string> = { en_attente: "En attente", approuv
 const STATUT_VARIANT: Record<string, "warning" | "success" | "danger"> = { en_attente: "warning", approuve: "success", refuse: "danger" }
 
 export default function DemandesPage() {
-  const { data: requestsData, isLoading } = useRequests();
+  const { data: requestsData, isLoading, error } = useRequests();
   const processMutation = useProcessRequest();
   const requests = (requestsData as Demande[]) ?? [];
+  const [confirmTarget, setConfirmTarget] = useState<{ id: string; action: "approve" | "reject" } | null>(null);
 
   const stats = useMemo(
     () => ({
@@ -47,11 +50,73 @@ export default function DemandesPage() {
     [requests],
   );
 
+  const handleConfirm = () => {
+    if (!confirmTarget) return;
+    processMutation.mutate(
+      { id: confirmTarget.id, action: confirmTarget.action },
+      { onSuccess: () => setConfirmTarget(null) },
+    );
+  };
+
+  const columns: ColumnDef<Demande>[] = [
+    {
+      header: "Employé",
+      accessorKey: "user.firstName",
+      enableSorting: true,
+      cell: ({ row }) => {
+        const u = row.original.user;
+        return (
+          <div className="flex items-center gap-3">
+            <Avatar nom={`${u.firstName} ${u.lastName}`} src={u.photoUrl} size="sm" />
+            <div>
+              <p className="text-sm font-medium text-foreground">{u.firstName} {u.lastName}</p>
+              <p className="text-xs text-muted-foreground">{u.departement || ""}</p>
+            </div>
+          </div>
+        );
+      },
+    },
+    { header: "Type", accessorKey: "type", enableSorting: true, cell: ({ row }) => TYPE_LABEL[row.original.type] || row.original.type },
+    { header: "Début", accessorKey: "dateDebut", enableSorting: true, cell: ({ row }) => row.original.dateDebut ? formatDate(row.original.dateDebut) : "—" },
+    { header: "Fin", accessorKey: "dateFin", enableSorting: true, cell: ({ row }) => row.original.dateFin ? formatDate(row.original.dateFin) : "—" },
+    { header: "Motif", accessorKey: "motif", enableSorting: false, cell: ({ row }) => <span className="max-w-xs truncate block">{row.original.motif}</span> },
+    { header: "Statut", accessorKey: "statut", enableSorting: true, cell: ({ row }) => <Badge variant={STATUT_VARIANT[row.original.statut]}>{STATUT_LABEL[row.original.statut]}</Badge> },
+    { header: "Date", accessorKey: "dateDemande", enableSorting: true, cell: ({ row }) => formatDate(row.original.dateDemande) },
+    {
+      id: "actions",
+      header: "Actions",
+      enableSorting: false,
+      cell: ({ row }) => {
+        const r = row.original;
+        return r.statut === "en_attente" ? (
+          <div className="flex gap-1.5">
+            <Button variant="outline" size="sm" className="border-success text-success-foreground hover:bg-success" onClick={() => setConfirmTarget({ id: r.id, action: "approve" })}>
+              <CheckCircle2 className="size-4" /> Approuver
+            </Button>
+            <Button variant="outline" size="sm" className="border-destructive text-destructive-foreground hover:bg-destructive" onClick={() => setConfirmTarget({ id: r.id, action: "reject" })}>
+              <XCircle className="size-4" /> Refuser
+            </Button>
+          </div>
+        ) : (
+          <span className="text-xs text-muted-foreground">{r.traiteePar ? "Traité" : "—"}</span>
+        );
+      },
+    },
+  ];
+
   if (isLoading) {
     return (
       <div className="flex min-h-[30vh] items-center justify-center gap-3 text-muted-foreground">
         <Spinner />
         <span>Chargement des demandes...</span>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex min-h-[30vh] items-center justify-center">
+        <p className="text-sm text-destructive">Erreur lors du chargement des demandes.</p>
       </div>
     );
   }
@@ -70,81 +135,27 @@ export default function DemandesPage() {
         <StatCard icon={XCircle} label="Refusées" value={stats.refusees} variant="danger" />
       </div>
 
-      {requests.length === 0 ? (
-        <Card>
-          <p className="p-6 text-center text-sm text-muted-foreground">Aucune demande pour le moment.</p>
-        </Card>
-      ) : (
-        <Card>
-          <TableWrapper className="border-0">
-            <Table>
-              <thead className="bg-muted/50">
-                <tr>
-                  <TableHeadCell>Employé</TableHeadCell>
-                  <TableHeadCell>Type</TableHeadCell>
-                  <TableHeadCell>Début</TableHeadCell>
-                  <TableHeadCell>Fin</TableHeadCell>
-                  <TableHeadCell>Motif</TableHeadCell>
-                  <TableHeadCell>Statut</TableHeadCell>
-                  <TableHeadCell>Date</TableHeadCell>
-                  <TableHeadCell>Actions</TableHeadCell>
-                </tr>
-              </thead>
-              <tbody>
-                {requests.map((r) => (
-                  <tr key={r.id} className="border-t border-border">
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-3">
-                        <Avatar nom={`${r.user.firstName} ${r.user.lastName}`} src={r.user.photoUrl} size="sm" />
-                        <div>
-                          <p className="text-sm font-medium text-foreground">{r.user.firstName} {r.user.lastName}</p>
-                          <p className="text-xs text-muted-foreground">{r.user.departement || ""}</p>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 text-sm text-muted-foreground">{TYPE_LABEL[r.type] || r.type}</td>
-                    <td className="px-4 py-3 text-sm text-muted-foreground">{r.dateDebut ? formatDate(r.dateDebut) : "—"}</td>
-                    <td className="px-4 py-3 text-sm text-muted-foreground">{r.dateFin ? formatDate(r.dateFin) : "—"}</td>
-                    <td className="px-4 py-3 text-sm text-muted-foreground max-w-xs truncate">{r.motif}</td>
-                    <td className="px-4 py-3">
-                      <Badge variant={STATUT_VARIANT[r.statut]}>{STATUT_LABEL[r.statut]}</Badge>
-                    </td>
-                    <td className="px-4 py-3 text-sm text-muted-foreground">{formatDate(r.dateDemande)}</td>
-                    <td className="px-4 py-3">
-                      {r.statut === "en_attente" ? (
-                        <div className="flex gap-1.5">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="border-success text-success-foreground hover:bg-success"
-                            onClick={() => processMutation.mutate({ id: r.id, action: "approve" })}
-                          >
-                            <CheckCircle2 className="size-4" />
-                            Approuver
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="border-destructive text-destructive-foreground hover:bg-destructive"
-                            onClick={() => processMutation.mutate({ id: r.id, action: "reject" })}
-                          >
-                            <XCircle className="size-4" />
-                            Refuser
-                          </Button>
-                        </div>
-                      ) : (
-                        <span className="text-xs text-muted-foreground">
-                          {r.traiteePar ? "Traité" : "—"}
-                        </span>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </Table>
-          </TableWrapper>
-        </Card>
-      )}
+      <Card>
+        <DataTable columns={columns} data={requests} pageSize={10} />
+      </Card>
+
+      <Modal
+        open={confirmTarget !== null}
+        onClose={() => setConfirmTarget(null)}
+        title={confirmTarget?.action === "approve" ? "Approuver la demande" : "Refuser la demande"}
+        description={`Êtes-vous sûr de vouloir ${confirmTarget?.action === "approve" ? "approuver" : "refuser"} cette demande ?`}
+      >
+        <div className="flex justify-end gap-2 pt-2">
+          <Button variant="outline" onClick={() => setConfirmTarget(null)}>Annuler</Button>
+          <Button
+            variant={confirmTarget?.action === "approve" ? "default" : "destructive"}
+            onClick={handleConfirm}
+            disabled={processMutation.isPending}
+          >
+            {confirmTarget?.action === "approve" ? "Approuver" : "Refuser"}
+          </Button>
+        </div>
+      </Modal>
     </div>
   );
 }

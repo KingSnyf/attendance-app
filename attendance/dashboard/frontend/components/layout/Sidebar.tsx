@@ -4,9 +4,9 @@ import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { navigation } from "@/components/layout/navigation"
 import { useAuth } from "@/hooks/useAuth"
-import { LogOut, Fingerprint } from "lucide-react"
+import { LogOut, Fingerprint, X } from "lucide-react"
 
-function Sidebar() {
+function Sidebar({ onClose }: { onClose?: () => void }) {
   const pathname = usePathname()
   const { user, logout } = useAuth()
 
@@ -17,18 +17,23 @@ function Sidebar() {
 
   return (
     <aside className="flex h-full w-64 flex-col bg-sidebar text-sidebar-foreground">
-      <div className="flex items-center gap-3 border-b border-sidebar-border px-5 py-5">
-        <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-white/10 text-white">
-          <Fingerprint className="size-5" />
-        </span>
-        <div className="min-w-0">
-          <p className="font-heading text-base font-bold leading-none tracking-tight text-white">
-            Attendance
-          </p>
-          <p className="mt-1 text-[10px] uppercase tracking-widest text-white/40">
-            Tableau de bord
-          </p>
+      <div className="flex items-center justify-between border-b border-sidebar-border px-5 py-5">
+        <div className="flex items-center gap-3">
+          <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-white/10 text-white">
+            <Fingerprint className="size-5" />
+          </span>
+          <div className="min-w-0">
+            <p className="font-heading text-base font-bold leading-none tracking-tight text-white">
+              Attendance
+            </p>
+            <p className="mt-1 text-[10px] uppercase tracking-widest text-white/40">
+              Tableau de bord
+            </p>
+          </div>
         </div>
+        <button onClick={onClose} className="text-white/40 hover:text-white lg:hidden" aria-label="Fermer le menu">
+          <X className="size-5" />
+        </button>
       </div>
 
       <nav className="flex-1 space-y-0.5 px-3 py-4">
@@ -39,6 +44,7 @@ function Sidebar() {
             <Link
               key={item.href}
               href={item.href}
+              onClick={onClose}
               className={cn(
                 "group flex items-center gap-3 rounded-lg border-l-4 px-3 py-2.5 text-sm font-medium transition-all duration-200",
                 active

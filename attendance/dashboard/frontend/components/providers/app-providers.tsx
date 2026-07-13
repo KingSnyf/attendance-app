@@ -1,18 +1,9 @@
 "use client"
+import { useRef } from "react"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { Toaster } from "react-hot-toast"
 import { AuthProvider } from "@/hooks/useAuth"
 import { useSocket } from "@/lib/hooks/use-socket"
-
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      staleTime: 30_000,
-      retry: 2,
-      refetchOnWindowFocus: false,
-    },
-  },
-})
 
 function SocketInit() {
   useSocket()
@@ -20,8 +11,21 @@ function SocketInit() {
 }
 
 function AppProviders({ children }: { children: React.ReactNode }) {
+  const queryClientRef = useRef<QueryClient>(null)
+  if (!queryClientRef.current) {
+    queryClientRef.current = new QueryClient({
+      defaultOptions: {
+        queries: {
+          staleTime: 30_000,
+          retry: 2,
+          refetchOnWindowFocus: false,
+        },
+      },
+    })
+  }
+
   return (
-    <QueryClientProvider client={queryClient}>
+    <QueryClientProvider client={queryClientRef.current}>
       <AuthProvider>
         <SocketInit />
         {children}

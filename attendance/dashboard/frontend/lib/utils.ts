@@ -51,6 +51,10 @@ export function exporterVersCSV(rows: Record<string, unknown>[]): string {
   return [headers.join(","), ...lines].join("\n")
 }
 
+export function getNomComplet(user: { nom: string; prenom: string }): string {
+  return [user.prenom, user.nom].filter(Boolean).join(" ") || "Utilisateur"
+}
+
 export function telechargerCSV(filename: string, csv: string) {
   const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" })
   const url = URL.createObjectURL(blob)

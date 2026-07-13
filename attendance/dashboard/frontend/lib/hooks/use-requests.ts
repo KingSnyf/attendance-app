@@ -29,3 +29,15 @@ export function useProcessRequest() {
     },
   })
 }
+
+export function useCreateRequest() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (data: { type: string; dateDebut?: string; dateFin?: string; motif: string }) =>
+      api.createRequest(data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["requests"] })
+      qc.invalidateQueries({ queryKey: ["my-requests"] })
+    },
+  })
+}

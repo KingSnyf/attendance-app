@@ -10,7 +10,7 @@ export const createEmployeeSchema = z.object({
   prenom: z.string().min(1, "Prénom requis"),
   email: z.string().email("Email invalide"),
   departement: z.string().min(1, "Département requis"),
-  telephone: z.string().optional(),
+  telephone: z.string().regex(/^(?:(?:\+|00)33|0)[1-9]\d{8}$/, "Téléphone invalide").optional().or(z.literal("")),
   role: z.enum(["employe", "gestionnaire", "admin"]),
 })
 
@@ -47,6 +47,13 @@ export const createModificationRequestSchema = z.object({
   sessionPresenceId: z.string().min(1, "Session requise"),
   modificationProposee: z.string().min(1, "Modification requise"),
   raison: z.string().min(1, "Raison requise"),
+})
+
+export const registerSchema = z.object({
+  email: z.string().email("Email invalide").min(1, "Email requis"),
+  password: z.string().min(6, "Minimum 6 caractères"),
+  firstName: z.string().min(1, "Prénom requis"),
+  lastName: z.string().min(1, "Nom requis"),
 })
 
 export type LoginFormData = z.infer<typeof loginSchema>

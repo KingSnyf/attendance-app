@@ -44,7 +44,7 @@ export class EmailService {
     }
   }
 
-  async sendWelcomeEmail(email: string, prenom: string, password: string): Promise<boolean> {
+  async sendWelcomeEmail(email: string, prenom: string, password: string, pin?: string): Promise<boolean> {
     return this.send({
       to: email,
       subject: 'Bienvenue sur Attendance — Vos identifiants de connexion',
@@ -52,9 +52,15 @@ export class EmailService {
 
 Votre compte a été créé sur l'application Attendance.
 
-Voici vos identifiants de connexion :
+Voici vos informations de connexion :
+
+Tableau de bord :
   Email : ${email}
   Mot de passe : ${password}
+
+Application mobile :
+  Email : ${email}
+  Code PIN : ${pin || 'à définir'}
 
 Nous vous recommandons de modifier votre mot de passe dès votre première connexion.
 Pour des raisons de sécurité, ne partagez jamais vos identifiants.
@@ -63,17 +69,18 @@ L'équipe Attendance`,
     });
   }
 
-  async sendPasswordResetEmail(email: string, newPassword: string): Promise<boolean> {
+  async sendPasswordResetEmail(email: string, resetLink: string): Promise<boolean> {
     return this.send({
       to: email,
       subject: 'Attendance — Réinitialisation de votre mot de passe',
       text: `Bonjour,
 
-Votre mot de passe a été réinitialisé.
+Vous avez demandé la réinitialisation de votre mot de passe.
 
-Votre nouveau mot de passe est : ${newPassword}
+Cliquez sur le lien ci-dessous pour choisir un nouveau mot de passe (valable 15 minutes) :
+${resetLink}
 
-Nous vous recommandons de le modifier dès votre prochaine connexion.
+Si vous n'êtes pas à l'origine de cette demande, ignorez cet email.
 
 L'équipe Attendance`,
     });

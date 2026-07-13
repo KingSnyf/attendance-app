@@ -40,23 +40,14 @@ function AuthProvider({ children }: { children: ReactNode }) {
     setIsLoading(true)
     setError(null)
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:3002/api"}/auth/login`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
-      })
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}))
-        return { success: false, error: err.message || "Identifiants invalides" }
-      }
-      const data = await res.json()
+      const data = await api.login(email, password)
       authService.setToken(data.access_token)
       const userData: User = { id: data.user.id, email: data.user.email, role: data.user.role, prenom: data.user.prenom, nom: data.user.nom, photo_url: data.user.photo_url }
       authService.setUser(userData)
       setUser(userData)
       return { success: true, user: userData }
-    } catch {
-      return { success: false, error: "Erreur de connexion au serveur" }
+    } catch (err: any) {
+      return { success: false, error: err.message || "Identifiants invalides" }
     } finally {
       setIsLoading(false)
     }
@@ -90,19 +81,16 @@ function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const refreshUser = useCallback(async () => {
-    const token = authService.getToken()
-    if (!token) return
+    if (!authService.getToken()) return
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:3002/api"}/auth/me`, {
-        headers: { Authorization: `Bearer ${token}` },
-      })
-      if (res.ok) {
-        const data = await res.json()
-        const userData: User = { id: data.id, email: data.email, role: data.role, prenom: data.prenom, nom: data.nom, photo_url: data.photo_url }
-        authService.setUser(userData)
-        setUser(userData)
-      }
-    } catch { /* ignore */ }
+      const data = await api.getUser()
+      const userData: User = { id: data.id, email: data.email, role: data.role, prenom: data.prenom, nom: data.nom, photo_url: data.photo_url }
+      authService.setUser(userData)
+      setUser(userData)
+    } catch {
+      authService.logout()
+      setUser(null)
+    }
   }, [])
 
   return (

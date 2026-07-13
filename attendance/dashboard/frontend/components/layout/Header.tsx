@@ -1,19 +1,20 @@
 "use client"
 import { useEffect, useRef, useState } from "react"
 import { usePathname, useRouter } from "next/navigation"
-import { Bell, CheckCircle2, AlertTriangle, FileEdit, ClipboardList } from "lucide-react"
+import { Bell, CheckCircle2, AlertTriangle, FileEdit, ClipboardList, Menu } from "lucide-react"
 import { navigation } from "@/components/layout/navigation"
 import { CommandSearch } from "@/components/layout/command-search"
 import { useAuth } from "@/hooks/useAuth"
 import { useNotifications } from "@/lib/hooks/use-notifications"
 
-function Header() {
+function Header({ onToggleSidebar }: { onToggleSidebar?: () => void }) {
   const pathname = usePathname()
   const router = useRouter()
   const { user } = useAuth()
-  const current = navigation.find(
-    (item) => pathname === item.href || pathname.startsWith(item.href + "/"),
-  )
+  const current = navigation.find((item) => {
+    if (item.href === "/dashboard") return pathname === "/dashboard"
+    return pathname === item.href || pathname.startsWith(item.href + "/")
+  })
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
   const { data: notifs } = useNotifications()
@@ -35,10 +36,15 @@ function Header() {
   const total = anomalies + modifications + requests
 
   return (
-    <header className="glass-header sticky top-0 z-40 flex h-20 min-h-20 items-center justify-between border-b border-border px-8 shadow-sm">
-      <h1 className="text-xl font-semibold text-foreground">
-        {current?.label ?? "Tableau de bord"}
-      </h1>
+    <header className="glass-header sticky top-0 z-20 flex h-20 min-h-20 items-center justify-between border-b border-border px-4 sm:px-8 shadow-sm">
+      <div className="flex items-center gap-3">
+        <button onClick={onToggleSidebar} className="lg:hidden text-muted-foreground hover:text-foreground" aria-label="Ouvrir le menu">
+          <Menu className="size-6" />
+        </button>
+        <h1 className="text-xl font-semibold text-foreground">
+          {current?.label ?? "Tableau de bord"}
+        </h1>
+      </div>
 
       <div className="flex items-center gap-3">
         <CommandSearch />

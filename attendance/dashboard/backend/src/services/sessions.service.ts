@@ -35,31 +35,31 @@ export class SessionsService {
       throw new ForbiddenException(`Compte verrouillé pour cause de tentatives PIN échouées. Réessayer dans ${resteMin} min.`);
     }
 
-    // Vérification du code PIN si méthode = pin
-    if (method === 'pin' && codePin) {
-      if (!user.codePinHash) {
-        throw new BadRequestException('Aucun code PIN configuré pour cet utilisateur');
+    // Vérification obligatoire du code PIN
+    if (!codePin) {
+      throw new BadRequestException('Code PIN requis');
+    }
+    if (!user.codePinHash) {
+      throw new BadRequestException('Aucun code PIN configuré pour cet utilisateur');
+    }
+    const pinOk = await bcrypt.compare(codePin, user.codePinHash);
+    if (!pinOk) {
+      const nouvellesTentatives = user.tentativesPin + 1;
+      const updateData: any = { tentativesPin: nouvellesTentatives };
+      if (nouvellesTentatives >= 5) {
+        const delai = 30;
+        updateData.blocagePinJusqua = new Date(Date.now() + delai * 60 * 1000);
+        updateData.tentativesPin = 0;
       }
-      const pinOk = await bcrypt.compare(codePin, user.codePinHash);
-      if (!pinOk) {
-        const nouvellesTentatives = user.tentativesPin + 1;
-        const updateData: any = { tentativesPin: nouvellesTentatives };
-        if (nouvellesTentatives >= 5) {
-          const delai = 30; // minutes de blocage
-          updateData.blocagePinJusqua = new Date(Date.now() + delai * 60 * 1000);
-          updateData.tentativesPin = 0; // reset après blocage
-        }
-        await this.prisma.user.update({ where: { id: userId }, data: updateData });
+      await this.prisma.user.update({ where: { id: userId }, data: updateData });
 
-        const reste = 5 - nouvellesTentatives;
-        throw new BadRequestException(
-          `Code PIN incorrect. ${reste > 0 ? `Il vous reste ${reste} tentative(s).` : 'Compte verrouillé pour 30 minutes.'}`,
-        );
-      }
-      // PIN OK → reset compteur
-      if (user.tentativesPin > 0 || user.blocagePinJusqua) {
-        await this.prisma.user.update({ where: { id: userId }, data: { tentativesPin: 0, blocagePinJusqua: null } });
-      }
+      const reste = 5 - nouvellesTentatives;
+      throw new BadRequestException(
+        `Code PIN incorrect. ${reste > 0 ? `Il vous reste ${reste} tentative(s).` : 'Compte verrouillé pour 30 minutes.'}`,
+      );
+    }
+    if (user.tentativesPin > 0 || user.blocagePinJusqua) {
+      await this.prisma.user.update({ where: { id: userId }, data: { tentativesPin: 0, blocagePinJusqua: null } });
     }
 
     const active = await this.prisma.sessionPresence.findFirst({
@@ -402,41 +402,53 @@ export class SessionsService {
       include: { devices: { where: { actif: true }, take: 1 } },
     });
 
-    // Présence hebdomadaire (7 derniers jours)
-    const weeklyPresence: Array<{ label: string; presents: number; absents: number }> = [];
+    // Présence hebdomadaire (7 derniers jours) — 1 requête au lieu de 7
     const dayNames = ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam'];
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+    const allWeekSessions = await this.prisma.sessionPresence.findMany({
+      where: { date: { gte: sevenDaysAgo } },
+      select: { userId: true, date: true },
+    });
+    const weeklyPresence: Array<{ label: string; presents: number; absents: number }> = [];
     for (let i = 6; i >= 0; i--) {
       const d = new Date();
       d.setDate(d.getDate() - i);
-      const dateStart = new Date(d.getFullYear(), d.getMonth(), d.getDate());
-      const dateEnd = new Date(dateStart);
-      dateEnd.setDate(dateEnd.getDate() + 1);
-      const sessions = await this.prisma.sessionPresence.findMany({
-        where: { date: { gte: dateStart, lt: dateEnd } },
-      });
-      const uniqueUsers = new Set(sessions.map((s) => s.userId));
+      const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      const dayUsers = new Set(
+        allWeekSessions
+          .filter((s) => `${s.date.getFullYear()}-${String(s.date.getMonth() + 1).padStart(2, '0')}-${String(s.date.getDate()).padStart(2, '0')}` === dateStr)
+          .map((s) => s.userId),
+      );
       weeklyPresence.push({
         label: dayNames[d.getDay()],
-        presents: uniqueUsers.size,
-        absents: Math.max(0, totalUsers - uniqueUsers.size),
+        presents: dayUsers.size,
+        absents: Math.max(0, totalUsers - dayUsers.size),
       });
     }
 
-    // Présence mensuelle (4 dernières semaines)
+    // Présence mensuelle (4 dernières semaines) — 1 requête au lieu de 4
+    const twentyEightDaysAgo = new Date();
+    twentyEightDaysAgo.setDate(twentyEightDaysAgo.getDate() - 28);
+    const allMonthSessions = await this.prisma.sessionPresence.findMany({
+      where: { date: { gte: twentyEightDaysAgo } },
+      select: { userId: true, date: true },
+    });
     const monthlyPresence: Array<{ label: string; presents: number; absents: number }> = [];
     for (let w = 3; w >= 0; w--) {
       const end = new Date();
       end.setDate(end.getDate() - w * 7);
       const start = new Date(end);
       start.setDate(start.getDate() - 6);
-      const sessions = await this.prisma.sessionPresence.findMany({
-        where: { date: { gte: start, lt: end } },
-      });
-      const uniqueUsers = new Set(sessions.map((s) => s.userId));
+      const weekUsers = new Set(
+        allMonthSessions
+          .filter((s) => s.date >= start && s.date < end)
+          .map((s) => s.userId),
+      );
       monthlyPresence.push({
         label: `S${4 - w}`,
-        presents: uniqueUsers.size,
-        absents: Math.max(0, totalUsers - uniqueUsers.size),
+        presents: weekUsers.size,
+        absents: Math.max(0, totalUsers - weekUsers.size),
       });
     }
 

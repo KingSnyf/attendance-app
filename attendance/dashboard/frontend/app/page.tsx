@@ -4,8 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { authService } from "@/lib/auth-service";
 import { Spinner } from "@/components/ui/spinner";
-
-const ROLES_AUTHORISES = ["admin", "gestionnaire"];
+import { ROLES_AUTHORISES } from "@/lib/api";
 
 export default function Page() {
   const router = useRouter();
@@ -21,7 +20,7 @@ export default function Page() {
 
       try {
         const res = await fetch(
-          `${process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:3002/api"}/auth/me`,
+          `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3002/api"}/auth/me`,
           { headers: { Authorization: `Bearer ${token}` }, signal: AbortSignal.timeout(3000) }
         );
         if (res.ok) {

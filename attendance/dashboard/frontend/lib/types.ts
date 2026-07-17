@@ -14,6 +14,7 @@ export type Utilisateur = {
   // Uniquement présents sur les employés renvoyés par /sessions/stats
   premiere_arrivee?: string | null
   temps_cumule_minutes?: number | null
+  derniere_position?: { lat: number; lng: number; date: string } | null
   appareil?: {
     marque?: string
     modele: string
@@ -89,6 +90,7 @@ export type EmployeDetail = {
 
 export type ParametresSysteme = {
   reseau_bssid: string
+  reseau_ssid?: string
   plage_ip_locale: string
   geofencing_actif: boolean
   rayon_geofencing_metres: number

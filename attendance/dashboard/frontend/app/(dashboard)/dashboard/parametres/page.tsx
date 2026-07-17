@@ -108,7 +108,30 @@ export default function ParametresPage() {
     email: "",
     photoUrl: "",
   });
+  const [pwd, setPwd] = useState({ current: "", next: "", confirm: "" });
+  const [changingPwd, setChangingPwd] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+
+  const handleChangePassword = async () => {
+    if (pwd.next.length < 6) {
+      toast.error("Le nouveau mot de passe doit contenir au moins 6 caractères.");
+      return;
+    }
+    if (pwd.next !== pwd.confirm) {
+      toast.error("Les mots de passe ne correspondent pas.");
+      return;
+    }
+    setChangingPwd(true);
+    try {
+      await api.changePassword(pwd.current, pwd.next);
+      toast.success("Mot de passe mis à jour avec succès.");
+      setPwd({ current: "", next: "", confirm: "" });
+    } catch (e: any) {
+      toast.error(e?.message || "Erreur lors du changement de mot de passe.");
+    } finally {
+      setChangingPwd(false);
+    }
+  };
 
   useEffect(() => {
     if (settingsData) setSettings(settingsData);
@@ -277,6 +300,37 @@ export default function ParametresPage() {
               Enregistrer le profil
             </Button>
           </div>
+
+          {/* Changer le mot de passe */}
+          <div className="mt-8 border-t border-border pt-6">
+            <SectionHeader icon={Lock} title="Changer mon mot de passe" description="Met à jour le mot de passe de ton compte." />
+            <div className="mt-6 grid gap-4 sm:grid-cols-3">
+              <Input
+                type="password"
+                value={pwd.current}
+                onChange={(e) => setPwd((p) => ({ ...p, current: e.target.value }))}
+                placeholder="Mot de passe actuel"
+              />
+              <Input
+                type="password"
+                value={pwd.next}
+                onChange={(e) => setPwd((p) => ({ ...p, next: e.target.value }))}
+                placeholder="Nouveau (min. 6 caractères)"
+              />
+              <Input
+                type="password"
+                value={pwd.confirm}
+                onChange={(e) => setPwd((p) => ({ ...p, confirm: e.target.value }))}
+                placeholder="Confirmer le nouveau"
+              />
+            </div>
+            <div className="mt-6 flex justify-end">
+              <Button onClick={handleChangePassword} disabled={changingPwd}>
+                <Lock className="size-4" />
+                {changingPwd ? "Mise à jour..." : "Changer le mot de passe"}
+              </Button>
+            </div>
+          </div>
         </Card>
 
         {/* Statut sécurité réseau -- carte accent sombre */}
@@ -304,6 +358,18 @@ export default function ParametresPage() {
                 onChange={(e) => update("reseau_bssid", e.target.value)}
                 disabled={isReadOnly}
                 placeholder="00:11:22:33:44:55"
+                className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 font-mono text-sm text-white outline-none placeholder:text-white/30 focus:border-white/30 disabled:opacity-60"
+              />
+            </label>
+            <label className="block space-y-1.5">
+              <span className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-primary-foreground/60">
+                <Wifi className="size-3.5" /> Nom du réseau (SSID)
+              </span>
+              <input
+                value={settings.reseau_ssid ?? ""}
+                onChange={(e) => update("reseau_ssid", e.target.value)}
+                disabled={isReadOnly}
+                placeholder="DTA-STAR"
                 className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 font-mono text-sm text-white outline-none placeholder:text-white/30 focus:border-white/30 disabled:opacity-60"
               />
             </label>

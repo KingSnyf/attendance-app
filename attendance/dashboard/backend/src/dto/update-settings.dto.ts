@@ -2,6 +2,7 @@ import { IsString, IsOptional, IsNumber, IsBoolean, IsArray } from 'class-valida
 
 export class UpdateSettingsDto {
   @IsOptional() @IsString() reseauBssid?: string;
+  @IsOptional() @IsString() reseauSsid?: string;
   @IsOptional() @IsString() reseau_bssid?: string;
   @IsOptional() @IsString() plageIpLocale?: string;
   @IsOptional() @IsString() plage_ip_locale?: string;

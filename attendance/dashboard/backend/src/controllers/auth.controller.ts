@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Patch, Post, ForbiddenException } from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, Post, ForbiddenException, UseGuards } from '@nestjs/common';
 import { AuthService } from '../services/auth.service';
 import { Public } from '../auth/public.decorator';
 import { Roles } from '../auth/roles.decorator';
@@ -8,12 +8,14 @@ import { ChangePasswordDto } from '../dto/change-password.dto';
 import { ForgotPasswordDto } from '../dto/forgot-password.dto';
 import { LoginDto } from '../dto/login.dto';
 import { User } from '../auth/user.decorator';
+import { StrictRateLimiterGuard } from '../auth/strict-rate-limiter.guard';
 
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
   @Public()
+  @UseGuards(StrictRateLimiterGuard)
   @Post('login')
   login(@Body() payload: LoginDto) {
     return this.authService.login(payload.email, payload.password);

@@ -4,8 +4,9 @@ import * as bcrypt from 'bcryptjs';
 const prisma = new PrismaClient();
 
 const EMPLOYEES = [
-  { prenom: 'Nelson', nom: 'Mandela', email: 'nelson.mandela@demo.com', role: 'admin', telephone: '+27 12 345 6789' },
+  { prenom: 'Yann', nom: 'Sihno', email: 'sihnoyann@gmail.com', role: 'admin', telephone: '+225 01 02 03 04 05' },
   { prenom: 'Wangari', nom: 'Maathai', email: 'wangari.maathai@demo.com', role: 'gestionnaire', telephone: '+254 712 345 678' },
+  { prenom: 'Gestionnaire', nom: 'Demo', email: 'gestionnaire@demo.com', role: 'gestionnaire', telephone: '+225 05 00 00 00 01' },
   { prenom: 'Thomas', nom: 'Sankara', email: 'thomas.sankara@demo.com', role: 'employe', telephone: '+226 70 12 34 56' },
   { prenom: 'Youssou', nom: "N'Dour", email: 'youssou.ndour@demo.com', role: 'employe', telephone: '+221 77 123 45 67' },
   { prenom: 'Chimamanda', nom: 'Adichie', email: 'chimamanda.adichie@demo.com', role: 'employe', telephone: '+234 803 123 4567' },
@@ -19,6 +20,7 @@ const EMPLOYEES = [
 async function main() {
   console.log('🗑️  Nettoyage des données existantes...');
   await prisma.requestModification.deleteMany();
+  await prisma.request.deleteMany();
   await prisma.logAction.deleteMany();
   await prisma.anomaly.deleteMany();
   await prisma.sessionPresence.deleteMany();
@@ -106,18 +108,19 @@ async function main() {
   console.log('⚙️  Création des paramètres par défaut...');
   await prisma.setting.create({
     data: {
-      reseauBssid: '00:1A:2B:3C:4D:5E',
+      reseauBssid: '66:f1:e2:21:44:47',
+      reseauSsid: 'DTA-STAR',
       plageIpLocale: '192.168.1.0/24',
       toleranceRetardMinutes: 15,
       dureePauseMaxMinutes: 90,
       joursFeries: JSON.stringify([]),
-      joursOuvres: JSON.stringify(['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi']),
+      joursOuvres: JSON.stringify(['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']),
       politiqueConfidentialite: 'Les données de pointage sont collectées pour le suivi des présences. Elles sont conservées pendant la durée légale et ne sont pas partagées avec des tiers.',
       geolocalisationSecoursActive: false,
       geofencingActif: true,
       rayonGeofencingMetres: 120,
-      latitudeBureau: 5.35995,
-      longitudeBureau: -4.00826,
+      latitudeBureau: 3.879683,
+      longitudeBureau: 11.541295,
       heureDebutJournee: '08:00',
       heureFinJournee: '17:00',
     },

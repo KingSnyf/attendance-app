@@ -9,20 +9,34 @@ export class MobileController {
 
   @Public()
   @Post('verify-zone')
-  async verifyZone(@Body() body: { bssid: string; ipLocale?: string }) {
+  async verifyZone(@Body() body: { bssid?: string; ssid?: string; ipLocale?: string }) {
     const settings = await this.prisma.setting.findFirst();
     if (!settings) throw new BadRequestException('Settings not configured');
 
-    const errors: string[] = [];
-
-    // Vérification BSSID
-    if (settings.reseauBssid && settings.reseauBssid !== '00:00:00:00:00:00') {
-      if (body.bssid.toLowerCase() !== settings.reseauBssid.toLowerCase()) {
-        errors.push(`BSSID non reconnu: ${body.bssid} (attendu: ${settings.reseauBssid})`);
-      }
+    // Mode test : contourne la vérification réseau (émulateur, démo)
+    if (process.env.BYPASS_ZONE_CHECK === 'true') {
+      return { valide: true, erreurs: [], modeTest: true };
     }
 
-    // Vérification plage IP
+    const errors: string[] = [];
+    const bssid = (body.bssid || '').toLowerCase();
+    const ssid = (body.ssid || '').trim();
+
+    // Vérification réseau : le BSSID OU le SSID doivent correspondre.
+    // Le SSID est privilégié car le BSSID peut être randomisé par Android.
+    const bssidOk = !!settings.reseauBssid &&
+      settings.reseauBssid !== '00:00:00:00:00:00' &&
+      bssid === settings.reseauBssid.toLowerCase();
+    const ssidOk = !!settings.reseauSsid && settings.reseauSsid.trim() !== '' &&
+      ssid.toLowerCase() === settings.reseauSsid.toLowerCase();
+
+    if (settings.reseauBssid && settings.reseauBssid !== '00:00:00:00:00:00' && !bssidOk && !ssidOk) {
+      errors.push(
+        `Réseau non reconnu (BSSID=${body.bssid || 'inconnu'}, SSID=${body.ssid || 'inconnu'}, attendu BSSID=${settings.reseauBssid}${settings.reseauSsid ? ' ou SSID=' + settings.reseauSsid : ''})`
+      );
+    }
+
+    // Vérification plage IP (gardefou optionnel)
     if (settings.plageIpLocale && body.ipLocale) {
       const ipParts = body.ipLocale.split('.').map(Number);
       if (ipParts.length === 4) {

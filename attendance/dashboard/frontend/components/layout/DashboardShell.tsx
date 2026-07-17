@@ -5,9 +5,7 @@ import { Sidebar } from "@/components/layout/Sidebar"
 import { Header } from "@/components/layout/Header"
 import { Spinner } from "@/components/ui/spinner"
 import { authService } from "@/lib/auth-service"
-import { api } from "@/lib/api"
-
-const ROLES_AUTHORISES = ["admin", "gestionnaire"]
+import { api, ROLES_AUTHORISES } from "@/lib/api"
 
 function DashboardShell({ children }: { children: React.ReactNode }) {
   const router = useRouter()

@@ -26,7 +26,7 @@ type StatCardProps = {
 
 function StatCard({ icon: Icon, label, value, variant = "info", hint, progress }: StatCardProps) {
   return (
-    <div className="group rounded-xl border border-border bg-card p-5 shadow-sm transition-all duration-300 hover:shadow-md">
+    <div className="group rounded-xl border border-border bg-card p-5 shadow-sm transition-all duration-300 hover:shadow-md punch-notch">
       <div className="mb-4 flex items-start justify-between">
         <div className={cn("flex size-12 items-center justify-center rounded-full", variantStyles[variant])}>
           <Icon className="size-5" />

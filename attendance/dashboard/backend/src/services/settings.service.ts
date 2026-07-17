@@ -22,8 +22,8 @@ export class SettingsService {
           rayonGeofencingMetres: 120,
           heureDebutJournee: '08:00',
           heureFinJournee: '17:00',
-          latitudeBureau: 3.848,
-          longitudeBureau: 11.5021,
+          latitudeBureau: 3.879683,
+          longitudeBureau: 11.541295,
         },
       });
     }
@@ -41,6 +41,7 @@ export class SettingsService {
 
     const data: any = {};
     if (payload.reseau_bssid !== undefined) data.reseauBssid = payload.reseau_bssid;
+    if (payload.reseau_ssid !== undefined) data.reseauSsid = payload.reseau_ssid;
     if (payload.plage_ip_locale !== undefined) data.plageIpLocale = payload.plage_ip_locale;
     if (payload.tolerance_retard_minutes !== undefined) data.toleranceRetardMinutes = payload.tolerance_retard_minutes;
     if (payload.duree_pause_max_minutes !== undefined) data.dureePauseMaxMinutes = payload.duree_pause_max_minutes;
@@ -65,6 +66,7 @@ export class SettingsService {
   private formatSettings(s: any) {
     return {
       reseau_bssid: s.reseauBssid,
+      reseau_ssid: s.reseauSsid,
       plage_ip_locale: s.plageIpLocale,
       tolerance_retard_minutes: s.toleranceRetardMinutes,
       duree_pause_max_minutes: s.dureePauseMaxMinutes,

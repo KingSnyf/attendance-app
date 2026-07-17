@@ -385,31 +385,64 @@ export class SessionsService {
   }
 
   async getDashboard() {
-    const totalUsers = await this.prisma.user.count({ where: { actif: true } });
-    const presents = await this.prisma.user.count({ where: { statutActuel: 'present' } });
-    const enPause = await this.prisma.user.count({ where: { statutActuel: 'en_attente' } });
-    const anomaliesNonTraitees = await this.prisma.anomaly.count({ where: { traitee: false } });
-
-    const geofencingAlerts = await this.prisma.anomaly.findMany({
-      where: { type: 'geofencing_incoherent', traitee: false },
-      orderBy: { dateDetection: 'desc' },
-      take: 20,
-    });
-
-    const employees = await this.prisma.user.findMany({
-      where: { actif: true },
-      orderBy: { dateCreation: 'desc' },
-      include: { devices: { where: { actif: true }, take: 1 } },
-    });
+    const [
+      totalUsers,
+      presents,
+      enPause,
+      anomaliesNonTraitees,
+      geofencingAlerts,
+      employees,
+      allWeekSessions,
+      allMonthSessions,
+      sessionsDuJour,
+    ] = await Promise.all([
+      this.prisma.user.count({ where: { actif: true } }),
+      this.prisma.user.count({ where: { statutActuel: 'present' } }),
+      this.prisma.user.count({ where: { statutActuel: 'en_attente' } }),
+      this.prisma.anomaly.count({ where: { traitee: false } }),
+      this.prisma.anomaly.findMany({
+        where: { type: 'geofencing_incoherent', traitee: false },
+        orderBy: { dateDetection: 'desc' },
+        take: 20,
+      }),
+      this.prisma.user.findMany({
+        where: { actif: true },
+        orderBy: { dateCreation: 'desc' },
+        include: {
+          devices: { where: { actif: true }, take: 1 },
+          sessions: { orderBy: { date: 'desc' }, take: 1 },
+        },
+      }),
+      (() => {
+        const week = new Date();
+        week.setDate(week.getDate() - 7);
+        return this.prisma.sessionPresence.findMany({
+          where: { date: { gte: week } },
+          select: { userId: true, date: true },
+        });
+      })(),
+      (() => {
+        const month = new Date();
+        month.setDate(month.getDate() - 28);
+        return this.prisma.sessionPresence.findMany({
+          where: { date: { gte: month } },
+          select: { userId: true, date: true },
+        });
+      })(),
+      (async () => {
+        const jourDebut = new Date();
+        jourDebut.setHours(0, 0, 0, 0);
+        const jourFin = new Date(jourDebut);
+        jourFin.setDate(jourFin.getDate() + 1);
+        return this.prisma.sessionPresence.findMany({
+          where: { date: { gte: jourDebut, lt: jourFin } },
+          orderBy: { heureArrivee: 'asc' },
+        });
+      })(),
+    ]);
 
     // Présence hebdomadaire (7 derniers jours) — 1 requête au lieu de 7
     const dayNames = ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam'];
-    const sevenDaysAgo = new Date();
-    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-    const allWeekSessions = await this.prisma.sessionPresence.findMany({
-      where: { date: { gte: sevenDaysAgo } },
-      select: { userId: true, date: true },
-    });
     const weeklyPresence: Array<{ label: string; presents: number; absents: number }> = [];
     for (let i = 6; i >= 0; i--) {
       const d = new Date();
@@ -427,13 +460,6 @@ export class SessionsService {
       });
     }
 
-    // Présence mensuelle (4 dernières semaines) — 1 requête au lieu de 4
-    const twentyEightDaysAgo = new Date();
-    twentyEightDaysAgo.setDate(twentyEightDaysAgo.getDate() - 28);
-    const allMonthSessions = await this.prisma.sessionPresence.findMany({
-      where: { date: { gte: twentyEightDaysAgo } },
-      select: { userId: true, date: true },
-    });
     const monthlyPresence: Array<{ label: string; presents: number; absents: number }> = [];
     for (let w = 3; w >= 0; w--) {
       const end = new Date();
@@ -454,16 +480,6 @@ export class SessionsService {
 
     // Présence du jour par utilisateur (première arrivée + temps cumulé)
     // -> alimente les colonnes "Arrivée" et "Temps cumulé" du dashboard
-    const jourDebut = new Date();
-    jourDebut.setHours(0, 0, 0, 0);
-    const jourFin = new Date(jourDebut);
-    jourFin.setDate(jourFin.getDate() + 1);
-
-    const sessionsDuJour = await this.prisma.sessionPresence.findMany({
-      where: { date: { gte: jourDebut, lt: jourFin } },
-      orderBy: { heureArrivee: 'asc' },
-    });
-
     const maintenant = new Date();
     const presenceParUtilisateur = new Map<string, { premiereArrivee: Date; minutes: number }>();
     for (const s of sessionsDuJour) {
@@ -496,6 +512,7 @@ export class SessionsService {
       })),
       employees: employees.map((u) => {
         const presenceJour = presenceParUtilisateur.get(u.id);
+        const derniereSession = u.sessions?.[0];
         return {
           id: u.id,
           nom: u.lastName || '',
@@ -508,6 +525,9 @@ export class SessionsService {
           photo_url: u.photoUrl || null,
           premiere_arrivee: presenceJour ? presenceJour.premiereArrivee.toISOString() : null,
           temps_cumule_minutes: presenceJour ? presenceJour.minutes : null,
+          derniere_position: derniereSession?.latitude && derniereSession?.longitude
+            ? { lat: derniereSession.latitude, lng: derniereSession.longitude, date: derniereSession.heureArrivee.toISOString() }
+            : null,
           appareil: u.devices?.[0]
             ? {
                 id: u.devices[0].id,

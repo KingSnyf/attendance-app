@@ -23,6 +23,7 @@ export const createRequestSchema = z.object({
 
 export const updateSettingsSchema = z.object({
   reseau_bssid: z.string().optional(),
+  reseau_ssid: z.string().optional(),
   plage_ip_locale: z.string().optional(),
   geofencing_actif: z.boolean(),
   rayon_geofencing_metres: z.number().min(0),

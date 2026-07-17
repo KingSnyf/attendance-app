@@ -11,10 +11,8 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Fingerprint, Mail, Lock, User, ArrowRight, ShieldCheck, ArrowLeft } from "lucide-react";
 import toast from "react-hot-toast";
-import { api } from "@/lib/api";
+import { api, ROLES_AUTHORISES } from "@/lib/api";
 import { loginSchema, registerSchema } from "@/lib/schemas";
-
-const ROLES_DASHBOARD = ["admin", "gestionnaire"];
 
 export default function AuthPage() {
   const router = useRouter();
@@ -44,7 +42,7 @@ export default function AuthPage() {
       }
       const result = await login(parsed.data);
       if (result.success) {
-        if (ROLES_DASHBOARD.includes(result.user?.role || "")) {
+        if (ROLES_AUTHORISES.includes(result.user?.role || "")) {
           toast.success("Connexion réussie!");
           router.push("/dashboard");
         } else {

@@ -112,6 +112,7 @@ model LogAction {
 model Setting {
   id                        String @id @default(uuid())
   reseauBssid               String?
+  reseauSsid                String?
   plageIpLocale             String?
   toleranceRetardMinutes    Int?
   dureePauseMaxMinutes      Int?

@@ -1,19 +1,19 @@
 import 'dart:convert';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class AuthService {
+  static const FlutterSecureStorage _secure = FlutterSecureStorage();
   static const _tokenKey = 'attendance_token';
   static const _userKey = 'attendance_user';
   static const _deviceIdKey = 'attendance_device_id';
 
   static Future<String?> getToken() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getString(_tokenKey);
+    return await _secure.read(key: _tokenKey);
   }
 
   static Future<void> saveToken(String token) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_tokenKey, token);
+    await _secure.write(key: _tokenKey, value: token);
   }
 
   static Future<Map<String, dynamic>?> getUser() async {
@@ -39,8 +39,8 @@ class AuthService {
   }
 
   static Future<void> logout() async {
+    await _secure.delete(key: _tokenKey);
     final prefs = await SharedPreferences.getInstance();
-    await prefs.remove(_tokenKey);
     await prefs.remove(_userKey);
     await prefs.remove(_deviceIdKey);
   }

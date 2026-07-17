@@ -62,7 +62,7 @@ export class AuthService {
     try {
       await this.emailService.sendWelcomeEmail(user.email, user.firstName || '', motDePasseTemporaire, pinInitial);
     } catch (e) {
-      // L'envoi d'email ne doit pas faire échouer la création du compte
+      console.warn(`Email sending failed for new user: ${e}`);
     }
 
     // Récupérer la politique de confidentialité pour la retourner
@@ -70,7 +70,9 @@ export class AuthService {
     try {
       const settings = await this.prisma.setting.findFirst();
       politique = settings?.politiqueConfidentialite || '';
-    } catch {}
+    } catch (e) {
+      console.warn(`Failed to fetch privacy policy: ${e}`);
+    }
 
     return { ok: true, user: { id: user.id, email: user.email, role: user.role }, politiqueConfidentialite: politique };
   }

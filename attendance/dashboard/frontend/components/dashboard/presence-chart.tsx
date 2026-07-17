@@ -53,18 +53,18 @@ function PresenceChart({ data, title, subtitle, action }: PresenceChartProps) {
           <BarChart data={data} barGap={6}>
             <defs>
               <linearGradient id="gradPresent" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#009668" stopOpacity={1} />
-                <stop offset="100%" stopColor="#009668" stopOpacity={0.65} />
+                <stop offset="0%" stopColor="var(--success-foreground)" stopOpacity={1} />
+                <stop offset="100%" stopColor="var(--success-foreground)" stopOpacity={0.65} />
               </linearGradient>
               <linearGradient id="gradAbsent" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#ba1a1a" stopOpacity={1} />
-                <stop offset="100%" stopColor="#ba1a1a" stopOpacity={0.65} />
+                <stop offset="0%" stopColor="var(--danger-foreground)" stopOpacity={1} />
+                <stop offset="100%" stopColor="var(--danger-foreground)" stopOpacity={0.65} />
               </linearGradient>
             </defs>
-            <CartesianGrid strokeDasharray="3 3" stroke="#e0e3e5" vertical={false} />
-            <XAxis dataKey="label" tick={{ fontSize: 12, fill: "#4c4546" }} axisLine={false} tickLine={false} />
-            <YAxis tick={{ fontSize: 12, fill: "#4c4546" }} axisLine={false} tickLine={false} />
-            <Tooltip content={<CustomTooltip />} cursor={{ fill: "#f2f4f6" }} />
+            <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
+            <XAxis dataKey="label" tick={{ fontSize: 12, fill: "var(--muted-foreground)" }} axisLine={false} tickLine={false} />
+            <YAxis tick={{ fontSize: 12, fill: "var(--muted-foreground)" }} axisLine={false} tickLine={false} />
+            <Tooltip content={<CustomTooltip />} cursor={{ fill: "var(--border)" }} />
             <Legend
               wrapperStyle={{ fontSize: "12px", paddingTop: "12px" }}
               iconType="circle"

@@ -1,22 +1,27 @@
 import type { Anomalie, DashboardData, DemandeModification, EmployeDetail, ParametresSysteme, Utilisateur } from "@/lib/types"
 
-const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:3002/api"
+export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3002/api"
+
+export const ROLES_AUTHORISES = ["admin", "gestionnaire"]
 
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
   const token = typeof window !== "undefined" ? localStorage.getItem("attendance_token") : null
   const controller = new AbortController()
   const timer = setTimeout(() => controller.abort(), 8000)
   try {
-    const res = await fetch(`${BACKEND_URL}${path}`, {
+    const res = await fetch(`${API_BASE_URL}${path}`, {
       ...options,
       signal: controller.signal,
       headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}), ...options?.headers },
     })
     if (res.status === 401 && typeof window !== "undefined") {
-      localStorage.removeItem("attendance_token")
-      localStorage.removeItem("attendance_user")
-      window.location.replace("/auth")
-      throw new Error("Session expirée")
+      const isAuthRoute = path.startsWith("/auth/")
+      if (!isAuthRoute) {
+        localStorage.removeItem("attendance_token")
+        localStorage.removeItem("attendance_user")
+        window.location.replace("/auth")
+      }
+      throw new Error(res.status === 401 && isAuthRoute ? "Identifiants invalides" : "Session expirée")
     }
     if (!res.ok) throw new Error(`API error: ${res.status} ${res.statusText}`)
     return res.json()
@@ -114,7 +119,7 @@ export const api = {
     const form = new FormData();
     form.append("file", file);
     const token = typeof window !== "undefined" ? localStorage.getItem("attendance_token") : null;
-    const res = await fetch(`${BACKEND_URL}/upload`, {
+    const res = await fetch(`${API_BASE_URL}/upload`, {
       method: "POST",
       headers: token ? { Authorization: `Bearer ${token}` } : {},
       body: form,

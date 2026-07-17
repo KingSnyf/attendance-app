@@ -5,7 +5,10 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { AlertTriangle, CheckCircle2, Coffee, Download, XCircle } from "lucide-react";
+import dynamic from "next/dynamic";
+import { AlertTriangle, CheckCircle2, Coffee, Download, MapPin, XCircle } from "lucide-react";
+
+const EmployeeMap = dynamic(() => import("@/components/dashboard/employee-map"), { ssr: false });
 import toast from "react-hot-toast";
 import { EmployeesPresence } from "@/components/dashboard/employeesPresence";
 import { AnomaliesWidget } from "@/components/dashboard/anomalies-widget";
@@ -16,11 +19,13 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/spinner";
 import { useDashboardData } from "@/lib/hooks/use-dashboard-data";
+import { useSettings } from "@/lib/hooks/use-settings";
 import { exporterVersCSV, formatDuree, formatHeure, telechargerCSV } from "@/lib/utils";
 
 export default function VueEnsemblePage() {
   const router = useRouter();
   const { data, isLoading, error } = useDashboardData();
+  const { data: settingsData } = useSettings();
   const [searchQuery, setSearchQuery] = useState("");
   const [filterDepartement, setFilterDepartement] = useState("all");
   const [filterStatut, setFilterStatut] = useState("all");
@@ -67,6 +72,19 @@ export default function VueEnsemblePage() {
   }, [data?.employees, data?.geofencingAlerts, filterDepartement, filterGeofencing, filterStatut, searchQuery]);
 
   const totalEmployes = data?.employees.length ?? 0;
+
+  const geofencingStats = useMemo(() => {
+    const employees = data?.employees ?? []
+    const alertUserIds = new Set(data?.geofencingAlerts.map((a) => a.user_id))
+    let inside = 0, outside = 0
+    for (const emp of employees) {
+      if (emp.statut_actuel === "present" || emp.statut_actuel === "en_attente") {
+        if (alertUserIds.has(emp.id)) outside++
+        else inside++
+      }
+    }
+    return { inside, outside }
+  }, [data])
 
   const handleExportCSV = () => {
     const csv = exporterVersCSV(
@@ -169,6 +187,23 @@ export default function VueEnsemblePage() {
           hint={data.stats.anomaliesNonTraitees > 0 ? "Vérifier les pointages →" : "Rien à signaler"}
         />
       </div>
+
+      {/* Carte de la zone autorisée */}
+      {settingsData && (
+        <Card>
+          <div className="mb-4 flex items-center gap-2">
+            <MapPin className="size-5 text-brand" />
+            <h2 className="font-heading text-lg font-semibold text-foreground">Zone de pointage</h2>
+            <span className="ml-auto text-xs text-muted-foreground">{geofencingStats.inside + geofencingStats.outside} employé(s) actif(s)</span>
+          </div>
+          <EmployeeMap
+            officeCenter={{ lat: settingsData.coordonnees_bureau.lat, lng: settingsData.coordonnees_bureau.lng }}
+            officeRadius={settingsData.rayon_geofencing_metres}
+            insideCount={geofencingStats.inside}
+            outsideCount={geofencingStats.outside}
+          />
+        </Card>
+      )}
 
       {/* Graphique + anomalies à traiter, côte à côte */}
       <div className="grid gap-4 lg:grid-cols-3">

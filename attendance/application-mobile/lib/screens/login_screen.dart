@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:device_info_plus/device_info_plus.dart';
 import '../services/api_service.dart';
@@ -17,6 +18,14 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _loading = false;
 
   Future<void> _login() async {
+    if (_emailCtrl.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Veuillez entrer votre email')));
+      return;
+    }
+    if (_passwordCtrl.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Veuillez entrer votre mot de passe')));
+      return;
+    }
     setState(() => _loading = true);
     try {
       final data = await ApiService.login(_emailCtrl.text.trim(), _passwordCtrl.text);
@@ -29,23 +38,38 @@ class _LoginScreenState extends State<LoginScreen> {
 
       if (!mounted) return;
 
-      final deviceInfo = DeviceInfoPlugin();
-      final androidInfo = await deviceInfo.androidInfo;
-      final deviceId = androidInfo.id;
+      String deviceId;
+      String modele = '';
+      String marque = '';
+
+      if (Platform.isAndroid) {
+        final androidInfo = await DeviceInfoPlugin().androidInfo;
+        deviceId = androidInfo.id;
+        modele = androidInfo.model;
+        marque = androidInfo.brand;
+      } else if (Platform.isIOS) {
+        final iosInfo = await DeviceInfoPlugin().iosInfo;
+        deviceId = iosInfo.identifierForVendor ?? 'ios-unknown';
+        modele = iosInfo.model;
+        marque = 'Apple';
+      } else {
+        deviceId = 'unknown-${DateTime.now().millisecondsSinceEpoch}';
+      }
 
       try {
         await ApiService.selfAssociateDevice(
           identifiantAppareil: deviceId,
-          modele: androidInfo.model,
-          marque: androidInfo.brand,
+          modele: modele,
+          marque: marque,
         );
         await AuthService.saveDeviceId(deviceId);
       } catch (_) {}
 
+      if (!mounted) return;
       Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => HomeScreen(user: user)));
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('${e}')));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$e')));
     } finally {
       if (mounted) setState(() => _loading = false);
     }

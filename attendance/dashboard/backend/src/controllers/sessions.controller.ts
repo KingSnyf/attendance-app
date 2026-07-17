@@ -15,7 +15,6 @@ export class SessionsController {
     private readonly logs: LogsService,
   ) {}
 
-  @Public()
   @UseGuards(StrictRateLimiterGuard)
   @Post('checkin')
   async checkin(@Body() body: CheckinDto) {
@@ -32,7 +31,7 @@ export class SessionsController {
     );
   }
 
-  @Public()
+  @UseGuards(StrictRateLimiterGuard)
   @Post('checkout')
   async checkout(@Body() body: CheckoutDto) {
     return this.sessions.checkout(body.userId, body.deviceId);
@@ -68,15 +67,15 @@ export class SessionsController {
   @Get('stats/monthly')
   @Roles('gestionnaire', 'admin')
   async getMonthlyStats(@Query('year') year?: string) {
-    return this.sessions.getMonthlyStats(year ? parseInt(year) : undefined);
+    return this.sessions.getMonthlyStats(year ? parseInt(year, 10) : undefined);
   }
 
   @Get('stats/monthly/employees')
   @Roles('gestionnaire', 'admin')
   async getMonthlyEmployeeStats(@Query('year') year?: string, @Query('month') month?: string) {
     return this.sessions.getMonthlyEmployeeStats(
-      year ? parseInt(year) : undefined,
-      month ? parseInt(month) : undefined,
+      year ? parseInt(year, 10) : undefined,
+      month ? parseInt(month, 10) : undefined,
     );
   }
 

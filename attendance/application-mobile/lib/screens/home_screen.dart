@@ -4,6 +4,8 @@ import 'package:network_info_plus/network_info_plus.dart';
 import '../services/api_service.dart';
 import '../services/auth_service.dart';
 import '../services/biometric_service.dart';
+import '../constants/app_colors.dart';
+import '../widgets/bottom_nav_bar.dart';
 import 'login_screen.dart';
 import 'history_screen.dart';
 import 'profile_screen.dart';
@@ -23,6 +25,7 @@ class _HomeScreenState extends State<HomeScreen> {
   String? _bssid;
   String? _ssid;
   String? _ipLocale;
+  List<dynamic> _sessions = [];
 
   @override
   void initState() {
@@ -53,6 +56,7 @@ class _HomeScreenState extends State<HomeScreen> {
     if (sessions.isNotEmpty && sessions.first['heure_depart'] == null) {
       setState(() => _activeSessionId = sessions.first['id']);
     }
+    _sessions = sessions;
   }
 
   Future<void> _pointage({required bool checkin}) async {
@@ -167,79 +171,305 @@ class _HomeScreenState extends State<HomeScreen> {
     Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (_) => const LoginScreen()), (_) => false);
   }
 
+  String _formatTime(String? iso) {
+    if (iso == null) return '--:--';
+    final dt = DateTime.parse(iso);
+    return '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
+  }
+
+  String _formatDateRelative(String? iso) {
+    if (iso == null) return '';
+    final dt = DateTime.parse(iso);
+    final now = DateTime.now();
+    final diff = now.difference(dt);
+    if (diff.inDays == 0) return 'Aujourd\'hui';
+    if (diff.inDays == 1) return 'Hier';
+    final jours = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche'];
+    final mois = ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'];
+    return '${jours[dt.weekday - 1]}, ${dt.day} ${mois[dt.month - 1]}';
+  }
+
   @override
   Widget build(BuildContext context) {
     final name = widget.user['prenom'] != null ? '${widget.user['prenom']} ${widget.user['nom']}' : widget.user['email'];
+    final isCheckedIn = _activeSessionId != null;
+
+    final lastSession = _sessions.isNotEmpty ? _sessions.first as Map<String, dynamic>? : null;
+    final lastArrivee = lastSession?['heure_arrivee'] as String?;
+
     return Scaffold(
-      appBar: AppBar(title: Text('Bonjour $name'), actions: [
-        IconButton(icon: const Icon(Icons.person), onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => ProfileScreen(user: widget.user)))),
-        IconButton(icon: const Icon(Icons.history), onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => HistoryScreen(userId: widget.user['id'] ?? widget.user['sub'])))),
-        IconButton(icon: const Icon(Icons.logout), onPressed: _logout),
-      ]),
-      body: Column(
-        children: [
-          Expanded(
-            child: Center(
-              child: Padding(
-                padding: const EdgeInsets.all(32),
+      backgroundColor: AppColors.surface,
+      body: SafeArea(
+        child: Column(
+          children: [
+            // En-tête
+            Padding(
+              padding: const EdgeInsets.fromLTRB(24, 16, 16, 0),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Bonjour,',
+                          style: TextStyle(fontSize: 14, color: AppColors.onSurfaceVariant),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          name,
+                          style: const TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.onSurface,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.history, color: AppColors.onSurfaceVariant),
+                    onPressed: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => HistoryScreen(userId: widget.user['id'] ?? widget.user['sub'], user: widget.user)),
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.logout, color: AppColors.onSurfaceVariant),
+                    onPressed: _logout,
+                  ),
+                ],
+              ),
+            ),
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
                 child: Column(
-                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(_activeSessionId != null ? Icons.check_circle : Icons.radio_button_unchecked, size: 80, color: _activeSessionId != null ? Colors.green : Colors.grey),
+                    // Carte de statut centrale
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(28),
+                      decoration: BoxDecoration(
+                        color: AppColors.surfaceContainer,
+                        borderRadius: BorderRadius.circular(20),
+                        boxShadow: [
+                          BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 12, offset: const Offset(0, 4)),
+                        ],
+                      ),
+                      child: Column(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: isCheckedIn ? AppColors.success.withValues(alpha: 0.1) : AppColors.warning.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: Text(
+                              isCheckedIn ? 'En Service' : 'Hors Service',
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                                color: isCheckedIn ? AppColors.success : AppColors.warning,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 24),
+                          GestureDetector(
+                            onTap: _checking ? null : () => _pointage(checkin: !isCheckedIn),
+                            child: Container(
+                              width: 96,
+                              height: 96,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: isCheckedIn ? AppColors.error : AppColors.primary,
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: (isCheckedIn ? AppColors.error : AppColors.primary).withValues(alpha: 0.3),
+                                    blurRadius: 16,
+                                    offset: const Offset(0, 4),
+                                  ),
+                                ],
+                              ),
+                              child: Center(
+                                child: _checking
+                                    ? const SizedBox(width: 28, height: 28, child: CircularProgressIndicator(strokeWidth: 3, color: Colors.white))
+                                    : Icon(
+                                        isCheckedIn ? Icons.logout : Icons.login,
+                                        size: 40,
+                                        color: Colors.white,
+                                      ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          Text(
+                            _status,
+                            style: TextStyle(fontSize: 13, color: AppColors.onSurfaceVariant),
+                          ),
+                        ],
+                      ),
+                    ),
                     const SizedBox(height: 16),
-                    Text(_activeSessionId != null ? 'Pointé' : 'Non pointé', style: const TextStyle(fontSize: 20)),
-                    const SizedBox(height: 32),
-                    SizedBox(width: double.infinity, height: 56, child: ElevatedButton.icon(
-                      icon: _checking ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)) : Icon(_activeSessionId != null ? Icons.logout : Icons.login),
-                      label: Text(_activeSessionId != null ? 'Dépointer' : 'Pointer', style: const TextStyle(fontSize: 18)),
-                      onPressed: _checking ? null : () => _pointage(checkin: _activeSessionId == null),
-                      style: ElevatedButton.styleFrom(backgroundColor: _activeSessionId != null ? Colors.red : Colors.green, foregroundColor: Colors.white),
-                    )),
-                    const SizedBox(height: 16),
-                    Text(_status, style: const TextStyle(color: Colors.grey)),
+                    // Dernier Pointage
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        color: AppColors.surfaceContainer,
+                        borderRadius: BorderRadius.circular(20),
+                        boxShadow: [
+                          BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 12, offset: const Offset(0, 4)),
+                        ],
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 48,
+                            height: 48,
+                            decoration: BoxDecoration(
+                              color: AppColors.accent.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                            child: const Icon(Icons.schedule, color: AppColors.accent, size: 24),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  'Dernier Pointage',
+                                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.onSurfaceVariant),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  lastArrivee != null ? _formatTime(lastArrivee) : '--:--',
+                                  style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w700, color: AppColors.onSurface),
+                                ),
+                                if (lastArrivee != null)
+                                  Text(
+                                    _formatDateRelative(lastArrivee),
+                                    style: TextStyle(fontSize: 13, color: AppColors.onSurfaceVariant),
+                                  ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    // Lieu actuel
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        color: AppColors.surfaceContainer,
+                        borderRadius: BorderRadius.circular(20),
+                        boxShadow: [
+                          BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 12, offset: const Offset(0, 4)),
+                        ],
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 48,
+                            height: 48,
+                            decoration: BoxDecoration(
+                              color: AppColors.success.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                            child: const Icon(Icons.location_on, color: AppColors.success, size: 24),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  _ssid ?? 'Non connecté',
+                                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: AppColors.onSurface),
+                                ),
+                                const SizedBox(height: 2),
+                                Row(
+                                  children: [
+                                    Container(
+                                      width: 8,
+                                      height: 8,
+                                      decoration: const BoxDecoration(
+                                        shape: BoxShape.circle,
+                                        color: AppColors.success,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 6),
+                                    const Text(
+                                      'Zone autorisée',
+                                      style: TextStyle(fontSize: 13, color: AppColors.success),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                          const Icon(Icons.check_circle, color: AppColors.success, size: 20),
+                        ],
+                      ),
+                    ),
                   ],
                 ),
               ),
             ),
-          ),
-          // Network info card
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-            decoration: BoxDecoration(
-              color: Colors.grey.shade100,
-              border: Border(top: BorderSide(color: Colors.grey.shade300)),
-            ),
-            child: Row(
-              children: [
-                Icon(Icons.wifi, size: 16, color: _bssid != null ? Colors.green : Colors.red.shade300),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        _ssid ?? 'Non connecté',
-                        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
-                      ),
-                      Text(
-                        _bssid != null ? 'BSSID: $_bssid' : 'WiFi indisponible',
-                        style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
-                      ),
-                    ],
+            // Network info bar
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              decoration: BoxDecoration(
+                color: AppColors.surfaceContainer,
+                border: Border(top: BorderSide(color: AppColors.outlineVariant.withValues(alpha: 0.3))),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.wifi, size: 16, color: _bssid != null ? AppColors.success : AppColors.error.withValues(alpha: 0.6)),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          _ssid ?? 'Non connecté',
+                          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.onSurface),
+                        ),
+                        Text(
+                          _bssid != null ? 'BSSID: $_bssid' : 'WiFi indisponible',
+                          style: TextStyle(fontSize: 11, color: AppColors.onSurfaceVariant.withValues(alpha: 0.7)),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.refresh, size: 18),
-                  onPressed: () => setState(() { _refreshNetworkInfo(); }),
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
-                ),
-              ],
+                  IconButton(
+                    icon: const Icon(Icons.refresh, size: 18),
+                    onPressed: () => setState(() { _refreshNetworkInfo(); }),
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                  ),
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
+      ),
+      bottomNavigationBar: BottomNavBar(
+        currentIndex: 0,
+        onTap: (i) {
+          if (i == 1) {
+            Navigator.push(context, MaterialPageRoute(builder: (_) => HistoryScreen(userId: widget.user['id'] ?? widget.user['sub'], user: widget.user)));
+          } else if (i == 2) {
+            Navigator.push(context, MaterialPageRoute(builder: (_) => ProfileScreen(user: widget.user)));
+          } else if (i == 3) {
+            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Paramètres à venir')));
+          }
+        },
       ),
     );
   }

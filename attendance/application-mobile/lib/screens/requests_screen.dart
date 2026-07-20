@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../services/api_service.dart';
+import '../services/auth_service.dart';
+import '../services/socket_service.dart';
 import '../constants/app_colors.dart';
 import '../widgets/bottom_nav_bar.dart';
 import 'home_screen.dart';
-import 'history_screen.dart';
 import 'profile_screen.dart';
+import 'settings_screen.dart';
 
 class RequestsScreen extends StatefulWidget {
   final Map<String, dynamic> user;
@@ -20,10 +22,42 @@ class _RequestsScreenState extends State<RequestsScreen> {
   bool _loading = true;
   String? _error;
 
+  final SocketService _socket = SocketService();
+
   @override
   void initState() {
     super.initState();
     _load();
+    _initSocket();
+  }
+
+  Future<void> _initSocket() async {
+    final token = await AuthService.getToken();
+    final userId = widget.user['id'] ?? widget.user['sub'];
+    if (token == null || userId == null) return;
+    _socket.connect(token: token, userId: userId.toString());
+    _socket.on('demande:traitee', _onDemandeTraitee);
+  }
+
+  void _onDemandeTraitee(dynamic data) {
+    if (!mounted) return;
+    final demande = data as Map<String, dynamic>?;
+    final statut = demande?['statut'] as String? ?? '';
+    final acceptee = statut == 'approuve';
+    final type = demande?['type'] as String? ?? 'Votre demande';
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(acceptee ? '$type a été acceptée' : '$type a été refusée'),
+        backgroundColor: acceptee ? AppColors.success : AppColors.error,
+      ),
+    );
+    _load();
+  }
+
+  @override
+  void dispose() {
+    _socket.off('demande:traitee', _onDemandeTraitee);
+    super.dispose();
   }
 
   Future<void> _load() async {
@@ -47,7 +81,6 @@ class _RequestsScreenState extends State<RequestsScreen> {
     }
   }
 
-  static const _typeLabels = {'absence': 'Absence', 'autre': 'Autre'};
   static const _statutLabels = {'en_attente': 'En attente', 'approuve': 'Approuvé', 'refuse': 'Refusé'};
 
   Color _statutColor(String statut) {
@@ -80,11 +113,14 @@ class _RequestsScreenState extends State<RequestsScreen> {
   }
 
   Future<void> _showCreateRequestDialog() async {
-    final typeCtrl = TextEditingController(text: 'absence');
+    final typeCtrl = TextEditingController();
     final motifCtrl = TextEditingController();
     DateTime? dateDebut;
     DateTime? dateFin;
     bool submitting = false;
+
+    // Capture le messenger du scaffold PRINCIPAL (pas du bottom sheet)
+    final messenger = ScaffoldMessenger.of(context);
 
     await showModalBottomSheet(
       context: context,
@@ -114,18 +150,16 @@ class _RequestsScreenState extends State<RequestsScreen> {
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 20),
-                  DropdownButtonFormField<String>(
-                    initialValue: typeCtrl.text,
+                  TextFormField(
+                    controller: typeCtrl,
+                    textCapitalization: TextCapitalization.sentences,
                     decoration: const InputDecoration(
-                      labelText: 'Type',
+                      labelText: 'Objet de la demande',
+                      hintText: 'Ex : Congé, retard, matériel, formation, problème...',
                       border: OutlineInputBorder(),
                       prefixIcon: Icon(Icons.category_outlined),
                     ),
-                    items: const [
-                      DropdownMenuItem(value: 'absence', child: Text('Absence')),
-                      DropdownMenuItem(value: 'autre', child: Text('Autre')),
-                    ],
-                    onChanged: (v) => setSheetState(() => typeCtrl.text = v ?? 'absence'),
+                    validator: (v) => (v == null || v.trim().isEmpty) ? 'Veuillez indiquer l\'objet' : null,
                   ),
                   const SizedBox(height: 16),
                   Row(
@@ -157,8 +191,8 @@ class _RequestsScreenState extends State<RequestsScreen> {
                           onTap: () async {
                             final picked = await showDatePicker(
                               context: ctx,
-                              initialDate: dateFin ?? DateTime.now(),
-                              firstDate: DateTime.now().subtract(const Duration(days: 365)),
+                              initialDate: dateFin ?? (dateDebut ?? DateTime.now()),
+                              firstDate: dateDebut ?? DateTime.now().subtract(const Duration(days: 365)),
                               lastDate: DateTime.now().add(const Duration(days: 365)),
                             );
                             if (picked != null) setSheetState(() => dateFin = picked);
@@ -193,19 +227,28 @@ class _RequestsScreenState extends State<RequestsScreen> {
                     onPressed: submitting
                         ? null
                         : () async {
-                            if (motifCtrl.text.trim().isEmpty) return;
+                            if (typeCtrl.text.trim().isEmpty) {
+                              messenger.showSnackBar(const SnackBar(content: Text('Veuillez indiquer l\'objet'), backgroundColor: AppColors.error));
+                              return;
+                            }
+                            if (motifCtrl.text.trim().isEmpty) {
+                              messenger.showSnackBar(const SnackBar(content: Text('Motif requis'), backgroundColor: AppColors.error));
+                              return;
+                            }
+                            if (dateDebut != null && dateFin != null && dateFin!.isBefore(dateDebut!)) {
+                              messenger.showSnackBar(const SnackBar(content: Text('La date de fin est avant la date de début'), backgroundColor: AppColors.error));
+                              return;
+                            }
                             setSheetState(() => submitting = true);
-                            final messenger = ScaffoldMessenger.of(ctx);
-                            final navigator = Navigator.of(ctx);
                             try {
                               await ApiService.createRequest(
-                                type: typeCtrl.text,
+                                type: typeCtrl.text.trim(),
                                 dateDebut: dateDebut?.toIso8601String(),
                                 dateFin: dateFin?.toIso8601String(),
                                 motif: motifCtrl.text.trim(),
                               );
                               if (!mounted) return;
-                              navigator.pop();
+                              Navigator.pop(context);
                               messenger.showSnackBar(
                                 const SnackBar(content: Text('Demande envoyée'), backgroundColor: AppColors.success),
                               );
@@ -284,15 +327,18 @@ class _RequestsScreenState extends State<RequestsScreen> {
                         ],
                       ),
                     )
-                  : ListView.builder(
-                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                      itemCount: _requests.length,
-                      itemBuilder: (ctx, i) {
-                        final r = _requests[i] as Map<String, dynamic>;
-                        final statut = r['statut'] as String? ?? 'en_attente';
-                        final type = r['type'] as String? ?? 'absence';
-                        final motif = r['motif'] as String? ?? '';
-                        final commentaire = r['commentaire'] as String?;
+                  : RefreshIndicator(
+                      onRefresh: _load,
+                      color: AppColors.accent,
+                      child: ListView.builder(
+                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                        itemCount: _requests.length,
+                        itemBuilder: (ctx, i) {
+                          final r = _requests[i] as Map<String, dynamic>;
+                          final statut = r['statut'] as String? ?? 'en_attente';
+                          final type = r['type'] as String? ?? 'Demande';
+                          final motif = r['motif'] as String? ?? '';
+                          final commentaire = r['commentaire'] as String?;
                         final color = _statutColor(statut);
 
                         return Container(
@@ -329,7 +375,7 @@ class _RequestsScreenState extends State<RequestsScreen> {
                                       borderRadius: BorderRadius.circular(12),
                                     ),
                                     child: Text(
-                                      _typeLabels[type] ?? type,
+                                      type,
                                       style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: AppColors.accent),
                                     ),
                                   ),
@@ -378,6 +424,7 @@ class _RequestsScreenState extends State<RequestsScreen> {
                         );
                       },
                     ),
+                  ),
       floatingActionButton: FloatingActionButton(
         onPressed: _showCreateRequestDialog,
         backgroundColor: AppColors.primary,
@@ -386,16 +433,14 @@ class _RequestsScreenState extends State<RequestsScreen> {
         child: const Icon(Icons.add),
       ),
       bottomNavigationBar: BottomNavBar(
-        currentIndex: 3,
+        currentIndex: 2,
         onTap: (i) {
           if (i == 0) {
             Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => HomeScreen(user: widget.user)));
           } else if (i == 1) {
-            Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => HistoryScreen(userId: widget.user['id'] ?? widget.user['sub'], user: widget.user)));
-          } else if (i == 2) {
             Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => ProfileScreen(user: widget.user)));
-          } else if (i == 4) {
-            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Paramètres à venir')));
+          } else if (i == 3) {
+            Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => SettingsScreen(user: widget.user)));
           }
         },
       ),

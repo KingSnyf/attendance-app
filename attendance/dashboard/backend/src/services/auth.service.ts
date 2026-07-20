@@ -200,6 +200,19 @@ export class AuthService {
     return { success: true };
   }
 
+  async changePin(userId: string, currentPin: string, newPin: string) {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) throw new UnauthorizedException('User not found');
+
+    if (!user.codePinHash) throw new BadRequestException('Aucun code PIN défini');
+    const match = await bcrypt.compare(currentPin, user.codePinHash);
+    if (!match) throw new UnauthorizedException('Code PIN actuel incorrect');
+
+    const newHash = await bcrypt.hash(newPin, 10);
+    await this.prisma.user.update({ where: { id: userId }, data: { codePinHash: newHash } });
+    return { success: true };
+  }
+
   async forgotPassword(email: string) {
     const user = await this.prisma.user.findUnique({ where: { email } });
     if (!user) return { success: true };

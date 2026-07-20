@@ -69,6 +69,8 @@ export class RequestsController {
       data: { statut, traiteePar: user.userId, dateTraitement: new Date(), commentaire: body.commentaire },
     });
 
+    this.events.emitDemandeTraitee(updated, request.userId);
+
     await this.logs.create({
       auteurId: user.userId,
       action: `demande_${statut}`,

@@ -1,4 +1,4 @@
-import { WebSocketGateway, WebSocketServer, OnGatewayConnection } from '@nestjs/websockets';
+import { WebSocketGateway, WebSocketServer, OnGatewayConnection, OnGatewayDisconnect } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 import * as jwt from 'jsonwebtoken';
 
@@ -6,7 +6,7 @@ import * as jwt from 'jsonwebtoken';
   cors: { origin: process.env.CORS_ORIGINS?.split(',') || ['http://localhost:3000'], credentials: true },
   namespace: '/events',
 })
-export class EventsGateway implements OnGatewayConnection {
+export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()
   server!: Server;
 
@@ -18,11 +18,20 @@ export class EventsGateway implements OnGatewayConnection {
       return;
     }
     try {
-      jwt.verify(token as string, process.env.JWT_SECRET || '');
+      const payload: any = jwt.verify(token as string, process.env.JWT_SECRET || '');
+      (client.data as any).userId = payload.sub;
+      client.on('join', (room: string) => {
+        if (room && room === payload.sub) client.join(room);
+      });
     } catch {
       client.emit('error', 'Invalid token');
       client.disconnect();
     }
+  }
+
+  handleDisconnect(client: Socket) {
+    const userId = (client.data as any)?.userId;
+    if (userId) client.leave(userId);
   }
 
   emitAnomalieCreee(anomalie: any) {
@@ -33,7 +42,15 @@ export class EventsGateway implements OnGatewayConnection {
     this.server.emit('demande:creee', demande);
   }
 
-  emitNotification(notification: { type: string; message: string; count?: number }) {
-    this.server.emit('notification', notification);
+  emitDemandeTraitee(demande: any, userId: string) {
+    this.server.to(userId).emit('demande:traitee', demande);
+  }
+
+  emitNotification(notification: { type: string; message: string; count?: number }, userId?: string) {
+    if (userId) {
+      this.server.to(userId).emit('notification', notification);
+    } else {
+      this.server.emit('notification', notification);
+    }
   }
 }

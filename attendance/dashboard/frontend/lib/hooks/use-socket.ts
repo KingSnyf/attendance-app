@@ -36,6 +36,13 @@ export function useSocket() {
       qc.invalidateQueries({ queryKey: ["notifications"] })
     })
 
+    socket.on("demande:traitee", () => {
+      qc.invalidateQueries({ queryKey: ["requests"] })
+      qc.invalidateQueries({ queryKey: ["pending-requests"] })
+      qc.invalidateQueries({ queryKey: ["notifications"] })
+      qc.invalidateQueries({ queryKey: ["dashboard"] })
+    })
+
     socket.on("disconnect", () => console.log("[WS] déconnecté"))
 
     socketRef.current = socket

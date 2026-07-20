@@ -7,8 +7,8 @@ import '../constants/app_colors.dart';
 import '../widgets/bottom_nav_bar.dart';
 import 'login_screen.dart';
 import 'home_screen.dart';
-import 'history_screen.dart';
 import 'requests_screen.dart';
+import 'settings_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   final Map<String, dynamic> user;
@@ -136,6 +136,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   void _showEditProfileDialog() {
     final nameCtrl = TextEditingController(text: _nameCtrl.text);
     final emailCtrl = TextEditingController(text: _emailCtrl.text);
+    final messenger = ScaffoldMessenger.of(context);
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -156,9 +157,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
             onPressed: _savingProfile ? null : () async {
               _nameCtrl.text = nameCtrl.text;
               _emailCtrl.text = emailCtrl.text;
-              final nav = Navigator.of(ctx);
               await _saveProfile();
-              if (mounted) nav.pop();
+              if (!mounted) return;
+              Navigator.pop(context);
+              messenger.showSnackBar(
+                SnackBar(content: Text(_status.isEmpty ? 'Profil mis à jour' : _status), backgroundColor: _status.startsWith('Erreur') ? AppColors.error : AppColors.success),
+              );
             },
             child: _savingProfile ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2)) : const Text('Enregistrer'),
           ),
@@ -168,6 +172,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   void _showPasswordDialog() {
+    final messenger = ScaffoldMessenger.of(context);
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -212,13 +217,104 @@ class _ProfileScreenState extends State<ProfileScreen> {
           TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Annuler')),
           ElevatedButton(
             onPressed: _changingPass ? null : () async {
-              final nav = Navigator.of(ctx);
               await _changePassword();
-              if (mounted) nav.pop();
+              if (!mounted) return;
+              Navigator.pop(context);
+              messenger.showSnackBar(
+                SnackBar(content: Text(_status.isEmpty ? 'Mot de passe changé' : _status), backgroundColor: _status.startsWith('Erreur') ? AppColors.error : AppColors.success),
+              );
             },
             child: _changingPass ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2)) : const Text('Changer'),
           ),
         ],
+      ),
+    );
+  }
+
+  void _showPinDialog() {
+    final currentPinCtrl = TextEditingController();
+    final newPinCtrl = TextEditingController();
+    final confirmPinCtrl = TextEditingController();
+    bool loading = false;
+    final messenger = ScaffoldMessenger.of(context);
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          title: const Text('Changer le code PIN'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: currentPinCtrl,
+                  obscureText: true,
+                  keyboardType: TextInputType.number,
+                  maxLength: 4,
+                  decoration: const InputDecoration(
+                    labelText: 'Code PIN actuel',
+                    prefixIcon: Icon(Icons.pin),
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: newPinCtrl,
+                  obscureText: true,
+                  keyboardType: TextInputType.number,
+                  maxLength: 4,
+                  decoration: const InputDecoration(
+                    labelText: 'Nouveau code PIN',
+                    prefixIcon: Icon(Icons.pin_outlined),
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: confirmPinCtrl,
+                  obscureText: true,
+                  keyboardType: TextInputType.number,
+                  maxLength: 4,
+                  decoration: const InputDecoration(
+                    labelText: 'Confirmer le nouveau',
+                    prefixIcon: Icon(Icons.pin_outlined),
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Annuler')),
+            ElevatedButton(
+              onPressed: loading
+                  ? null
+                  : () async {
+                      if (newPinCtrl.text != confirmPinCtrl.text) {
+                        messenger.showSnackBar(const SnackBar(content: Text('Les codes PIN ne correspondent pas'), backgroundColor: AppColors.error));
+                        return;
+                      }
+                      if (newPinCtrl.text.length != 4) {
+                        messenger.showSnackBar(const SnackBar(content: Text('Le code PIN doit contenir 4 chiffres'), backgroundColor: AppColors.error));
+                        return;
+                      }
+                      setDialogState(() => loading = true);
+                      try {
+                        await ApiService.changePin(currentPin: currentPinCtrl.text, newPin: newPinCtrl.text);
+                        if (!mounted) return;
+                        Navigator.pop(context);
+                        messenger.showSnackBar(const SnackBar(content: Text('Code PIN changé'), backgroundColor: AppColors.success));
+                      } catch (e) {
+                        if (!mounted) return;
+                        messenger.showSnackBar(SnackBar(content: Text('Erreur: $e'), backgroundColor: AppColors.error));
+                      } finally {
+                        if (mounted) setDialogState(() => loading = false);
+                      }
+                    },
+              child: loading ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2)) : const Text('Changer'),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -396,6 +492,28 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         onTap: _showPasswordDialog,
                       ),
                     ),
+                    const _ProfileDivider(),
+                    Container(
+                      decoration: BoxDecoration(
+                        color: AppColors.surfaceContainer,
+                        borderRadius: const BorderRadius.only(bottomLeft: Radius.circular(16), bottomRight: Radius.circular(16)),
+                      ),
+                      child: ListTile(
+                        leading: Container(
+                          width: 40,
+                          height: 40,
+                          decoration: BoxDecoration(
+                            color: AppColors.accent.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: const Icon(Icons.pin, color: AppColors.accent, size: 20),
+                        ),
+                        title: const Text('Code PIN', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.onSurface)),
+                        subtitle: const Text('Utilisé pour le pointage', style: TextStyle(fontSize: 12, color: AppColors.onSurfaceVariant)),
+                        trailing: const Icon(Icons.chevron_right, color: AppColors.outlineVariant),
+                        onTap: _showPinDialog,
+                      ),
+                    ),
                     const SizedBox(height: 24),
 
                     // Préférences
@@ -499,17 +617,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ],
         ),
       ),
-bottomNavigationBar: BottomNavBar(
-        currentIndex: 2,
+      bottomNavigationBar: BottomNavBar(
+        currentIndex: 1,
         onTap: (i) {
           if (i == 0) {
             Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => HomeScreen(user: widget.user)));
-          } else if (i == 1) {
-            Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => HistoryScreen(userId: widget.user['id'] ?? widget.user['sub'], user: widget.user)));
-          } else if (i == 3) {
+          } else if (i == 2) {
             Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => RequestsScreen(user: widget.user)));
-          } else if (i == 4) {
-            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Paramètres à venir')));
+          } else if (i == 3) {
+            Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => SettingsScreen(user: widget.user)));
           }
         },
       ),

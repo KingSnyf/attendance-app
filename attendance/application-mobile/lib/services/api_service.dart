@@ -176,7 +176,9 @@ final data = res.data;
     await init();
     try {
       final res = await _dio.get('/sessions/$userId');
-      return res.data['value'] ?? res.data;
+      if (res.data is List) return res.data as List<dynamic>;
+      if (res.data is Map && res.data['value'] is List) return res.data['value'] as List<dynamic>;
+      return [];
     } on DioException catch (e) {
       throw Exception(e.response?.data['message'] ?? 'Erreur sessions');
     }
@@ -187,7 +189,9 @@ final data = res.data;
     await init();
     try {
       final res = await _dio.get('/requests/mine');
-      return res.data['value'] ?? res.data;
+      if (res.data is List) return res.data as List<dynamic>;
+      if (res.data is Map && res.data['value'] is List) return res.data['value'] as List<dynamic>;
+      return [];
     } on DioException catch (e) {
       throw Exception(e.response?.data['message'] ?? 'Erreur demandes');
     }
@@ -247,6 +251,24 @@ final data = res.data;
       throw Exception(res.data['message'] ?? 'Erreur changement mot de passe');
     } on DioException catch (e) {
       throw Exception(e.response?.data['message'] ?? 'Erreur changement mot de passe');
+    }
+  }
+
+  // PIN
+  static Future<Map<String, dynamic>> changePin({
+    required String currentPin,
+    required String newPin,
+  }) async {
+    await init();
+    try {
+      final res = await _dio.patch('/auth/pin', data: {
+        'currentPin': currentPin,
+        'newPin': newPin,
+      });
+      if (res.statusCode == 200) return res.data;
+      throw Exception(res.data['message'] ?? 'Erreur changement PIN');
+    } on DioException catch (e) {
+      throw Exception(e.response?.data['message'] ?? 'Erreur changement PIN');
     }
   }
 

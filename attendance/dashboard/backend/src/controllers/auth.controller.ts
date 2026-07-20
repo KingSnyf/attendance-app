@@ -5,6 +5,7 @@ import { Roles } from '../auth/roles.decorator';
 import { CreateUserDto } from '../dto/create-user.dto';
 import { UpdateProfileDto } from '../dto/update-profile.dto';
 import { ChangePasswordDto } from '../dto/change-password.dto';
+import { ChangePinDto } from '../dto/change-pin.dto';
 import { ForgotPasswordDto } from '../dto/forgot-password.dto';
 import { LoginDto } from '../dto/login.dto';
 import { User } from '../auth/user.decorator';
@@ -87,6 +88,12 @@ export class AuthController {
   @Patch('password')
   async changePassword(@Body() body: ChangePasswordDto, @User() user: any) {
     return this.authService.changePassword(user.userId, body.currentPassword, body.newPassword);
+  }
+
+  @UseGuards(StrictRateLimiterGuard)
+  @Patch('pin')
+  async changePin(@Body() body: ChangePinDto, @User() user: any) {
+    return this.authService.changePin(user.userId, body.currentPin, body.newPin);
   }
 
   @Public()

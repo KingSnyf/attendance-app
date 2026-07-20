@@ -10,6 +10,7 @@ import 'login_screen.dart';
 import 'history_screen.dart';
 import 'profile_screen.dart';
 import 'requests_screen.dart';
+import 'settings_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   final Map<String, dynamic> user;
@@ -472,17 +473,15 @@ class _HomeScreenState extends State<HomeScreen> {
           ],
         ),
       ),
-bottomNavigationBar: BottomNavBar(
+      bottomNavigationBar: BottomNavBar(
         currentIndex: 0,
         onTap: (i) {
           if (i == 1) {
-            Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => HistoryScreen(userId: widget.user['id'] ?? widget.user['sub'], user: widget.user)));
-          } else if (i == 2) {
             Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => ProfileScreen(user: widget.user)));
-          } else if (i == 3) {
+          } else if (i == 2) {
             Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => RequestsScreen(user: widget.user)));
-          } else if (i == 4) {
-            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Paramètres à venir')));
+          } else if (i == 3) {
+            Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => SettingsScreen(user: widget.user)));
           }
         },
       ),

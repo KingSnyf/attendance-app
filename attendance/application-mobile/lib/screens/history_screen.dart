@@ -4,6 +4,7 @@ import '../constants/app_colors.dart';
 import '../widgets/bottom_nav_bar.dart';
 import 'home_screen.dart';
 import 'profile_screen.dart';
+import 'requests_screen.dart';
 
 class HistoryScreen extends StatefulWidget {
   final String userId;
@@ -158,7 +159,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                     ),
                   ],
                 ),
-      bottomNavigationBar: BottomNavBar(
+bottomNavigationBar: BottomNavBar(
         currentIndex: 1,
         onTap: (i) {
           if (i == 0) {
@@ -166,6 +167,8 @@ class _HistoryScreenState extends State<HistoryScreen> {
           } else if (i == 2) {
             Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => ProfileScreen(user: widget.user ?? {'email': '', 'id': widget.userId})));
           } else if (i == 3) {
+            Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => RequestsScreen(user: widget.user ?? {'email': '', 'id': widget.userId})));
+          } else if (i == 4) {
             ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Paramètres à venir')));
           }
         },

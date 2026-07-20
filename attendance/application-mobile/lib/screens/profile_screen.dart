@@ -8,6 +8,7 @@ import '../widgets/bottom_nav_bar.dart';
 import 'login_screen.dart';
 import 'home_screen.dart';
 import 'history_screen.dart';
+import 'requests_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   final Map<String, dynamic> user;
@@ -498,7 +499,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ],
         ),
       ),
-      bottomNavigationBar: BottomNavBar(
+bottomNavigationBar: BottomNavBar(
         currentIndex: 2,
         onTap: (i) {
           if (i == 0) {
@@ -506,6 +507,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
           } else if (i == 1) {
             Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => HistoryScreen(userId: widget.user['id'] ?? widget.user['sub'], user: widget.user)));
           } else if (i == 3) {
+            Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => RequestsScreen(user: widget.user)));
+          } else if (i == 4) {
             ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Paramètres à venir')));
           }
         },

@@ -9,22 +9,35 @@ class BottomNavBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BottomNavigationBar(
-      currentIndex: currentIndex,
-      onTap: onTap,
-      type: BottomNavigationBarType.fixed,
-      selectedItemColor: AppColors.primary,
-      unselectedItemColor: AppColors.onSurfaceVariant,
-      backgroundColor: Colors.white,
-      elevation: 8,
-      selectedFontSize: 12,
-      unselectedFontSize: 12,
-      items: const [
-        BottomNavigationBarItem(icon: Icon(Icons.home_outlined), activeIcon: Icon(Icons.home), label: 'Accueil'),
-        BottomNavigationBarItem(icon: Icon(Icons.history), label: 'Historique'),
-        BottomNavigationBarItem(icon: Icon(Icons.person_outline), activeIcon: Icon(Icons.person), label: 'Profil'),
-        BottomNavigationBarItem(icon: Icon(Icons.settings_outlined), activeIcon: Icon(Icons.settings), label: 'Paramètres'),
-      ],
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.surfaceContainer,
+        border: Border(top: BorderSide(color: AppColors.outlineVariant.withValues(alpha: 0.2))),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 8, offset: const Offset(0, -2)),
+        ],
+      ),
+      child: SafeArea(
+        top: false,
+        child: BottomNavigationBar(
+          currentIndex: currentIndex,
+          onTap: onTap,
+          type: BottomNavigationBarType.fixed,
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          selectedItemColor: AppColors.primary,
+          unselectedItemColor: AppColors.onSurfaceVariant,
+          selectedLabelStyle: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600),
+          unselectedLabelStyle: const TextStyle(fontSize: 11, fontWeight: FontWeight.w500),
+          items: const [
+            BottomNavigationBarItem(icon: Icon(Icons.home_outlined), activeIcon: Icon(Icons.home), label: 'Accueil'),
+            BottomNavigationBarItem(icon: Icon(Icons.history), label: 'Historique'),
+            BottomNavigationBarItem(icon: Icon(Icons.person_outline), activeIcon: Icon(Icons.person), label: 'Profil'),
+            BottomNavigationBarItem(icon: Icon(Icons.event_note_outlined), activeIcon: Icon(Icons.event_note), label: 'Demandes'),
+            BottomNavigationBarItem(icon: Icon(Icons.settings_outlined), activeIcon: Icon(Icons.settings), label: 'Paramètres'),
+          ],
+        ),
+      ),
     );
   }
 }

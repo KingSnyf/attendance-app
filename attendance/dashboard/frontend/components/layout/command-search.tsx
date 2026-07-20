@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
 import { Search, Users, AlertTriangle, FileText, Loader2, X, ArrowRight } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { authService } from "@/lib/auth-service"
 
 type SearchResult = {
   employes: Array<{ id: string; nom: string; prenom: string; email: string; role: string; departement: string; photo_url: string | null }>
@@ -48,7 +49,7 @@ function CommandSearch() {
       try {
         const res = await fetch(
           `${process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:3002/api"}/search?q=${encodeURIComponent(q)}`,
-          { headers: { Authorization: `Bearer ${localStorage.getItem("attendance_token")}` } },
+          { headers: { Authorization: `Bearer ${authService.getToken()}` } },
         )
         if (res.ok) setResults(await res.json())
       } catch {}

@@ -8,8 +8,23 @@ import { RolesGuard } from '../auth/roles.guard';
 import { PrismaService } from '../prisma.service';
 import { LogsService } from '../services/logs.service';
 import { User } from '../auth/user.decorator';
+import {
+  formatDateFr, formatTimeFr, formatDateTimeFr, formatDuree,
+  formatDateShort, todayStr, buildCsv,
+} from '../utils/export-formatter.util';
 
 const EXPORT_LIMIT = 10000;
+
+function calculDuree(arrivee: Date, depart: Date): number {
+  return Math.round((depart.getTime() - arrivee.getTime()) / 60000);
+}
+
+function calculHeuresSup(depart: Date): number {
+  const fin = new Date(depart);
+  const seuil = new Date(fin);
+  seuil.setHours(17, 0, 0, 0);
+  return fin > seuil ? Math.round((fin.getTime() - seuil.getTime()) / 60000) : 0;
+}
 
 @Controller('export')
 @UseGuards(AuthGuard('jwt'), RolesGuard)
@@ -28,56 +43,17 @@ export class ExportController {
     @Query('date_to') dateTo?: string,
     @Query('user_id') userId?: string,
   ) {
-    const where: any = {};
-    if (dateFrom || dateTo) {
-      where.date = {};
-      if (dateFrom) where.date.gte = new Date(dateFrom);
-      if (dateTo) where.date.lte = new Date(dateTo);
-    }
-    if (userId) where.userId = userId;
-
-    const sessions = await this.prisma.sessionPresence.findMany({
-      where,
-      orderBy: { date: 'desc' },
-      take: 10000,
-      include: {
-        user: { select: { firstName: true, lastName: true, email: true, departement: true } },
-      },
-    });
-
-    const headers = [
-      'Date',
-      'Employé',
-      'Email',
-      'Département',
-      'Arrivée',
-      'Départ',
-      'Durée (min)',
-      'Méthode',
-      'Retard (min)',
-      'Valide',
-      'Heures sup (min)',
-    ];
-
+    const sessions = await this.findSessions(dateFrom, dateTo, userId);
     const rows = sessions.map((s) => {
-      let duree = 0;
-      let heuresSup = 0;
-      if (s.heureDepart) {
-        duree = Math.round((s.heureDepart.getTime() - s.heureArrivee.getTime()) / 60000);
-        const fin = new Date(s.heureDepart);
-        const dixSept = new Date(fin);
-        dixSept.setHours(17, 0, 0, 0);
-        if (fin > dixSept) {
-          heuresSup = Math.round((fin.getTime() - dixSept.getTime()) / 60000);
-        }
-      }
+      const duree = s.heureDepart ? calculDuree(s.heureArrivee, s.heureDepart) : 0;
+      const heuresSup = s.heureDepart ? calculHeuresSup(s.heureDepart) : 0;
       return [
-        `${s.date.getFullYear()}-${String(s.date.getMonth() + 1).padStart(2, '0')}-${String(s.date.getDate()).padStart(2, '0')}`,
+        formatDateFr(s.date),
         `${s.user?.firstName || ''} ${s.user?.lastName || ''}`,
         s.user?.email || '',
         s.user?.departement || '',
-        s.heureArrivee.toISOString(),
-        s.heureDepart ? s.heureDepart.toISOString() : '',
+        formatTimeFr(s.heureArrivee),
+        s.heureDepart ? formatTimeFr(s.heureDepart) : '',
         duree,
         s.methodeValidation,
         s.retardMinutes ?? 0,
@@ -85,22 +61,11 @@ export class ExportController {
         heuresSup,
       ];
     });
+    const csv = buildCsv(['Date', 'Employé', 'Email', 'Département', 'Arrivée', 'Départ', 'Durée (min)', 'Méthode', 'Retard (min)', 'Valide', 'Heures sup (min)'], rows);
 
-    const csv = [
-      headers.join(','),
-      ...rows.map((r) => r.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(',')),
-    ].join('\n');
-
-    await this.logs.create({
-      auteurId: user.userId,
-      action: 'export_sessions_csv',
-      cibleId: user.userId,
-      details: `Export CSV sessions du ${dateFrom || 'début'} au ${dateTo || 'fin'}`,
-    });
-
+    await this.logs.create({ auteurId: user.userId, action: 'export_sessions_csv', cibleId: user.userId, details: `Export CSV sessions du ${dateFrom || 'début'} au ${dateTo || 'fin'}` });
     res.setHeader('Content-Type', 'text/csv; charset=utf-8');
-    const todayStr = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}-${String(new Date().getDate()).padStart(2, '0')}`;
-    res.setHeader('Content-Disposition', `attachment; filename="sessions_${todayStr}.csv"`);
+    res.setHeader('Content-Disposition', `attachment; filename="sessions_${todayStr()}.csv"`);
     res.send('\uFEFF' + csv);
   }
 
@@ -112,21 +77,9 @@ export class ExportController {
     @Query('type') type?: string,
     @Query('traitee') traitee?: string,
   ) {
-    const where: any = {};
-    if (type && type !== 'all') where.type = type;
-    if (traitee !== undefined) where.traitee = traitee === 'true';
-
-    const anomalies = await this.prisma.anomaly.findMany({
-      where,
-      orderBy: { dateDetection: 'desc' },
-      include: {
-        user: { select: { firstName: true, lastName: true, email: true } },
-      },
-    });
-
-    const headers = ['Date', 'Employé', 'Email', 'Type', 'Description', 'Traitée', 'Commentaire'];
+    const anomalies = await this.findAnomalies(type, traitee);
     const rows = anomalies.map((a) => [
-      a.dateDetection.toISOString(),
+      formatDateTimeFr(a.dateDetection),
       `${a.user?.firstName || ''} ${a.user?.lastName || ''}`,
       a.user?.email || '',
       a.type,
@@ -134,21 +87,11 @@ export class ExportController {
       a.traitee ? 'Oui' : 'Non',
       a.commentaire || '',
     ]);
+    const csv = buildCsv(['Date', 'Employé', 'Email', 'Type', 'Description', 'Traitée', 'Commentaire'], rows);
 
-    const csv = [
-      headers.join(','),
-      ...rows.map((r) => r.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(',')),
-    ].join('\n');
-
-    await this.logs.create({
-      auteurId: user.userId,
-      action: 'export_anomalies_csv',
-      cibleId: user.userId,
-    });
-
+    await this.logs.create({ auteurId: user.userId, action: 'export_anomalies_csv', cibleId: user.userId });
     res.setHeader('Content-Type', 'text/csv; charset=utf-8');
-    const todayStr = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}-${String(new Date().getDate()).padStart(2, '0')}`;
-    res.setHeader('Content-Disposition', `attachment; filename="anomalies_${todayStr}.csv"`);
+    res.setHeader('Content-Disposition', `attachment; filename="anomalies_${todayStr()}.csv"`);
     res.send('\uFEFF' + csv);
   }
 
@@ -160,36 +103,19 @@ export class ExportController {
     @Query('type') type?: string,
     @Query('traitee') traitee?: string,
   ) {
-    const where: any = {};
-    if (type && type !== 'all') where.type = type;
-    if (traitee !== undefined) where.traitee = traitee === 'true';
-
-    const anomalies = await this.prisma.anomaly.findMany({
-      where,
-      orderBy: { dateDetection: 'desc' },
-      take: EXPORT_LIMIT,
-      include: {
-        user: { select: { firstName: true, lastName: true, email: true } },
-      },
-    });
-
+    const anomalies = await this.findAnomalies(type, traitee);
     const wb = new ExcelJS.Workbook();
     wb.creator = 'Attendance';
     const ws = wb.addWorksheet('Anomalies');
-
     ws.columns = [
-      { header: 'Date', key: 'date', width: 22 },
-      { header: 'Employé', key: 'employe', width: 25 },
-      { header: 'Email', key: 'email', width: 30 },
-      { header: 'Type', key: 'type', width: 18 },
-      { header: 'Description', key: 'description', width: 50 },
-      { header: 'Traitée', key: 'traitee', width: 10 },
-      { header: 'Commentaire', key: 'commentaire', width: 50 },
+      { header: 'Date', key: 'date', width: 20 }, { header: 'Employé', key: 'employe', width: 25 },
+      { header: 'Email', key: 'email', width: 30 }, { header: 'Type', key: 'type', width: 16 },
+      { header: 'Description', key: 'description', width: 45 }, { header: 'Traitée', key: 'traitee', width: 10 },
+      { header: 'Commentaire', key: 'commentaire', width: 40 },
     ];
-
     for (const a of anomalies) {
       ws.addRow({
-        date: a.dateDetection.toISOString(),
+        date: formatDateTimeFr(a.dateDetection),
         employe: `${a.user?.firstName || ''} ${a.user?.lastName || ''}`,
         email: a.user?.email || '',
         type: a.type,
@@ -198,18 +124,11 @@ export class ExportController {
         commentaire: a.commentaire || '',
       });
     }
-
     ws.getRow(1).font = { bold: true };
 
-    await this.logs.create({
-      auteurId: user.userId,
-      action: 'export_anomalies_excel',
-      cibleId: user.userId,
-    });
-
+    await this.logs.create({ auteurId: user.userId, action: 'export_anomalies_excel', cibleId: user.userId });
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-    const todayStr = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}-${String(new Date().getDate()).padStart(2, '0')}`;
-    res.setHeader('Content-Disposition', `attachment; filename="anomalies_${todayStr}.xlsx"`);
+    res.setHeader('Content-Disposition', `attachment; filename="anomalies_${todayStr()}.xlsx"`);
     await wb.xlsx.write(res);
     res.end();
   }
@@ -222,69 +141,36 @@ export class ExportController {
     @Query('date_from') dateFrom?: string,
     @Query('date_to') dateTo?: string,
   ) {
-    const where: any = {};
-    if (dateFrom || dateTo) {
-      where.date = {};
-      if (dateFrom) where.date.gte = new Date(dateFrom);
-      if (dateTo) where.date.lte = new Date(dateTo);
-    }
-
-    const sessions = await this.prisma.sessionPresence.findMany({
-      where,
-      orderBy: { date: 'desc' },
-      take: EXPORT_LIMIT,
-      include: {
-        user: { select: { firstName: true, lastName: true, email: true, departement: true } },
-      },
-    });
-
+    const sessions = await this.findSessions(dateFrom, dateTo);
     const wb = new ExcelJS.Workbook();
     wb.creator = 'Attendance';
     const ws = wb.addWorksheet('Sessions');
-
     ws.columns = [
-      { header: 'Date', key: 'date', width: 14 },
-      { header: 'Employé', key: 'employe', width: 25 },
-      { header: 'Email', key: 'email', width: 30 },
-      { header: 'Département', key: 'departement', width: 20 },
-      { header: 'Arrivée', key: 'arrivee', width: 22 },
-      { header: 'Départ', key: 'depart', width: 22 },
-      { header: 'Durée (min)', key: 'duree', width: 12 },
-      { header: 'Méthode', key: 'methode', width: 15 },
-      { header: 'Retard (min)', key: 'retard', width: 12 },
-      { header: 'Valide', key: 'valide', width: 8 },
+      { header: 'Date', key: 'date', width: 14 }, { header: 'Employé', key: 'employe', width: 25 },
+      { header: 'Email', key: 'email', width: 30 }, { header: 'Département', key: 'departement', width: 18 },
+      { header: 'Arrivée', key: 'arrivee', width: 10 }, { header: 'Départ', key: 'depart', width: 10 },
+      { header: 'Durée', key: 'duree', width: 10 }, { header: 'Méthode', key: 'methode', width: 14 },
+      { header: 'Retard', key: 'retard', width: 10 }, { header: 'Valide', key: 'valide', width: 8 },
     ];
-
     for (const s of sessions) {
-      let duree = '';
-      if (s.heureDepart) {
-        duree = String(Math.round((s.heureDepart.getTime() - s.heureArrivee.getTime()) / 60000));
-      }
       ws.addRow({
-        date: `${s.date.getFullYear()}-${String(s.date.getMonth() + 1).padStart(2, '0')}-${String(s.date.getDate()).padStart(2, '0')}`,
+        date: formatDateFr(s.date),
         employe: `${s.user?.firstName || ''} ${s.user?.lastName || ''}`,
         email: s.user?.email || '',
         departement: s.user?.departement || '',
-        arrivee: s.heureArrivee.toISOString(),
-        depart: s.heureDepart ? s.heureDepart.toISOString() : '',
-        duree,
+        arrivee: formatTimeFr(s.heureArrivee),
+        depart: s.heureDepart ? formatTimeFr(s.heureDepart) : '',
+        duree: s.heureDepart ? formatDuree(calculDuree(s.heureArrivee, s.heureDepart)) : '',
         methode: s.methodeValidation,
-        retard: s.retardMinutes ?? 0,
+        retard: `${s.retardMinutes ?? 0} min`,
         valide: s.valide ? 'Oui' : 'Non',
       });
     }
-
     ws.getRow(1).font = { bold: true };
 
-    await this.logs.create({
-      auteurId: user.userId,
-      action: 'export_sessions_excel',
-      cibleId: user.userId,
-    });
-
+    await this.logs.create({ auteurId: user.userId, action: 'export_sessions_excel', cibleId: user.userId });
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-    const todayStr = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}-${String(new Date().getDate()).padStart(2, '0')}`;
-    res.setHeader('Content-Disposition', `attachment; filename="sessions_${todayStr}.xlsx"`);
+    res.setHeader('Content-Disposition', `attachment; filename="sessions_${todayStr()}.xlsx"`);
     await wb.xlsx.write(res);
     res.end();
   }
@@ -297,66 +183,14 @@ export class ExportController {
     @Query('date_from') dateFrom?: string,
     @Query('date_to') dateTo?: string,
   ) {
-    const where: any = {};
-    if (dateFrom || dateTo) {
-      where.date = {};
-      if (dateFrom) where.date.gte = new Date(dateFrom);
-      if (dateTo) where.date.lte = new Date(dateTo);
-    }
-
-    const sessions = await this.prisma.sessionPresence.findMany({
-      where,
-      orderBy: { date: 'desc' },
-      take: EXPORT_LIMIT,
-      include: {
-        user: { select: { firstName: true, lastName: true, email: true } },
-      },
-    });
-
+    const sessions = await this.findSessions(dateFrom, dateTo);
     const doc = new PDFDocument({ margin: 30, size: 'A4', layout: 'landscape' });
-    const todayStr = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}-${String(new Date().getDate()).padStart(2, '0')}`;
     res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', `attachment; filename="sessions_${todayStr}.pdf"`);
+    res.setHeader('Content-Disposition', `attachment; filename="sessions_${todayStr()}.pdf"`);
     doc.pipe(res);
+    this.drawPdfSessions(doc, sessions);
 
-    doc.fontSize(16).text('Rapport des sessions', { align: 'center' });
-    doc.fontSize(10).text(`Généré le ${todayStr}`, { align: 'center' });
-    doc.moveDown(1.5);
-
-    const headers = ['Date', 'Employé', 'Email', 'Arrivée', 'Départ', 'Retard', 'Valide'];
-    const colWidths = [90, 130, 190, 130, 130, 60, 60];
-    const startX = 30;
-    let y = doc.y;
-
-    doc.fontSize(8).font('Helvetica-Bold');
-    let x = startX;
-    headers.forEach((h, i) => { doc.text(h, x, y, { width: colWidths[i] }); x += colWidths[i]; });
-    doc.moveDown(0.5);
-    doc.font('Helvetica');
-
-    for (const s of sessions) {
-      x = startX;
-      y = doc.y;
-      if (y > 550) { doc.addPage(); y = 30; }
-      const dateStr = `${s.date.getFullYear()}-${String(s.date.getMonth() + 1).padStart(2, '0')}-${String(s.date.getDate()).padStart(2, '0')}`;
-      const employe = `${s.user?.firstName || ''} ${s.user?.lastName || ''}`;
-      const arrivee = s.heureArrivee.toISOString();
-      const depart = s.heureDepart ? s.heureDepart.toISOString() : '';
-      doc.fontSize(7).text(dateStr, x, y, { width: colWidths[0] }); x += colWidths[0];
-      doc.text(employe, x, y, { width: colWidths[1] }); x += colWidths[1];
-      doc.text(s.user?.email || '', x, y, { width: colWidths[2] }); x += colWidths[2];
-      doc.text(arrivee, x, y, { width: colWidths[3] }); x += colWidths[3];
-      doc.text(depart, x, y, { width: colWidths[4] }); x += colWidths[4];
-      doc.text(String(s.retardMinutes ?? 0), x, y, { width: colWidths[5] }); x += colWidths[5];
-      doc.text(s.valide ? 'Oui' : 'Non', x, y, { width: colWidths[6] });
-    }
-
-    await this.logs.create({
-      auteurId: user.userId,
-      action: 'export_sessions_pdf',
-      cibleId: user.userId,
-    });
-
+    await this.logs.create({ auteurId: user.userId, action: 'export_sessions_pdf', cibleId: user.userId });
     doc.end();
   }
 
@@ -368,59 +202,89 @@ export class ExportController {
     @Query('type') type?: string,
     @Query('traitee') traitee?: string,
   ) {
+    const anomalies = await this.findAnomalies(type, traitee);
+    const doc = new PDFDocument({ margin: 30, size: 'A4', layout: 'landscape' });
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="anomalies_${todayStr()}.pdf"`);
+    doc.pipe(res);
+    this.drawPdfAnomalies(doc, anomalies);
+
+    await this.logs.create({ auteurId: user.userId, action: 'export_anomalies_pdf', cibleId: user.userId });
+    doc.end();
+  }
+
+  private async findSessions(dateFrom?: string, dateTo?: string, userId?: string) {
+    const where: any = {};
+    if (dateFrom || dateTo) { where.date = {}; if (dateFrom) where.date.gte = new Date(dateFrom); if (dateTo) where.date.lte = new Date(dateTo); }
+    if (userId) where.userId = userId;
+    return this.prisma.sessionPresence.findMany({
+      where,
+      orderBy: { date: 'desc' },
+      take: EXPORT_LIMIT,
+      include: { user: { select: { firstName: true, lastName: true, email: true, departement: true } } },
+    });
+  }
+
+  private async findAnomalies(type?: string, traitee?: string) {
     const where: any = {};
     if (type && type !== 'all') where.type = type;
     if (traitee !== undefined) where.traitee = traitee === 'true';
-
-    const anomalies = await this.prisma.anomaly.findMany({
+    return this.prisma.anomaly.findMany({
       where,
       orderBy: { dateDetection: 'desc' },
       take: EXPORT_LIMIT,
-      include: {
-        user: { select: { firstName: true, lastName: true, email: true } },
-      },
+      include: { user: { select: { firstName: true, lastName: true, email: true } } },
     });
+  }
 
-    const doc = new PDFDocument({ margin: 30, size: 'A4', layout: 'landscape' });
-    const todayStr = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}-${String(new Date().getDate()).padStart(2, '0')}`;
-    res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', `attachment; filename="anomalies_${todayStr}.pdf"`);
-    doc.pipe(res);
-
-    doc.fontSize(16).text('Rapport des anomalies', { align: 'center' });
-    doc.fontSize(10).text(`Généré le ${todayStr}`, { align: 'center' });
+  private drawPdfSessions(doc: PDFKit.PDFDocument, sessions: any[]) {
+    doc.fontSize(16).text('Rapport des sessions', { align: 'center' });
+    doc.fontSize(10).text(`Généré le ${formatDateFr(new Date())}`, { align: 'center' });
     doc.moveDown(1.5);
+    const headers = ['Date', 'Employé', 'Arrivée', 'Départ', 'Durée', 'Retard', 'Valide'];
+    const colWidths = [90, 170, 90, 90, 70, 60, 50];
+    this.drawPdfTable(doc, headers, colWidths, sessions.map((s) => [
+      formatDateFr(s.date),
+      `${s.user?.firstName || ''} ${s.user?.lastName || ''}`,
+      formatTimeFr(s.heureArrivee),
+      s.heureDepart ? formatTimeFr(s.heureDepart) : '-',
+      s.heureDepart ? formatDuree(calculDuree(s.heureArrivee, s.heureDepart)) : '-',
+      `${s.retardMinutes ?? 0} min`,
+      s.valide ? 'Oui' : 'Non',
+    ]));
+  }
 
-    const headers = ['Date', 'Employé', 'Email', 'Type', 'Description', 'Traitée'];
-    const colWidths = [100, 120, 170, 80, 200, 60];
+  private drawPdfAnomalies(doc: PDFKit.PDFDocument, anomalies: any[]) {
+    doc.fontSize(16).text('Rapport des anomalies', { align: 'center' });
+    doc.fontSize(10).text(`Généré le ${formatDateFr(new Date())}`, { align: 'center' });
+    doc.moveDown(1.5);
+    const headers = ['Date', 'Employé', 'Type', 'Description', 'Traitée'];
+    const colWidths = [120, 150, 80, 320, 50];
+    this.drawPdfTable(doc, headers, colWidths, anomalies.map((a) => [
+      formatDateTimeFr(a.dateDetection),
+      `${a.user?.firstName || ''} ${a.user?.lastName || ''}`,
+      a.type,
+      a.description || '',
+      a.traitee ? 'Oui' : 'Non',
+    ]));
+  }
+
+  private drawPdfTable(doc: PDFKit.PDFDocument, headers: string[], colWidths: number[], rows: string[][]) {
     const startX = 30;
     let y = doc.y;
 
-    doc.fontSize(8).font('Helvetica-Bold');
+    doc.font('Helvetica-Bold').fontSize(8);
     let x = startX;
     headers.forEach((h, i) => { doc.text(h, x, y, { width: colWidths[i] }); x += colWidths[i]; });
     doc.moveDown(0.5);
     doc.font('Helvetica');
 
-    for (const a of anomalies) {
+    for (const row of rows) {
       x = startX;
       y = doc.y;
       if (y > 550) { doc.addPage(); y = 30; }
-      doc.fontSize(7)
-        .text(a.dateDetection.toISOString(), x, y, { width: colWidths[0] }); x += colWidths[0];
-      doc.text(`${a.user?.firstName || ''} ${a.user?.lastName || ''}`, x, y, { width: colWidths[1] }); x += colWidths[1];
-      doc.text(a.user?.email || '', x, y, { width: colWidths[2] }); x += colWidths[2];
-      doc.text(a.type, x, y, { width: colWidths[3] }); x += colWidths[3];
-      doc.text(a.description || '', x, y, { width: colWidths[4] }); x += colWidths[4];
-      doc.text(a.traitee ? 'Oui' : 'Non', x, y, { width: colWidths[5] });
+      doc.fontSize(7);
+      row.forEach((cell, i) => { doc.text(cell, x, y, { width: colWidths[i] }); x += colWidths[i]; });
     }
-
-    await this.logs.create({
-      auteurId: user.userId,
-      action: 'export_anomalies_pdf',
-      cibleId: user.userId,
-    });
-
-    doc.end();
   }
 }

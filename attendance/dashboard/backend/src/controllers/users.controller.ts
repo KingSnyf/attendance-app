@@ -25,9 +25,11 @@ export class UsersController {
     @Query('departement') departement?: string,
     @Query('role') role?: string,
     @Query('actif') actif?: string,
+    @Query('skip') skip?: string,
+    @Query('take') take?: string,
   ) {
     const actifBool = actif === 'true' ? true : actif === 'false' ? false : undefined;
-    return this.users.list(departement, role, actifBool);
+    return this.users.list(departement, role, actifBool, Number(skip) || 0, Number(take) || 1000);
   }
 
   @Get(':id')

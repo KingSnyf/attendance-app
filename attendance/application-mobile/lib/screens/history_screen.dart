@@ -164,7 +164,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
           if (i == 0) {
             Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => HomeScreen(user: widget.user ?? {'email': '', 'id': widget.userId})));
           } else if (i == 2) {
-            Navigator.push(context, MaterialPageRoute(builder: (_) => ProfileScreen(user: widget.user ?? {'email': '', 'id': widget.userId})));
+            Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => ProfileScreen(user: widget.user ?? {'email': '', 'id': widget.userId})));
           } else if (i == 3) {
             ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Paramètres à venir')));
           }

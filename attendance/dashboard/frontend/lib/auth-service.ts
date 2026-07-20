@@ -1,33 +1,25 @@
-const TOKEN_KEY = "attendance_token"
-const USER_KEY = "attendance_user"
+let _token: string | null = null
+let _user: { id: string; email: string; role: string; prenom: string; nom: string } | null = null
 
 function getToken(): string | null {
-  if (typeof window === "undefined") return null
-  return localStorage.getItem(TOKEN_KEY)
+  return _token
 }
 
-function setToken(token: string) {
-  localStorage.setItem(TOKEN_KEY, token)
+function setToken(token: string | null) {
+  _token = token
 }
 
-function getUser(): { id: string; email: string; role: string; prenom: string; nom: string } | null {
-  if (typeof window === "undefined") return null
-  const raw = localStorage.getItem(USER_KEY)
-  if (!raw) return null
-  try {
-    return JSON.parse(raw)
-  } catch {
-    return null
-  }
+function getUser() {
+  return _user
 }
 
-function setUser(user: { id: string; email: string; role: string; prenom: string; nom: string }) {
-  localStorage.setItem(USER_KEY, JSON.stringify(user))
+function setUser(user: { id: string; email: string; role: string; prenom: string; nom: string } | null) {
+  _user = user
 }
 
 function logout() {
-  localStorage.removeItem(TOKEN_KEY)
-  localStorage.removeItem(USER_KEY)
+  _token = null
+  _user = null
 }
 
 export const authService = { getToken, setToken, getUser, setUser, logout }

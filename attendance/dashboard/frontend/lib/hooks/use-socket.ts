@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react"
 import { io, type Socket } from "socket.io-client"
 import { useQueryClient } from "@tanstack/react-query"
+import { authService } from "@/lib/auth-service"
 
 const SOCKET_URL = process.env.NEXT_PUBLIC_BACKEND_URL
   ? process.env.NEXT_PUBLIC_BACKEND_URL.replace("/api", "")
@@ -13,10 +14,12 @@ export function useSocket() {
   const socketRef = useRef<Socket | null>(null)
 
   useEffect(() => {
+    const token = authService.getToken()
     const socket = io(`${SOCKET_URL}/events`, {
       transports: ["websocket", "polling"],
       reconnectionAttempts: 5,
       reconnectionDelay: 3000,
+      auth: { token },
     })
 
     socket.on("connect", () => console.log("[WS] connecté"))

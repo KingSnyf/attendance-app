@@ -27,8 +27,8 @@ export class StrictRateLimiterGuard implements CanActivate, OnModuleDestroy {
 
   canActivate(context: ExecutionContext): boolean {
     const request = context.switchToHttp().getRequest();
-    const ip = request.ip || request.connection?.remoteAddress || 'unknown';
-    const key = `${ip}:verify-pin`;
+    const ip = request.headers['x-forwarded-for']?.split(',')[0]?.trim() || request.ip || request.connection?.remoteAddress || 'unknown';
+    const key = `${ip}:${request.route?.path || request.url}`;
 
     const now = Date.now();
     const entry = this.store.get(key);

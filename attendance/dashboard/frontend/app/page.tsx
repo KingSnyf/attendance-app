@@ -12,10 +12,20 @@ export default function Page() {
 
   useEffect(() => {
     const check = async () => {
-      const token = authService.getToken();
+      let token = authService.getToken();
       if (!token) {
-        setState("auth");
-        return;
+        try {
+          const refreshRes = await fetch(
+            `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3002/api"}/auth/refresh`,
+            { method: "POST", credentials: "include", signal: AbortSignal.timeout(3000) }
+          );
+          if (refreshRes.ok) {
+            const data = await refreshRes.json();
+            authService.setToken(data.access_token);
+            token = data.access_token;
+          }
+        } catch { /* pas de refresh */ }
+        if (!token) { setState("auth"); return; }
       }
 
       try {
@@ -25,6 +35,7 @@ export default function Page() {
         );
         if (res.ok) {
           const user = await res.json();
+          authService.setUser(user);
           if (ROLES_AUTHORISES.includes(user.role)) {
             setState("dashboard");
           } else {

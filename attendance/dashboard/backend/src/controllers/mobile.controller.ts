@@ -59,9 +59,7 @@ export class MobileController {
   @Post('verify-pin')
   async verifyPin(@Body() body: { email: string; codePin: string }) {
     const user = await this.prisma.user.findUnique({ where: { email: body.email } });
-    if (!user) throw new BadRequestException('Utilisateur introuvable');
-    if (!user.actif) throw new BadRequestException('Compte désactivé');
-    if (!user.codePinHash) throw new BadRequestException('Aucun code PIN configuré');
+    if (!user || !user.actif || !user.codePinHash) throw new BadRequestException('Identifiants incorrects');
 
     const bcrypt = await import('bcryptjs');
     const pinOk = await bcrypt.compare(body.codePin, user.codePinHash);

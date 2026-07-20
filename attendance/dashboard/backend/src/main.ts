@@ -1,10 +1,13 @@
 import 'reflect-metadata';
 import { NestFactory } from '@nestjs/core';
-import { ValidationPipe } from '@nestjs/common';
+import { ValidationPipe, UnauthorizedException } from '@nestjs/common';
 import * as express from 'express';
+import helmet from 'helmet';
+import cookieParser from 'cookie-parser';
+import * as jwt from 'jsonwebtoken';
 import { join } from 'path';
 import { AppModule } from './app.module';
-import { JwtModule } from '@nestjs/jwt';
+import { GlobalExceptionFilter } from './common/http-exception.filter';
 
 function validateEnv() {
   const required = ['JWT_SECRET', 'DATABASE_URL'];
@@ -26,12 +29,21 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
   app.setGlobalPrefix('api');
+  app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' }, contentSecurityPolicy: false }));
+  app.use(cookieParser());
   const allowedOrigins = process.env.CORS_ORIGINS?.split(',') || ['http://localhost:3000'];
   app.enableCors({ origin: allowedOrigins, credentials: true });
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
+  app.useGlobalFilters(new GlobalExceptionFilter());
 
   const uploadPath = join(process.cwd(), 'uploads');
-  app.use('/uploads', express.static(uploadPath));
+  app.use('/uploads', (req: express.Request, _res: express.Response, next: express.NextFunction) => {
+    const authHeader = req.headers.authorization;
+    const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : req.cookies?.access_token;
+    if (!token) throw new UnauthorizedException('Authentification requise');
+    try { jwt.verify(token, process.env.JWT_SECRET || ''); next(); }
+    catch { throw new UnauthorizedException('Token invalide'); }
+  }, express.static(uploadPath));
 
   const port = process.env.PORT ? parseInt(process.env.PORT, 10) : 3002;
   await app.listen(port, '0.0.0.0');

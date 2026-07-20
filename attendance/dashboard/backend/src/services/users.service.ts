@@ -11,22 +11,27 @@ export class UsersService {
     private readonly emailService: EmailService,
   ) {}
 
-  async list(departement?: string, role?: string, actif?: boolean) {
+  async list(departement?: string, role?: string, actif?: boolean, skip = 0, take = 1000) {
     const where: any = {};
     if (departement) where.departement = departement;
     if (role) where.role = role;
     if (actif !== undefined) where.actif = actif;
 
-    const users = await this.prisma.user.findMany({
-      where,
-      orderBy: { dateCreation: 'desc' },
-      include: {
-        devices: { where: { actif: true }, take: 1 },
-        sessions: { orderBy: { date: 'desc' }, take: 1 },
-      },
-    });
+    const [users, total] = await Promise.all([
+      this.prisma.user.findMany({
+        where,
+        orderBy: { dateCreation: 'desc' },
+        skip,
+        take: Math.min(take, 1000),
+        include: {
+          devices: { where: { actif: true }, take: 1 },
+          sessions: { orderBy: { date: 'desc' }, take: 1 },
+        },
+      }),
+      this.prisma.user.count({ where }),
+    ]);
 
-    return users.map((u) => this.formatUser(u));
+    return { data: users.map((u) => this.formatUser(u)), total };
   }
 
   async getById(id: string) {

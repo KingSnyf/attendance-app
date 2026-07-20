@@ -1,27 +1,38 @@
 import type { Anomalie, DashboardData, DemandeModification, EmployeDetail, ParametresSysteme, Utilisateur } from "@/lib/types"
+import { authService } from "./auth-service"
 
 export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3002/api"
 
 export const ROLES_AUTHORISES = ["admin", "gestionnaire"]
 
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
-  const token = typeof window !== "undefined" ? localStorage.getItem("attendance_token") : null
+  const token = authService.getToken()
   const controller = new AbortController()
   const timer = setTimeout(() => controller.abort(), 8000)
   try {
     const res = await fetch(`${API_BASE_URL}${path}`, {
       ...options,
       signal: controller.signal,
+      credentials: "include",
       headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}), ...options?.headers },
     })
     if (res.status === 401 && typeof window !== "undefined") {
       const isAuthRoute = path.startsWith("/auth/")
       if (!isAuthRoute) {
-        localStorage.removeItem("attendance_token")
-        localStorage.removeItem("attendance_user")
+        authService.logout()
+        try {
+          const refreshRes = await fetch(`${API_BASE_URL}/auth/refresh`, {
+            method: "POST", credentials: "include",
+          })
+          if (refreshRes.ok) {
+            const data = await refreshRes.json()
+            authService.setToken(data.access_token)
+            return request<T>(path, options)
+          }
+        } catch { /* refresh failed */ }
         window.location.replace("/auth")
       }
-      throw new Error(res.status === 401 && isAuthRoute ? "Identifiants invalides" : "Session expirée")
+      throw new Error(isAuthRoute ? "Identifiants invalides" : "Session expirée")
     }
     if (!res.ok) throw new Error(`API error: ${res.status} ${res.statusText}`)
     return res.json()
@@ -38,10 +49,17 @@ export const api = {
 
   getUser: () => request<any>("/auth/me"),
 
-  login: (email: string, password: string) =>
-    request<{ access_token: string; user: any }>("/auth/login", { method: "POST", body: JSON.stringify({ email, password }) }),
+  login: async (email: string, password: string) => {
+    const data = await request<{ access_token: string; user: any }>("/auth/login", { method: "POST", body: JSON.stringify({ email, password }) })
+    authService.setToken(data.access_token)
+    authService.setUser(data.user)
+    return data
+  },
 
-  getEmployees: () => request<Utilisateur[]>("/auth/users"),
+  getEmployees: async () => {
+    const res = await request<{ data: Utilisateur[]; total: number }>("/auth/users?take=1000")
+    return res.data
+  },
 
   createEmployee: (data: { nom: string; prenom: string; email: string; departement: string; telephone?: string }) =>
     request("/auth/register", { method: "POST", body: JSON.stringify({ ...data, role: "employe" }) }),
@@ -118,9 +136,10 @@ export const api = {
   uploadFile: async (file: File) => {
     const form = new FormData();
     form.append("file", file);
-    const token = typeof window !== "undefined" ? localStorage.getItem("attendance_token") : null;
+    const token = authService.getToken();
     const res = await fetch(`${API_BASE_URL}/upload`, {
       method: "POST",
+      credentials: "include",
       headers: token ? { Authorization: `Bearer ${token}` } : {},
       body: form,
     });

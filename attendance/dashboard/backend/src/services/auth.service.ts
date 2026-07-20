@@ -7,7 +7,11 @@ import { genererMotDePasseTemporaire } from '../utils/password.util';
 
 @Injectable()
 export class AuthService {
-  constructor(private readonly prisma: PrismaService, private readonly jwtService: JwtService, private readonly emailService: EmailService) {}
+  private readonly refreshSecret: string;
+
+  constructor(private readonly prisma: PrismaService, private readonly jwtService: JwtService, private readonly emailService: EmailService) {
+    this.refreshSecret = process.env.JWT_REFRESH_SECRET || process.env.JWT_SECRET || 'fallback-secret';
+  }
 
   async validateUser(email: string, password: string) {
     const user = await this.prisma.user.findUnique({ where: { email } });
@@ -24,8 +28,14 @@ export class AuthService {
   async login(email: string, password: string) {
     const user = await this.validateUser(email, password);
     const payload = { sub: user.id, email: user.email, role: user.role };
+    const accessToken = this.jwtService.sign(payload);
+    const refreshToken = this.jwtService.sign(payload, {
+      secret: this.refreshSecret,
+      expiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '7d',
+    });
     return {
-      access_token: this.jwtService.sign(payload),
+      access_token: accessToken,
+      refresh_token: refreshToken,
       user: {
         id: user.id,
         email: user.email,
@@ -35,6 +45,18 @@ export class AuthService {
         photo_url: user.photoUrl || null,
       },
     };
+  }
+
+  async refreshToken(token: string) {
+    try {
+      const payload = this.jwtService.verify(token, { secret: this.refreshSecret });
+      const user = await this.prisma.user.findUnique({ where: { id: payload.sub } });
+      if (!user || !user.actif) throw new UnauthorizedException();
+      const newPayload = { sub: user.id, email: user.email, role: user.role };
+      return { access_token: this.jwtService.sign(newPayload) };
+    } catch {
+      throw new UnauthorizedException('Refresh token invalide ou expiré');
+    }
   }
 
   async register(payload: { email: string; password?: string; firstName?: string; lastName?: string; prenom?: string; nom?: string; role?: string; telephone?: string }) {
@@ -106,34 +128,39 @@ export class AuthService {
     };
   }
 
-  async list() {
-    const users = await this.prisma.user.findMany({
-      orderBy: { dateCreation: 'desc' },
-      include: {
-        devices: { where: { actif: true }, take: 1 },
-        sessions: { orderBy: { date: 'desc' }, take: 1 },
-      },
-    });
-    return users.map((u) => ({
-      id: u.id,
-      nom: u.lastName || '',
-      prenom: u.firstName || '',
-      email: u.email,
-      role: u.role,
-      statut_actuel: u.statutActuel || 'absent',
-      departement: u.departement || '',
-      actif: u.actif,
-      photo_url: u.photoUrl || null,
-      date_creation: u.dateCreation.toISOString(),
-      appareil: u.devices?.[0]
-        ? {
-            id: u.devices[0].id,
-            identifiant_appareil: u.devices[0].identifiantAppareil,
-            modele: u.devices[0].modele,
-            actif: u.devices[0].actif,
-          }
-        : null,
-    }));
+  async list(skip = 0, take = 1000) {
+    const where: any = {};
+    const [users, total] = await Promise.all([
+      this.prisma.user.findMany({
+        where,
+        orderBy: { dateCreation: 'desc' },
+        skip,
+        take: Math.min(take, 1000),
+        include: {
+          devices: { where: { actif: true }, take: 1 },
+          sessions: { orderBy: { date: 'desc' }, take: 1 },
+        },
+      }),
+      this.prisma.user.count({ where }),
+    ]);
+    return {
+      data: users.map((u) => ({
+        id: u.id,
+        email: u.email,
+        prenom: u.firstName || '',
+        nom: u.lastName || '',
+        role: u.role,
+        statut_actuel: u.statutActuel || 'absent',
+        departement: u.departement || '',
+        actif: u.actif,
+        photo_url: u.photoUrl || null,
+        telephone: u.telephone || '',
+        appareil: u.devices?.[0]
+          ? { id: u.devices[0].id, identifiant_appareil: u.devices[0].identifiantAppareil, modele: u.devices[0].modele, actif: u.devices[0].actif }
+          : null,
+      })),
+      total,
+    };
   }
 
   async updateProfile(id: string, data: { firstName?: string; lastName?: string; photoUrl?: string; email?: string }) {

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:device_info_plus/device_info_plus.dart';
 import '../services/api_service.dart';
 import '../services/auth_service.dart';
+import '../services/biometric_service.dart';
 import '../constants/app_colors.dart';
 import 'home_screen.dart';
 
@@ -17,6 +18,26 @@ class _LoginScreenState extends State<LoginScreen> {
   final _emailCtrl = TextEditingController();
   final _passwordCtrl = TextEditingController();
   bool _loading = false;
+  bool _bioAvailable = false;
+  String _bioLabel = 'Touch ID / Face ID';
+
+  @override
+  void initState() {
+    super.initState();
+    _checkBio();
+  }
+
+  Future<void> _checkBio() async {
+    final canBio = await BiometricService.canAuthenticate();
+    if (!mounted) return;
+    if (canBio) {
+      final types = await BiometricService.getAvailableBiometrics();
+      setState(() {
+        _bioAvailable = true;
+        _bioLabel = BiometricService.getBiometricLabel(types);
+      });
+    }
+  }
 
   Future<void> _login() async {
     if (_emailCtrl.text.trim().isEmpty) {
@@ -73,6 +94,34 @@ class _LoginScreenState extends State<LoginScreen> {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$e')));
     } finally {
       if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  Future<void> _bioLogin() async {
+    final token = await AuthService.getToken();
+    if (token == null) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Connectez-vous d\'abord avec votre email et mot de passe pour activer la biométrie')),
+      );
+      return;
+    }
+    final ok = await BiometricService.authenticate(reason: 'Connexion à AttendX');
+    if (!ok) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Authentification annulée')),
+      );
+      return;
+    }
+    final user = await AuthService.getUser();
+    if (!mounted) return;
+    if (user != null) {
+      Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => HomeScreen(user: user)));
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Aucun profil utilisateur trouvé. Connectez-vous avec email/mot de passe.')),
+      );
     }
   }
 
@@ -171,19 +220,17 @@ class _LoginScreenState extends State<LoginScreen> {
                         : const Text('Se connecter', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
                   ),
                 ),
-                const SizedBox(height: 24),
-                TextButton.icon(
-                  onPressed: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Fonctionnalité à venir')),
-                    );
-                  },
-                  icon: const Icon(Icons.face, color: AppColors.accent),
-                  label: const Text(
-                    'Utiliser Touch ID / Face ID',
-                    style: TextStyle(color: AppColors.accent, fontSize: 14),
+                if (_bioAvailable) ...[
+                  const SizedBox(height: 24),
+                  TextButton.icon(
+                    onPressed: _bioLogin,
+                    icon: const Icon(Icons.face, color: AppColors.accent),
+                    label: Text(
+                      'Utiliser $_bioLabel',
+                      style: const TextStyle(color: AppColors.accent, fontSize: 14),
+                    ),
                   ),
-                ),
+                ],
                 const SizedBox(height: 40),
               ],
             ),

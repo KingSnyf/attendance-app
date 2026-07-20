@@ -33,7 +33,24 @@ function AuthProvider({ children }: { children: ReactNode }) {
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    if (authService.getToken()) refreshUser()
+    if (authService.getToken()) {
+      refreshUser()
+    } else {
+      tryRefreshToken()
+    }
+  }, [])
+
+  const tryRefreshToken = useCallback(async () => {
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:3002/api"}/auth/refresh`, {
+        method: "POST", credentials: "include",
+      })
+      if (res.ok) {
+        const data = await res.json()
+        authService.setToken(data.access_token)
+        refreshUser()
+      }
+    } catch { /* pas de refresh token valide */ }
   }, [])
 
   const login = useCallback(async ({ email, password }: LoginParams) => {
@@ -74,7 +91,12 @@ function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [])
 
-  const logout = useCallback(() => {
+  const logout = useCallback(async () => {
+    try {
+      await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:3002/api"}/auth/logout`, {
+        method: "POST", credentials: "include",
+      })
+    } catch { /* nettoyage local meme sans serveur */ }
     authService.logout()
     setUser(null)
     window.location.replace("/auth")

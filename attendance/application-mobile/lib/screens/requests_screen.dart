@@ -99,15 +99,24 @@ class _RequestsScreenState extends State<RequestsScreen> {
     return DateFormat('dd/MM/yyyy').format(dt);
   }
 
+  DateTime? _tryParse(String? iso) {
+    if (iso == null) return null;
+    try {
+      return DateTime.parse(iso);
+    } catch (_) {
+      return null;
+    }
+  }
+
   String _formatPeriod(Map<String, dynamic> r) {
-    final debut = r['dateDebut'] != null ? DateTime.parse(r['dateDebut']) : null;
-    final fin = r['dateFin'] != null ? DateTime.parse(r['dateFin']) : null;
+    final debut = _tryParse(r['dateDebut']);
+    final fin = _tryParse(r['dateFin']);
     if (debut != null && fin != null) {
       return '${_formatDate(debut)} → ${_formatDate(fin)}';
     } else if (debut != null) {
       return _formatDate(debut);
     } else {
-      final demande = r['dateDemande'] != null ? DateTime.parse(r['dateDemande']) : null;
+      final demande = _tryParse(r['dateDemande']);
       return demande != null ? _formatDate(demande) : '';
     }
   }
@@ -285,7 +294,7 @@ class _RequestsScreenState extends State<RequestsScreen> {
         title: const Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Demandes d\'absence', style: TextStyle(fontSize: 24, fontWeight: FontWeight.w600, color: AppColors.onSurface)),
+            Text('Mes demandes', style: TextStyle(fontSize: 24, fontWeight: FontWeight.w600, color: AppColors.onSurface)),
             Text('Vos demandes et leur statut', style: TextStyle(fontSize: 13, color: AppColors.onSurfaceVariant)),
           ],
         ),
@@ -368,21 +377,28 @@ class _RequestsScreenState extends State<RequestsScreen> {
                                     ),
                                   ),
                                   const SizedBox(width: 8),
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                    decoration: BoxDecoration(
-                                      color: AppColors.accent.withValues(alpha: 0.1),
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    child: Text(
-                                      type,
-                                      style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: AppColors.accent),
+                                  Flexible(
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                      decoration: BoxDecoration(
+                                        color: AppColors.accent.withValues(alpha: 0.1),
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                      child: Text(
+                                        type,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: AppColors.accent),
+                                      ),
                                     ),
                                   ),
                                   const Spacer(),
-                                  Text(
-                                    _formatPeriod(r),
-                                    style: TextStyle(fontSize: 12, color: AppColors.onSurfaceVariant),
+                                  Flexible(
+                                    child: Text(
+                                      _formatPeriod(r),
+                                      textAlign: TextAlign.end,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: TextStyle(fontSize: 12, color: AppColors.onSurfaceVariant),
+                                    ),
                                   ),
                                 ],
                               ),

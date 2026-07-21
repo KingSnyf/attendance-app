@@ -159,7 +159,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
               _emailCtrl.text = emailCtrl.text;
               await _saveProfile();
               if (!mounted) return;
-              Navigator.pop(context);
               messenger.showSnackBar(
                 SnackBar(content: Text(_status.isEmpty ? 'Profil mis à jour' : _status), backgroundColor: _status.startsWith('Erreur') ? AppColors.error : AppColors.success),
               );

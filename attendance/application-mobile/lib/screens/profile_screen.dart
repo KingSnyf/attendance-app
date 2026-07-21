@@ -30,12 +30,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
   File? _pickedImage;
   String? _photoUrl;
   String _status = '';
+  String _prenom = '';
+  String _nom = '';
+  String _email = '';
 
   @override
   void initState() {
     super.initState();
-    _nameCtrl.text = '${widget.user['prenom'] ?? ''} ${widget.user['nom'] ?? ''}'.trim();
-    _emailCtrl.text = widget.user['email'] ?? '';
+    _prenom = widget.user['prenom'] ?? '';
+    _nom = widget.user['nom'] ?? '';
+    _email = widget.user['email'] ?? '';
+    _nameCtrl.text = '$_prenom $_nom'.trim();
+    _emailCtrl.text = _email;
     _photoUrl = widget.user['photoUrl'];
   }
 
@@ -75,7 +81,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
       await AuthService.saveUser(fresh);
 
       if (!mounted) return;
-      setState(() => _status = 'Profil mis à jour');
+      setState(() {
+        _status = 'Profil mis à jour';
+        _prenom = fresh['prenom'] ?? fresh['firstName'] ?? '';
+        _nom = fresh['nom'] ?? fresh['lastName'] ?? '';
+        _email = fresh['email'] ?? _email;
+        _photoUrl = fresh['photo_url'] ?? _photoUrl;
+      });
       Navigator.pop(context, true);
     } catch (e) {
       setState(() => _status = 'Erreur: $e');
@@ -332,15 +344,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final prenom = widget.user['prenom'] ?? '';
-    final nom = widget.user['nom'] ?? '';
-    final fullName = '$prenom $nom'.trim();
-    final email = widget.user['email'] ?? '';
+    final cs = Theme.of(context).colorScheme;
+    final fullName = '$_prenom $_nom'.trim();
     final role = widget.user['role'] as String? ?? 'employe';
     final roleLabel = role == 'admin' ? 'Administrateur' : role == 'gestionnaire' ? 'Gestionnaire' : 'Employé';
 
     return Scaffold(
-      backgroundColor: AppColors.surface,
+      backgroundColor: cs.surface,
       body: SafeArea(
         child: Column(
           children: [
@@ -349,17 +359,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
               child: Row(
                 children: [
-                  IconButton(
-                    icon: const Icon(Icons.menu, color: AppColors.onSurfaceVariant),
-                    onPressed: () {},
-                  ),
-                  const Spacer(),
-                  const Text(
+                  Spacer(),
+                  Text(
                     'AttendX',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: AppColors.onSurface),
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: cs.onSurface),
                   ),
-                  const Spacer(),
-                  const SizedBox(width: 48),
+                  Spacer(),
                 ],
               ),
             ),
@@ -411,7 +416,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             children: [
                               Text(
                                 fullName.isNotEmpty ? fullName : 'Sans nom',
-                                style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w600, color: AppColors.onSurface),
+                                style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600, color: cs.onSurface),
                               ),
                               const SizedBox(width: 8),
                               InkWell(
@@ -438,12 +443,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     const SizedBox(height: 28),
 
                     // Informations Personnelles
-                    const Text('Informations Personnelles', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.onSurfaceVariant)),
+                    Text('Informations Personnelles', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: cs.onSurfaceVariant)),
                     const SizedBox(height: 12),
                     _ProfileInfoTile(
                       icon: Icons.email_outlined,
                       label: 'Email',
-                      value: email,
+                      value: _email,
                       trailing: Container(
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                         decoration: BoxDecoration(
@@ -468,11 +473,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     const SizedBox(height: 24),
 
                     // Sécurité
-                    const Text('Sécurité', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.onSurfaceVariant)),
+                    Text('Sécurité', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: cs.onSurfaceVariant)),
                     const SizedBox(height: 12),
                     Container(
                       decoration: BoxDecoration(
-                        color: AppColors.surfaceContainer,
+                        color: cs.surfaceContainerHighest,
                         borderRadius: BorderRadius.circular(16),
                       ),
                       child: ListTile(
@@ -485,8 +490,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           ),
                           child: const Icon(Icons.lock_reset, color: AppColors.warmAccent, size: 20),
                         ),
-                        title: const Text('Mot de passe', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.onSurface)),
-                        subtitle: const Text('Dernière modification récente', style: TextStyle(fontSize: 12, color: AppColors.onSurfaceVariant)),
+                        title: Text('Mot de passe', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: cs.onSurface)),
+                        subtitle: Text('Dernière modification récente', style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant)),
                         trailing: const Icon(Icons.chevron_right, color: AppColors.outlineVariant),
                         onTap: _showPasswordDialog,
                       ),
@@ -494,7 +499,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     const _ProfileDivider(),
                     Container(
                       decoration: BoxDecoration(
-                        color: AppColors.surfaceContainer,
+                        color: cs.surfaceContainerHighest,
                         borderRadius: const BorderRadius.only(bottomLeft: Radius.circular(16), bottomRight: Radius.circular(16)),
                       ),
                       child: ListTile(
@@ -507,72 +512,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           ),
                           child: const Icon(Icons.pin, color: AppColors.accent, size: 20),
                         ),
-                        title: const Text('Code PIN', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.onSurface)),
-                        subtitle: const Text('Utilisé pour le pointage', style: TextStyle(fontSize: 12, color: AppColors.onSurfaceVariant)),
+                        title: Text('Code PIN', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: cs.onSurface)),
+                        subtitle: Text('Utilisé pour le pointage', style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant)),
                         trailing: const Icon(Icons.chevron_right, color: AppColors.outlineVariant),
                         onTap: _showPinDialog,
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-
-                    // Préférences
-                    const Text('Préférences', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.onSurfaceVariant)),
-                    const SizedBox(height: 12),
-                    Container(
-                      decoration: BoxDecoration(
-                        color: AppColors.surfaceContainer,
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      child: Column(
-                        children: [
-                          SwitchListTile(
-                            secondary: Container(
-                              width: 40,
-                              height: 40,
-                              decoration: BoxDecoration(
-                                color: AppColors.accent.withValues(alpha: 0.1),
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: const Icon(Icons.notifications_outlined, color: AppColors.accent, size: 20),
-                            ),
-                            title: const Text('Notifications Push', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.onSurface)),
-                            value: true,
-                            onChanged: (_) {},
-                            activeTrackColor: AppColors.accent.withValues(alpha: 0.3), activeThumbColor: AppColors.accent,
-                          ),
-                          const _ProfileDivider(),
-                          SwitchListTile(
-                            secondary: Container(
-                              width: 40,
-                              height: 40,
-                              decoration: BoxDecoration(
-                                color: AppColors.primary.withValues(alpha: 0.1),
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: const Icon(Icons.dark_mode_outlined, color: AppColors.primary, size: 20),
-                            ),
-                            title: const Text('Mode Sombre', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.onSurface)),
-                            value: false,
-                            onChanged: (_) {},
-                            activeTrackColor: AppColors.primary.withValues(alpha: 0.3), activeThumbColor: AppColors.primary,
-                          ),
-                          const _ProfileDivider(),
-                          ListTile(
-                            leading: Container(
-                              width: 40,
-                              height: 40,
-                              decoration: BoxDecoration(
-                                color: AppColors.warmAccent.withValues(alpha: 0.1),
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: const Icon(Icons.language, color: AppColors.warmAccent, size: 20),
-                            ),
-                            title: const Text('Langue', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.onSurface)),
-                            subtitle: const Text('Français', style: TextStyle(fontSize: 12, color: AppColors.onSurfaceVariant)),
-                            trailing: const Icon(Icons.chevron_right, color: AppColors.outlineVariant),
-                            onTap: () {},
-                          ),
-                        ],
                       ),
                     ),
                     const SizedBox(height: 32),
@@ -646,14 +589,14 @@ class _ProfileInfoTile extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 12),
       child: Row(
         children: [
-          Icon(icon, size: 20, color: AppColors.onSurfaceVariant),
+          Icon(icon, size: 20, color: Theme.of(context).colorScheme.onSurfaceVariant),
           const SizedBox(width: 14),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(value, style: const TextStyle(fontSize: 16, color: AppColors.onSurface)),
-                Text(label, style: TextStyle(fontSize: 12, color: AppColors.onSurfaceVariant.withValues(alpha: 0.7))),
+                Text(value, style: TextStyle(fontSize: 16, color: Theme.of(context).colorScheme.onSurface)),
+                Text(label, style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.7))),
               ],
             ),
           ),

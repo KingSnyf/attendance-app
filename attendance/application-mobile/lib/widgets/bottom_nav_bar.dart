@@ -9,9 +9,10 @@ class BottomNavBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return Container(
       decoration: BoxDecoration(
-        color: AppColors.surfaceContainer,
+        color: cs.surfaceContainerHighest,
         border: Border(top: BorderSide(color: AppColors.outlineVariant.withValues(alpha: 0.2))),
         boxShadow: [
           BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 8, offset: const Offset(0, -2)),
@@ -25,8 +26,8 @@ class BottomNavBar extends StatelessWidget {
           type: BottomNavigationBarType.fixed,
           backgroundColor: Colors.transparent,
           elevation: 0,
-          selectedItemColor: AppColors.primary,
-          unselectedItemColor: AppColors.onSurfaceVariant,
+          selectedItemColor: cs.primary,
+          unselectedItemColor: cs.onSurfaceVariant,
           selectedLabelStyle: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600),
           unselectedLabelStyle: const TextStyle(fontSize: 11, fontWeight: FontWeight.w500),
           items: const [

@@ -127,8 +127,9 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return Scaffold(
-      backgroundColor: AppColors.surface,
+      backgroundColor: cs.surface,
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
@@ -147,12 +148,12 @@ class _LoginScreenState extends State<LoginScreen> {
                   child: const Icon(Icons.fingerprint, size: 44, color: Colors.white),
                 ),
                 const SizedBox(height: 20),
-                const Text(
+                Text(
                   'AttendX',
                   style: TextStyle(
                     fontSize: 32,
                     fontWeight: FontWeight.w700,
-                    color: AppColors.onSurface,
+                    color: cs.onSurface,
                     letterSpacing: -0.5,
                   ),
                 ),
@@ -161,7 +162,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   'Entrez vos identifiants pour continuer',
                   style: TextStyle(
                     fontSize: 14,
-                    color: AppColors.onSurfaceVariant,
+                    color: cs.onSurfaceVariant,
                   ),
                 ),
                 const SizedBox(height: 40),
@@ -170,7 +171,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   keyboardType: TextInputType.emailAddress,
                   style: const TextStyle(fontSize: 16),
                   decoration: InputDecoration(
-                    prefixIcon: const Icon(Icons.alternate_email, color: AppColors.onSurfaceVariant),
+                    prefixIcon: Icon(Icons.alternate_email, color: cs.onSurfaceVariant),
                     hintText: 'Email',
                     filled: true,
                     fillColor: AppColors.surfaceContainerAlt,
@@ -187,7 +188,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   obscureText: true,
                   style: const TextStyle(fontSize: 16),
                   decoration: InputDecoration(
-                    prefixIcon: const Icon(Icons.lock, color: AppColors.onSurfaceVariant),
+                    prefixIcon: Icon(Icons.lock, color: cs.onSurfaceVariant),
                     hintText: 'Mot de passe',
                     filled: true,
                     fillColor: AppColors.surfaceContainerAlt,

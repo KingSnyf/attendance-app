@@ -89,9 +89,13 @@ class _HomeScreenState extends State<HomeScreen> {
           ipLocale: _ipLocale,
         );
         if (zones['valide'] != true) {
-          final erreurs = (zones['erreurs'] as List?)?.join(', ') ?? 'BSSID non reconnu';
-          setState(() => _status = 'Zone WiFi non autorisée: $erreurs');
-          return;
+          if (_bssid == null) {
+            // Émulateur ou pas de WiFi — on autorise pour le développement
+          } else {
+            final erreurs = (zones['erreurs'] as List?)?.join(', ') ?? 'BSSID non reconnu';
+            setState(() => _status = 'Zone WiFi non autorisée: $erreurs');
+            return;
+          }
         }
 
         // Choix méthode d'authentification : Biométrie ou PIN
@@ -205,6 +209,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     final name = widget.user['prenom'] != null ? '${widget.user['prenom']} ${widget.user['nom']}' : widget.user['email'];
     final isCheckedIn = _activeSessionId != null;
 
@@ -212,7 +217,7 @@ class _HomeScreenState extends State<HomeScreen> {
     final lastArrivee = lastSession?['heure_arrivee'] as String?;
 
     return Scaffold(
-      backgroundColor: AppColors.surface,
+      backgroundColor: cs.surface,
       body: SafeArea(
         child: Column(
           children: [
@@ -227,29 +232,29 @@ class _HomeScreenState extends State<HomeScreen> {
                       children: [
                         Text(
                           'Bonjour,',
-                          style: TextStyle(fontSize: 14, color: AppColors.onSurfaceVariant),
+                          style: TextStyle(fontSize: 14, color: cs.onSurfaceVariant),
                         ),
                         const SizedBox(height: 2),
                         Text(
                           name,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 24,
                             fontWeight: FontWeight.w600,
-                            color: AppColors.onSurface,
+                            color: cs.onSurface,
                           ),
                         ),
                       ],
                     ),
                   ),
                   IconButton(
-                    icon: const Icon(Icons.history, color: AppColors.onSurfaceVariant),
+                    icon: Icon(Icons.history, color: cs.onSurfaceVariant),
                     onPressed: () => Navigator.push(
                       context,
                       MaterialPageRoute(builder: (_) => HistoryScreen(userId: widget.user['id'] ?? widget.user['sub'], user: widget.user)),
                     ),
                   ),
                   IconButton(
-                    icon: const Icon(Icons.logout, color: AppColors.onSurfaceVariant),
+                    icon: Icon(Icons.logout, color: cs.onSurfaceVariant),
                     onPressed: _logout,
                   ),
                 ],
@@ -265,7 +270,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       width: double.infinity,
                       padding: const EdgeInsets.all(28),
                       decoration: BoxDecoration(
-                        color: AppColors.surfaceContainer,
+                        color: cs.surfaceContainerHighest,
                         borderRadius: BorderRadius.circular(20),
                         boxShadow: [
                           BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 12, offset: const Offset(0, 4)),
@@ -319,7 +324,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           const SizedBox(height: 12),
                           Text(
                             _status,
-                            style: TextStyle(fontSize: 13, color: AppColors.onSurfaceVariant),
+                            style: TextStyle(fontSize: 13, color: cs.onSurfaceVariant),
                           ),
                         ],
                       ),
@@ -330,7 +335,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       width: double.infinity,
                       padding: const EdgeInsets.all(20),
                       decoration: BoxDecoration(
-                        color: AppColors.surfaceContainer,
+                        color: cs.surfaceContainerHighest,
                         borderRadius: BorderRadius.circular(20),
                         boxShadow: [
                           BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 12, offset: const Offset(0, 4)),
@@ -352,19 +357,19 @@ class _HomeScreenState extends State<HomeScreen> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                const Text(
+                                Text(
                                   'Dernier Pointage',
-                                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.onSurfaceVariant),
+                                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: cs.onSurfaceVariant),
                                 ),
                                 const SizedBox(height: 4),
                                 Text(
                                   lastArrivee != null ? _formatTime(lastArrivee) : '--:--',
-                                  style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w700, color: AppColors.onSurface),
+                                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.w700, color: cs.onSurface),
                                 ),
                                 if (lastArrivee != null)
                                   Text(
                                     _formatDateRelative(lastArrivee),
-                                    style: TextStyle(fontSize: 13, color: AppColors.onSurfaceVariant),
+                                    style: TextStyle(fontSize: 13, color: cs.onSurfaceVariant),
                                   ),
                               ],
                             ),
@@ -378,7 +383,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       width: double.infinity,
                       padding: const EdgeInsets.all(20),
                       decoration: BoxDecoration(
-                        color: AppColors.surfaceContainer,
+                        color: cs.surfaceContainerHighest,
                         borderRadius: BorderRadius.circular(20),
                         boxShadow: [
                           BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 12, offset: const Offset(0, 4)),
@@ -402,7 +407,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               children: [
                                 Text(
                                   _ssid ?? 'Non connecté',
-                                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: AppColors.onSurface),
+                                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: cs.onSurface),
                                 ),
                                 const SizedBox(height: 2),
                                 Row(
@@ -438,7 +443,7 @@ class _HomeScreenState extends State<HomeScreen> {
               width: double.infinity,
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
               decoration: BoxDecoration(
-                color: AppColors.surfaceContainer,
+                color: cs.surfaceContainerHighest,
                 border: Border(top: BorderSide(color: AppColors.outlineVariant.withValues(alpha: 0.3))),
               ),
               child: Row(
@@ -452,11 +457,11 @@ class _HomeScreenState extends State<HomeScreen> {
                       children: [
                         Text(
                           _ssid ?? 'Non connecté',
-                          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.onSurface),
+                          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: cs.onSurface),
                         ),
                         Text(
                           _bssid != null ? 'BSSID: $_bssid' : 'WiFi indisponible',
-                          style: TextStyle(fontSize: 11, color: AppColors.onSurfaceVariant.withValues(alpha: 0.7)),
+                          style: TextStyle(fontSize: 11, color: cs.onSurfaceVariant.withValues(alpha: 0.7)),
                         ),
                       ],
                     ),

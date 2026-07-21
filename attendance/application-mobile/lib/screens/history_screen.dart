@@ -66,6 +66,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     final eff = _calcEfficacite();
     final totalH = _totalHours();
     final h = totalH.floor();
@@ -79,22 +80,22 @@ class _HistoryScreenState extends State<HistoryScreen> {
     final keys = grouped.keys.toList();
 
     return Scaffold(
-      backgroundColor: AppColors.surface,
+      backgroundColor: cs.surface,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        title: const Column(
+        title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Historique', style: TextStyle(fontSize: 24, fontWeight: FontWeight.w600, color: AppColors.onSurface)),
-            Text('Suivi de vos pointages récents', style: TextStyle(fontSize: 13, color: AppColors.onSurfaceVariant)),
+            Text('Historique', style: TextStyle(fontSize: 24, fontWeight: FontWeight.w600, color: cs.onSurface)),
+            Text('Suivi de vos pointages récents', style: TextStyle(fontSize: 13, color: cs.onSurfaceVariant)),
           ],
         ),
       ),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : _sessions.isEmpty
-              ? const Center(child: Text('Aucun pointage', style: TextStyle(color: AppColors.onSurfaceVariant)))
+              ? Center(child: Text('Aucun pointage', style: TextStyle(color: cs.onSurfaceVariant)))
               : Column(
                   children: [
                     // Cartes stats
@@ -144,7 +145,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                                 padding: const EdgeInsets.symmetric(vertical: 8),
                                 child: Text(
                                   dateKey,
-                                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.onSurfaceVariant),
+                                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: cs.onSurfaceVariant),
                                 ),
                               ),
                               ...items.map((s) => _SessionTile(s: s)),
@@ -172,13 +173,13 @@ class _StatCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: AppColors.surfaceContainer,
+        color: Theme.of(context).colorScheme.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(16),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label, style: TextStyle(fontSize: 11, color: AppColors.onSurfaceVariant.withValues(alpha: 0.8))),
+          Text(label, style: TextStyle(fontSize: 11, color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.8))),
           const SizedBox(height: 6),
           Row(
             children: [
@@ -233,7 +234,7 @@ class _SessionTile extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.surfaceContainer,
+        color: Theme.of(context).colorScheme.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(16),
       ),
       child: Row(
@@ -258,7 +259,7 @@ class _SessionTile extends StatelessWidget {
               children: [
                 Row(
                   children: [
-                    const Text('Bureau', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.onSurface)),
+                    Text('Bureau', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Theme.of(context).colorScheme.onSurface)),
                     if (estEnRetard) ...[
                       const SizedBox(width: 8),
                       Container(
@@ -275,7 +276,7 @@ class _SessionTile extends StatelessWidget {
                 const SizedBox(height: 4),
                 Text(
                   '$heureArrivee → $heureDepart',
-                  style: TextStyle(fontSize: 13, color: AppColors.onSurfaceVariant),
+                  style: TextStyle(fontSize: 13, color: Theme.of(context).colorScheme.onSurfaceVariant),
                 ),
               ],
             ),

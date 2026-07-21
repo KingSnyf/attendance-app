@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
+import '../services/theme_service.dart';
+import '../services/locale_service.dart';
 import '../constants/app_colors.dart';
 import '../widgets/bottom_nav_bar.dart';
 import 'home_screen.dart';
@@ -17,7 +19,43 @@ class SettingsScreen extends StatefulWidget {
 
 class _SettingsScreenState extends State<SettingsScreen> {
   bool _notifications = true;
-  bool _darkMode = false;
+
+  @override
+  void initState() {
+    super.initState();
+    ThemeService.themeMode.addListener(() => setState(() {}));
+    LocaleService.locale.addListener(() => setState(() {}));
+  }
+
+  String get currentLang {
+    switch (LocaleService.locale.value.languageCode) {
+      case 'en': return 'English';
+      default: return 'Français';
+    }
+  }
+
+  void _showLanguePicker() {
+    showModalBottomSheet(
+      context: context,
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: Icon(Icons.check, color: LocaleService.locale.value.languageCode == 'fr' ? AppColors.accent : Colors.transparent),
+              title: const Text('Français'),
+              onTap: () { LocaleService.setLocale('fr'); Navigator.pop(ctx); },
+            ),
+            ListTile(
+              leading: Icon(Icons.check, color: LocaleService.locale.value.languageCode == 'en' ? AppColors.accent : Colors.transparent),
+              title: const Text('English'),
+              onTap: () { LocaleService.setLocale('en'); Navigator.pop(ctx); },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 
   Future<void> _logout() async {
     final confirmed = await showDialog<bool>(
@@ -39,16 +77,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return Scaffold(
-      backgroundColor: AppColors.surface,
+      backgroundColor: cs.surface,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        title: const Column(
+        title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Paramètres', style: TextStyle(fontSize: 24, fontWeight: FontWeight.w600, color: AppColors.onSurface)),
-            Text('Gérez votre compte et vos préférences', style: TextStyle(fontSize: 13, color: AppColors.onSurfaceVariant)),
+            Text('Paramètres', style: TextStyle(fontSize: 24, fontWeight: FontWeight.w600, color: cs.onSurface)),
+            Text('Gérez votre compte et vos préférences', style: TextStyle(fontSize: 13, color: cs.onSurfaceVariant)),
           ],
         ),
       ),
@@ -57,11 +96,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Compte', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.onSurfaceVariant)),
+            Text('Compte', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: cs.onSurfaceVariant)),
             const SizedBox(height: 12),
             Container(
               decoration: BoxDecoration(
-                color: AppColors.surfaceContainer,
+                color: cs.surfaceContainerHighest,
                 borderRadius: BorderRadius.circular(16),
               ),
               child: Column(
@@ -76,9 +115,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       ),
                       child: const Icon(Icons.person_outline, color: AppColors.accent, size: 20),
                     ),
-                    title: const Text('Mon profil', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.onSurface)),
-                    subtitle: const Text('Informations personnelles', style: TextStyle(fontSize: 12, color: AppColors.onSurfaceVariant)),
-                    trailing: const Icon(Icons.chevron_right, color: AppColors.outlineVariant),
+                    title: Text('Mon profil', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: cs.onSurface)),
+                    subtitle: Text('Informations personnelles', style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant)),
+                    trailing: Icon(Icons.chevron_right, color: AppColors.outlineVariant),
                     onTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => ProfileScreen(user: widget.user))),
                   ),
                   const _SettingsDivider(),
@@ -92,20 +131,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       ),
                       child: const Icon(Icons.lock_reset, color: AppColors.warmAccent, size: 20),
                     ),
-                    title: const Text('Sécurité', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.onSurface)),
-                    subtitle: const Text('Mot de passe et code PIN', style: TextStyle(fontSize: 12, color: AppColors.onSurfaceVariant)),
-                    trailing: const Icon(Icons.chevron_right, color: AppColors.outlineVariant),
+                    title: Text('Sécurité', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: cs.onSurface)),
+                    subtitle: Text('Mot de passe et code PIN', style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant)),
+                    trailing: Icon(Icons.chevron_right, color: AppColors.outlineVariant),
                     onTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => ProfileScreen(user: widget.user))),
                   ),
                 ],
               ),
             ),
             const SizedBox(height: 24),
-            const Text('Préférences', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.onSurfaceVariant)),
+            Text('Préférences', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: cs.onSurfaceVariant)),
             const SizedBox(height: 12),
             Container(
               decoration: BoxDecoration(
-                color: AppColors.surfaceContainer,
+                color: cs.surfaceContainerHighest,
                 borderRadius: BorderRadius.circular(16),
               ),
               child: Column(
@@ -120,7 +159,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       ),
                       child: const Icon(Icons.notifications_outlined, color: AppColors.accent, size: 20),
                     ),
-                    title: const Text('Notifications Push', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.onSurface)),
+                    title: Text('Notifications Push', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: cs.onSurface)),
                     value: _notifications,
                     onChanged: (v) => setState(() => _notifications = v),
                     activeTrackColor: AppColors.accent.withValues(alpha: 0.3),
@@ -137,9 +176,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       ),
                       child: const Icon(Icons.dark_mode_outlined, color: AppColors.primary, size: 20),
                     ),
-                    title: const Text('Mode Sombre', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.onSurface)),
-                    value: _darkMode,
-                    onChanged: (v) => setState(() => _darkMode = v),
+                    title: Text('Mode Sombre', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: cs.onSurface)),
+                    value: ThemeService.isDark,
+                    onChanged: (v) => ThemeService.setDark(v),
                     activeTrackColor: AppColors.primary.withValues(alpha: 0.3),
                     activeThumbColor: AppColors.primary,
                   ),
@@ -154,10 +193,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       ),
                       child: const Icon(Icons.language, color: AppColors.warmAccent, size: 20),
                     ),
-                    title: const Text('Langue', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.onSurface)),
-                    subtitle: const Text('Français', style: TextStyle(fontSize: 12, color: AppColors.onSurfaceVariant)),
-                    trailing: const Icon(Icons.chevron_right, color: AppColors.outlineVariant),
-                    onTap: () {},
+                    title: Text('Langue', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: cs.onSurface)),
+                    subtitle: Text(currentLang, style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant)),
+                    trailing: Icon(Icons.chevron_right, color: AppColors.outlineVariant),
+                    onTap: _showLanguePicker,
                   ),
                 ],
               ),

@@ -144,18 +144,18 @@ class _RequestsScreenState extends State<RequestsScreen> {
               top: 24,
               bottom: MediaQuery.of(ctx).viewInsets.bottom + 24,
             ),
-            decoration: const BoxDecoration(
-              color: AppColors.surfaceContainer,
-              borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+            decoration: BoxDecoration(
+              color: Theme.of(ctx).colorScheme.surfaceContainerHighest,
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
             ),
             child: SingleChildScrollView(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  const Text(
+                  Text(
                     'Nouvelle demande',
-                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600, color: AppColors.onSurface),
+                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600, color: Theme.of(ctx).colorScheme.onSurface),
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 20),
@@ -286,16 +286,17 @@ class _RequestsScreenState extends State<RequestsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return Scaffold(
-      backgroundColor: AppColors.surface,
+      backgroundColor: cs.surface,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        title: const Column(
+        title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Mes demandes', style: TextStyle(fontSize: 24, fontWeight: FontWeight.w600, color: AppColors.onSurface)),
-            Text('Vos demandes et leur statut', style: TextStyle(fontSize: 13, color: AppColors.onSurfaceVariant)),
+            Text('Mes demandes', style: TextStyle(fontSize: 24, fontWeight: FontWeight.w600, color: cs.onSurface)),
+            Text('Vos demandes et leur statut', style: TextStyle(fontSize: 13, color: cs.onSurfaceVariant)),
           ],
         ),
       ),
@@ -310,9 +311,9 @@ class _RequestsScreenState extends State<RequestsScreen> {
                       children: [
                         Icon(Icons.error_outline, size: 48, color: AppColors.error.withValues(alpha: 0.7)),
                         const SizedBox(height: 16),
-                        Text('Erreur de chargement', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: AppColors.onSurface)),
+                        Text('Erreur de chargement', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: cs.onSurface)),
                         const SizedBox(height: 8),
-                        Text(_error!, style: TextStyle(color: AppColors.onSurfaceVariant), textAlign: TextAlign.center),
+                        Text(_error!, style: TextStyle(color: cs.onSurfaceVariant), textAlign: TextAlign.center),
                         const SizedBox(height: 16),
                         FilledButton.icon(
                           onPressed: _load,
@@ -324,15 +325,15 @@ class _RequestsScreenState extends State<RequestsScreen> {
                   ),
                 )
               : _requests.isEmpty
-                  ? const Center(
+                  ? Center(
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(Icons.event_note_outlined, size: 48, color: AppColors.onSurfaceVariant),
-                          SizedBox(height: 16),
-                          Text('Aucune demande', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: AppColors.onSurface)),
-                          SizedBox(height: 8),
-                          Text('Vous n\'avez pas encore fait de demande', style: TextStyle(color: AppColors.onSurfaceVariant)),
+                          Icon(Icons.event_note_outlined, size: 48, color: cs.onSurfaceVariant),
+                          const SizedBox(height: 16),
+                          Text('Aucune demande', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: cs.onSurface)),
+                          const SizedBox(height: 8),
+                          Text('Vous n\'avez pas encore fait de demande', style: TextStyle(color: cs.onSurfaceVariant)),
                         ],
                       ),
                     )
@@ -354,7 +355,7 @@ class _RequestsScreenState extends State<RequestsScreen> {
                           margin: const EdgeInsets.only(bottom: 12),
                           padding: const EdgeInsets.all(16),
                           decoration: BoxDecoration(
-                            color: AppColors.surfaceContainer,
+                            color: cs.surfaceContainerHighest,
                             borderRadius: BorderRadius.circular(16),
                             boxShadow: [
                               BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 12, offset: const Offset(0, 4)),
@@ -397,7 +398,7 @@ class _RequestsScreenState extends State<RequestsScreen> {
                                       _formatPeriod(r),
                                       textAlign: TextAlign.end,
                                       overflow: TextOverflow.ellipsis,
-                                      style: TextStyle(fontSize: 12, color: AppColors.onSurfaceVariant),
+                                      style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant),
                                     ),
                                   ),
                                 ],
@@ -407,7 +408,7 @@ class _RequestsScreenState extends State<RequestsScreen> {
                                 motif,
                                 maxLines: 2,
                                 overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(fontSize: 14, color: AppColors.onSurface),
+                                style: TextStyle(fontSize: 14, color: cs.onSurface),
                               ),
                               if (statut != 'en_attente' && commentaire != null && commentaire.isNotEmpty) ...[
                                 const SizedBox(height: 12),
@@ -429,7 +430,7 @@ class _RequestsScreenState extends State<RequestsScreen> {
                                       const SizedBox(height: 4),
                                       Text(
                                         commentaire,
-                                        style: const TextStyle(fontSize: 13, color: AppColors.onSurface),
+                                        style: TextStyle(fontSize: 13, color: AppColors.onSurface),
                                       ),
                                     ],
                                   ),

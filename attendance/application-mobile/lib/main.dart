@@ -3,11 +3,13 @@ import 'constants/app_colors.dart';
 import 'screens/login_screen.dart';
 import 'screens/home_screen.dart';
 import 'services/auth_service.dart';
+import 'services/api_service.dart';
 import 'services/socket_service.dart';
 import 'services/notification_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await ApiService.init();
   await NotificationService().init();
   runApp(const MyApp());
 }

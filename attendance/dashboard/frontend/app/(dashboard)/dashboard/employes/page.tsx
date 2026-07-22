@@ -37,10 +37,10 @@ export default function EmployesPage() {
   const [pinResult, setPinResult] = useState<string | null>(null)
   const [formErrors, setFormErrors] = useState<Record<string, string>>({})
   const departements = useMemo(() => [...new Set(employees.map((e) => e.departement).filter(Boolean))], [employees])
-  const [form, setForm] = useState({
+  const [form, setForm] = useState(() => ({
     nom: "", prenom: "", email: "", telephone: "", role: "employe",
-    departement: departements[0] ?? "Production",
-  })
+    departement: "Production",
+  }))
 
   const stats = useMemo(() => {
     const actifs = employees.filter((e) => e.actif)

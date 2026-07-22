@@ -4,7 +4,8 @@ import dynamic from "next/dynamic"
 import Link from "next/link"
 import { useParams } from "next/navigation"
 import { useMemo, useState } from "react"
-import { ArrowLeft, CalendarDays, CalendarOff, Download, FileEdit, Power, Smartphone } from "lucide-react"
+import { ArrowLeft, CalendarDays, CalendarOff, Download, FileEdit, Power, Smartphone, Users } from "lucide-react"
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts"
 import toast from "react-hot-toast"
 import { Avatar } from "@/components/dashboard/avatar"
 import { Badge } from "@/components/dashboard/status-badge"
@@ -14,7 +15,7 @@ import { Input } from "@/components/ui/input"
 import { Modal } from "@/components/ui/modal"
 import { Spinner } from "@/components/ui/spinner"
 import { Table, TableHeadCell, TableWrapper } from "@/components/ui/table"
-import { useEmployeeDetail, useToggleAccount } from "@/lib/hooks/use-employees"
+import { useEmployeeDetail, useEmployees, useToggleAccount } from "@/lib/hooks/use-employees"
 import { useSettings } from "@/lib/hooks/use-settings"
 import { useCreateRequest } from "@/lib/hooks/use-requests"
 import { useCreateModificationRequest } from "@/lib/hooks/use-modification-requests"
@@ -22,8 +23,8 @@ import { useAuth } from "@/hooks/useAuth"
 import { createRequestSchema, createModificationRequestSchema } from "@/lib/schemas"
 import { getNomComplet } from "@/lib/utils"
 import type { PresenceJour } from "@/lib/types"
-import { formatDate, formatDateTime, formatHeure } from "@/lib/utils"
-import { anomalieTypeLabel, statutBadgeVariant, statutLabel } from "@/lib/labels"
+import { formatDate, formatDateTime, formatDuree, formatHeure } from "@/lib/utils"
+import { anomalieTypeLabel, roleLabel, statutBadgeVariant, statutLabel } from "@/lib/labels"
 
 const GeofenceMap = dynamic(
   () => import("@/components/dashboard/geofence-map").then((module) => module.GeofenceMap),
@@ -43,6 +44,7 @@ export default function EmployeDetailPage() {
   const { user: currentUser } = useAuth()
   const { data: detail, isLoading } = useEmployeeDetail(params.id)
   const { data: settings } = useSettings()
+  const { data: allEmployees = [] } = useEmployees()
   const toggleAccount = useToggleAccount()
   const createRequest = useCreateRequest()
   const createModifRequest = useCreateModificationRequest()
@@ -68,6 +70,46 @@ export default function EmployeDetailPage() {
     if (last.latitude && last.longitude) return { lat: last.latitude, lng: last.longitude, date: last.date }
     return null
   }, [detail?.sessions])
+
+  // Taux de présence : calculé côté client à partir du calendrier déjà chargé
+  // (jours fériés/week-ends exclus du dénominateur, ils ne comptent pas contre l'employé).
+  const presenceStats = useMemo(() => {
+    if (!detail?.calendrier?.length) return null
+    const joursTravailles = detail.calendrier.filter((d) => d.statut !== "ferie" && d.statut !== "weekend")
+    if (joursTravailles.length === 0) return null
+    const presents = joursTravailles.filter((d) => d.statut === "present" || d.statut === "retard").length
+    const absents = joursTravailles.length - presents
+    return {
+      presents,
+      absents,
+      total: joursTravailles.length,
+      pourcentagePresent: Math.round((presents / joursTravailles.length) * 100),
+    }
+  }, [detail?.calendrier])
+
+  // Heures travaillées par jour : calculées à partir des sessions déjà chargées pour ce jour
+  // (heure_depart - heure_arrivee, sessions encore en cours ignorées du calcul).
+  const heuresParJour = useMemo(() => {
+    const map: Record<string, number> = {}
+    for (const jour of detail?.calendrier ?? []) {
+      let minutes = 0
+      for (const session of jour.sessions) {
+        if (session.heure_depart) {
+          minutes += Math.max(0, (new Date(session.heure_depart).getTime() - new Date(session.heure_arrivee).getTime()) / 60000)
+        }
+      }
+      map[jour.date] = Math.round(minutes)
+    }
+    return map
+  }, [detail?.calendrier])
+
+  // Collègues du même département : statut du moment (donnée réellement disponible).
+  // Un vrai "% de présence mensuel par collègue" nécessiterait un endpoint backend dédié,
+  // qui n'existe pas encore — pas de chiffre inventé ici, uniquement le statut en direct.
+  const collegues = useMemo(() => {
+    if (!detail?.utilisateur) return []
+    return allEmployees.filter((e) => e.id !== detail.utilisateur.id && e.departement === detail.utilisateur.departement && e.actif)
+  }, [allEmployees, detail?.utilisateur])
 
   if (isLoading) {
     return <div className="flex min-h-[30vh] items-center justify-center gap-3 text-muted-foreground"><Spinner /><span>Chargement de la fiche employé...</span></div>
@@ -148,6 +190,53 @@ export default function EmployeDetailPage() {
         </Card>
       </div>
 
+      {presenceStats && (
+        <Card>
+          <div className="mb-4">
+            <h3 className="text-lg font-semibold text-foreground">Taux de présence</h3>
+            <p className="text-sm text-muted-foreground">Calculé sur les jours ouvrés du calendrier ci-dessous (fériés/week-ends exclus).</p>
+          </div>
+          <div className="flex flex-col items-center gap-4 sm:flex-row sm:justify-around">
+            <div className="relative h-40 w-40">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={[
+                      { name: "Présent", value: presenceStats.presents },
+                      { name: "Absent", value: presenceStats.absents },
+                    ]}
+                    dataKey="value"
+                    innerRadius={50}
+                    outerRadius={70}
+                    startAngle={90}
+                    endAngle={-270}
+                    strokeWidth={0}
+                  >
+                    <Cell fill="var(--success-foreground)" />
+                    <Cell fill="var(--danger-foreground)" />
+                  </Pie>
+                  <Tooltip />
+                </PieChart>
+              </ResponsiveContainer>
+              <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
+                <span className="font-data text-2xl font-semibold text-foreground">{presenceStats.pourcentagePresent}%</span>
+                <span className="text-[11px] text-muted-foreground">présent</span>
+              </div>
+            </div>
+            <div className="flex gap-6 text-sm">
+              <div className="flex items-center gap-2">
+                <span className="size-2.5 rounded-full bg-success-foreground" />
+                <span className="text-muted-foreground">Présent — <span className="font-data text-foreground">{presenceStats.presents}</span> j.</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="size-2.5 rounded-full bg-danger-foreground" />
+                <span className="text-muted-foreground">Absent — <span className="font-data text-foreground">{presenceStats.absents}</span> j.</span>
+              </div>
+            </div>
+          </div>
+        </Card>
+      )}
+
       <Card>
         <div className="mb-4 flex items-center gap-2">
           <CalendarDays className="size-4 text-brand" />
@@ -163,6 +252,9 @@ export default function EmployeDetailPage() {
               </div>
               <p className="mt-2 text-xs capitalize text-muted-foreground">{day.statut}</p>
               <p className="mt-1 text-xs text-muted-foreground">{day.sessions.length} session(s)</p>
+              {heuresParJour[day.date] > 0 && (
+                <p className="font-data mt-0.5 text-xs font-medium text-foreground">{formatDuree(heuresParJour[day.date])}</p>
+              )}
             </button>
           ))}
         </div>
@@ -225,6 +317,34 @@ export default function EmployeDetailPage() {
           ))}
         </div>
       </Card>
+
+      {collegues.length > 0 && (
+        <Card>
+          <div className="mb-4 flex items-center gap-2">
+            <Users className="size-4 text-brand" />
+            <h3 className="text-lg font-semibold text-foreground">Collègues — {user.departement}</h3>
+          </div>
+          <p className="mb-4 text-sm text-muted-foreground">
+            Statut en direct des autres membres du département. (Un taux de présence mensuel par collègue nécessiterait un endpoint backend dédié, pas encore disponible — seul le statut du moment est affiché ici.)
+          </p>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {collegues.map((collegue) => (
+              <Link
+                key={collegue.id}
+                href={`/dashboard/employes/${collegue.id}`}
+                className="flex items-center gap-3 rounded-2xl border border-border bg-card p-3 transition hover:bg-muted"
+              >
+                <Avatar nom={getNomComplet(collegue)} src={collegue.photo_url} size="sm" />
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-medium text-foreground">{getNomComplet(collegue)}</p>
+                  <p className="truncate text-xs text-muted-foreground">{roleLabel[collegue.role]}</p>
+                </div>
+                <Badge variant={statutBadgeVariant(collegue.statut_actuel)}>{statutLabel[collegue.statut_actuel] ?? collegue.statut_actuel}</Badge>
+              </Link>
+            ))}
+          </div>
+        </Card>
+      )}
 
       {/* Demande d'absence */}
       <Modal open={demandeOpen} onClose={() => { setDemandeOpen(false); setDemandeErrors({}) }} title="Faire une demande" description="Soumet une demande pour validation.">

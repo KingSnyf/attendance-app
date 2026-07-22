@@ -5,11 +5,14 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import dynamic from "next/dynamic";
-import { AlertTriangle, CheckCircle2, Coffee, Download, MapPin, XCircle } from "lucide-react";
+import { AlertTriangle, Building2, CheckCircle2, Clock, Coffee, Download, Inbox, MapPin, XCircle } from "lucide-react";
 
 const EmployeeMap = dynamic(() => import("@/components/dashboard/employee-map"), { ssr: false });
 import toast from "react-hot-toast";
+import { Avatar } from "@/components/dashboard/avatar";
+import { Badge } from "@/components/dashboard/status-badge";
 import { EmployeesPresence } from "@/components/dashboard/employeesPresence";
 import { AnomaliesWidget } from "@/components/dashboard/anomalies-widget";
 import { PresenceChart } from "@/components/dashboard/presence-chart";
@@ -20,12 +23,23 @@ import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/spinner";
 import { useDashboardData } from "@/lib/hooks/use-dashboard-data";
 import { useSettings } from "@/lib/hooks/use-settings";
-import { exporterVersCSV, formatDuree, formatHeure, telechargerCSV } from "@/lib/utils";
+import { useRequests } from "@/lib/hooks/use-requests";
+import { exporterVersCSV, formatDuree, formatHeure, getNomComplet, telechargerCSV } from "@/lib/utils";
+
+type Demande = {
+  id: string
+  type: string
+  motif: string
+  statut: string
+  dateDemande: string
+  user: { id: string; firstName: string; lastName: string; photoUrl: string | null }
+}
 
 export default function VueEnsemblePage() {
   const router = useRouter();
   const { data, isLoading, error } = useDashboardData();
   const { data: settingsData } = useSettings();
+  const { data: requestsData } = useRequests();
   const [searchQuery, setSearchQuery] = useState("");
   const [filterDepartement, setFilterDepartement] = useState("all");
   const [filterStatut, setFilterStatut] = useState("all");
@@ -35,6 +49,53 @@ export default function VueEnsemblePage() {
     () => new Intl.DateTimeFormat("fr-FR", { weekday: "long", day: "numeric", month: "long" }).format(new Date()),
     [],
   );
+
+  // Un employé est en retard si sa première arrivée dépasse heure_debut_journee + tolérance.
+  const estEnRetard = useMemo(() => {
+    return (premiereArriveeIso: string) => {
+      if (!settingsData?.heure_debut_journee) return false;
+      const [h, m] = settingsData.heure_debut_journee.split(":").map(Number);
+      const arrivee = new Date(premiereArriveeIso);
+      const limite = new Date(arrivee);
+      limite.setHours(h, (m || 0) + (settingsData.tolerance_retard_minutes ?? 0), 0, 0);
+      return arrivee > limite;
+    };
+  }, [settingsData]);
+
+  // Répartition par département — inspirée du panneau "All Departments" de la maquette,
+  // calculée depuis les employés déjà chargés (pas de nouvel appel réseau).
+  const departementsStats = useMemo(() => {
+    const map = new Map<string, { total: number; presents: number; retards: number; absents: number }>();
+    for (const e of data?.employees ?? []) {
+      const dep = e.departement || "Non renseigné";
+      if (!map.has(dep)) map.set(dep, { total: 0, presents: 0, retards: 0, absents: 0 });
+      const entry = map.get(dep)!;
+      entry.total++;
+      if (e.statut_actuel === "absent") entry.absents++;
+      else if (e.premiere_arrivee && estEnRetard(e.premiere_arrivee)) entry.retards++;
+      else if (e.statut_actuel === "present" || e.statut_actuel === "en_attente") entry.presents++;
+    }
+    return Array.from(map.entries())
+      .map(([nom, stats]) => ({ nom, ...stats }))
+      .sort((a, b) => b.total - a.total);
+  }, [data?.employees, estEnRetard]);
+
+  // Derniers pointages — inspiré du panneau "Logged in / On Time / Late" de la maquette.
+  const derniersPointages = useMemo(() => {
+    return (data?.employees ?? [])
+      .filter((e) => e.premiere_arrivee)
+      .sort((a, b) => new Date(b.premiere_arrivee!).getTime() - new Date(a.premiere_arrivee!).getTime())
+      .slice(0, 6)
+      .map((e) => ({ ...e, enRetard: estEnRetard(e.premiere_arrivee!) }));
+  }, [data?.employees, estEnRetard]);
+
+  // Demandes en attente — inspiré du panneau "Backlog" de la maquette. L'API renvoie
+  // toutes les demandes pour un admin (pas seulement en_attente), on filtre donc ici.
+  const demandesEnAttente = useMemo(() => {
+    return ((requestsData as Demande[]) ?? [])
+      .filter((r) => r.statut === "en_attente")
+      .slice(0, 5);
+  }, [requestsData]);
 
   const departements = useMemo(() => {
     const uniques = new Set(
@@ -188,6 +249,38 @@ export default function VueEnsemblePage() {
         />
       </div>
 
+      {/* Répartition par département */}
+      {departementsStats.length > 0 && (
+        <Card>
+          <div className="mb-4 flex items-center gap-2">
+            <Building2 className="size-5 text-brand" />
+            <h2 className="font-heading text-lg font-semibold text-foreground">Répartition par département</h2>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            {departementsStats.map((dep) => (
+              <div key={dep.nom} className="rounded-xl border border-border bg-card p-4">
+                <p className="truncate text-sm font-medium text-foreground">{dep.nom}</p>
+                <p className="font-data mt-1 text-2xl font-bold text-foreground">{dep.total}</p>
+                <div className="mt-3 grid grid-cols-3 gap-2 text-center text-xs">
+                  <div>
+                    <p className="font-data font-semibold text-success-foreground">{dep.presents}</p>
+                    <p className="text-muted-foreground">Présents</p>
+                  </div>
+                  <div>
+                    <p className="font-data font-semibold text-warning-foreground">{dep.retards}</p>
+                    <p className="text-muted-foreground">Retards</p>
+                  </div>
+                  <div>
+                    <p className="font-data font-semibold text-danger-foreground">{dep.absents}</p>
+                    <p className="text-muted-foreground">Absents</p>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </Card>
+      )}
+
       {/* Carte de la zone autorisée */}
       {settingsData && (
         <Card>
@@ -215,6 +308,63 @@ export default function VueEnsemblePage() {
           />
         </div>
         <AnomaliesWidget />
+      </div>
+
+      {/* Demandes en attente (backlog) + derniers pointages, côte à côte */}
+      <div className="grid gap-4 lg:grid-cols-3">
+        <Card className="lg:col-span-2">
+          <div className="mb-4 flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <Inbox className="size-5 text-brand" />
+              <h2 className="font-heading text-lg font-semibold text-foreground">Demandes en attente</h2>
+            </div>
+            <Link href="/dashboard/demandes" className="text-xs font-medium text-brand hover:underline">
+              Voir tout →
+            </Link>
+          </div>
+          {demandesEnAttente.length > 0 ? (
+            <div className="space-y-2">
+              {demandesEnAttente.map((demande) => {
+                const jours = Math.max(0, Math.floor((Date.now() - new Date(demande.dateDemande).getTime()) / 86400000));
+                return (
+                  <div key={demande.id} className="flex items-center gap-3 rounded-xl border border-border p-3">
+                    <Avatar nom={`${demande.user.firstName} ${demande.user.lastName}`} src={demande.user.photoUrl} size="sm" />
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-medium text-foreground">{demande.user.firstName} {demande.user.lastName}</p>
+                      <p className="truncate text-xs text-muted-foreground">{demande.motif}</p>
+                    </div>
+                    <Badge variant="warning">{jours <= 0 ? "Aujourd'hui" : `${jours} j`}</Badge>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground">Aucune demande en attente.</p>
+          )}
+        </Card>
+
+        <Card>
+          <div className="mb-4 flex items-center gap-2">
+            <Clock className="size-5 text-brand" />
+            <h2 className="font-heading text-lg font-semibold text-foreground">Derniers pointages</h2>
+          </div>
+          {derniersPointages.length > 0 ? (
+            <div className="space-y-2">
+              {derniersPointages.map((employee) => (
+                <div key={employee.id} className="flex items-center gap-3">
+                  <Avatar nom={getNomComplet(employee)} src={employee.photo_url} size="sm" />
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-medium text-foreground">{getNomComplet(employee)}</p>
+                    <p className="truncate text-xs text-muted-foreground">{formatHeure(employee.premiere_arrivee!)}</p>
+                  </div>
+                  <Badge variant={employee.enRetard ? "danger" : "success"}>{employee.enRetard ? "Retard" : "À l'heure"}</Badge>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground">Aucun pointage aujourd'hui.</p>
+          )}
+        </Card>
       </div>
 
       <Card>

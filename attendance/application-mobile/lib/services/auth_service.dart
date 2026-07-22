@@ -20,7 +20,7 @@ class AuthService {
     final prefs = await SharedPreferences.getInstance();
     final raw = prefs.getString(_userKey);
     if (raw == null) return null;
-    return jsonDecode(raw);
+    return jsonDecode(raw) as Map<String, dynamic>;
   }
 
   static Future<void> saveUser(Map<String, dynamic> user) async {
@@ -36,6 +36,19 @@ class AuthService {
   static Future<void> saveDeviceId(String deviceId) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_deviceIdKey, deviceId);
+  }
+
+  static Future<void> saveSession({
+    required String token,
+    required Map<String, dynamic> user,
+    String? deviceId,
+  }) async {
+    final prefs = await SharedPreferences.getInstance();
+    await _secure.write(key: _tokenKey, value: token);
+    await prefs.setString(_userKey, jsonEncode(user));
+    if (deviceId != null) {
+      await prefs.setString(_deviceIdKey, deviceId);
+    }
   }
 
   static Future<void> logout() async {

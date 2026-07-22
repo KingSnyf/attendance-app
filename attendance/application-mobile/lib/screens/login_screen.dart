@@ -20,11 +20,19 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _loading = false;
   bool _bioAvailable = false;
   String _bioLabel = 'Touch ID / Face ID';
+  bool _navigated = false;
 
   @override
   void initState() {
     super.initState();
     _checkBio();
+  }
+
+  @override
+  void dispose() {
+    _emailCtrl.dispose();
+    _passwordCtrl.dispose();
+    super.dispose();
   }
 
   Future<void> _checkBio() async {
@@ -40,25 +48,30 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _login() async {
+    if (_loading || _navigated) return;
+
     if (_emailCtrl.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Veuillez entrer votre email')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Veuillez entrer votre email')),
+      );
       return;
     }
     if (_passwordCtrl.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Veuillez entrer votre mot de passe')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Veuillez entrer votre mot de passe')),
+      );
       return;
     }
+
     setState(() => _loading = true);
     try {
-      final data = await ApiService.login(_emailCtrl.text.trim(), _passwordCtrl.text);
+      final data = await ApiService.login(
+        _emailCtrl.text.trim(),
+        _passwordCtrl.text,
+      );
 
       final token = data['access_token'] as String;
       final user = data['user'] as Map<String, dynamic>;
-
-      await AuthService.saveToken(token);
-      await AuthService.saveUser(user);
-
-      if (!mounted) return;
 
       String deviceId;
       String modele = '';
@@ -84,28 +97,54 @@ class _LoginScreenState extends State<LoginScreen> {
           modele: modele,
           marque: marque,
         );
-        await AuthService.saveDeviceId(deviceId);
       } catch (_) {}
 
-      if (!mounted) return;
-      Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => HomeScreen(user: user)));
+      await AuthService.saveSession(
+        token: token,
+        user: user,
+        deviceId: deviceId,
+      );
+
+      if (!mounted || _navigated) return;
+      _navigated = true;
+
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => HomeScreen(user: user)),
+      );
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$e')));
+      final msg = e.toString().replaceFirst('Exception: ', '');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(msg.contains('Timeout') || msg.contains('Impossible de joindre')
+              ? 'Serveur inaccessible — vérifiez que le backend tourne et que le téléphone est sur le même WiFi'
+              : msg),
+          backgroundColor: Colors.red.shade700,
+          duration: const Duration(seconds: 5),
+        ),
+      );
     } finally {
       if (mounted) setState(() => _loading = false);
     }
   }
 
   Future<void> _bioLogin() async {
+    if (_loading || _navigated) return;
+
     final token = await AuthService.getToken();
     if (token == null) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Connectez-vous d\'abord avec votre email et mot de passe pour activer la biométrie')),
+        const SnackBar(
+          content: Text(
+            'Connectez-vous d\'abord avec votre email et mot de passe pour activer la biométrie',
+          ),
+        ),
       );
       return;
     }
+
     final ok = await BiometricService.authenticate(reason: 'Connexion à AttendX');
     if (!ok) {
       if (!mounted) return;
@@ -114,13 +153,21 @@ class _LoginScreenState extends State<LoginScreen> {
       );
       return;
     }
+
     final user = await AuthService.getUser();
     if (!mounted) return;
+
     if (user != null) {
-      Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => HomeScreen(user: user)));
+      _navigated = true;
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => HomeScreen(user: user)),
+      );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Aucun profil utilisateur trouvé. Connectez-vous avec email/mot de passe.')),
+        const SnackBar(
+          content: Text('Aucun profil utilisateur trouvé. Connectez-vous avec email/mot de passe.'),
+        ),
       );
     }
   }
@@ -128,6 +175,7 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
+
     return Scaffold(
       backgroundColor: cs.surface,
       body: SafeArea(
@@ -215,10 +263,17 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                     child: _loading
                         ? const SizedBox(
-                            width: 22, height: 22,
-                            child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                          )
-                        : const Text('Se connecter', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+                      width: 22,
+                      height: 22,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
+                        : const Text(
+                      'Se connecter',
+                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                    ),
                   ),
                 ),
                 if (_bioAvailable) ...[
@@ -228,7 +283,10 @@ class _LoginScreenState extends State<LoginScreen> {
                     icon: const Icon(Icons.face, color: AppColors.accent),
                     label: Text(
                       'Utiliser $_bioLabel',
-                      style: const TextStyle(color: AppColors.accent, fontSize: 14),
+                      style: const TextStyle(
+                        color: AppColors.accent,
+                        fontSize: 14,
+                      ),
                     ),
                   ),
                 ],

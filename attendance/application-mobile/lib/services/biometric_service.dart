@@ -40,16 +40,27 @@ class BiometricService {
     String reason = 'Authentification pour le pointage',
   }) async {
     try {
-      return await _auth.authenticate(
+      final canCheck = await _canCheckBiometricsWithTimeout();
+      final available = await getAvailableBiometrics();
+      print('[Biometric] canCheck=$canCheck, available=$available');
+      if (!canCheck || available.isEmpty) {
+        print('[Biometric] Aucune biométrie disponible -> fallback PIN');
+        return false;
+      }
+      final result = await _auth.authenticate(
         localizedReason: reason,
         options: const AuthenticationOptions(
           biometricOnly: true,
           stickyAuth: true,
         ),
       ).timeout(const Duration(seconds: 30));
+      print('[Biometric] authenticate result=$result');
+      return result;
     } on TimeoutException {
+      print('[Biometric] timeout');
       return false;
-    } catch (_) {
+    } catch (e) {
+      print('[Biometric] erreur: $e');
       return false;
     }
   }

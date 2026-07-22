@@ -55,10 +55,15 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _checkActiveSession() async {
     final sessions = await ApiService.getMySessions(widget.user['id'] ?? widget.user['sub']);
-    if (sessions.isNotEmpty && sessions.first['heure_depart'] == null) {
-      setState(() => _activeSessionId = sessions.first['id']);
-    }
-    _sessions = sessions;
+    if (!mounted) return;
+    setState(() {
+      _sessions = sessions;
+      if (sessions.isNotEmpty && sessions.first['heure_depart'] == null) {
+        _activeSessionId = sessions.first['id'];
+      } else {
+        _activeSessionId = null;
+      }
+    });
   }
 
   Future<void> _pointage({required bool checkin}) async {
@@ -70,35 +75,44 @@ class _HomeScreenState extends State<HomeScreen> {
       try {
         pos = await Geolocator.getCurrentPosition();
       } catch (_) {
-        pos = Position(longitude: 0, latitude: 0, timestamp: DateTime.now(), accuracy: 0, altitude: 0, heading: 0, speed: 0, speedAccuracy: 0, altitudeAccuracy: 0, headingAccuracy: 0);
+        pos = Position(
+          longitude: 0,
+          latitude: 0,
+          timestamp: DateTime.now(),
+          accuracy: 0,
+          altitude: 0,
+          heading: 0,
+          speed: 0,
+          speedAccuracy: 0,
+          altitudeAccuracy: 0,
+          headingAccuracy: 0,
+        );
       }
 
       await _refreshNetworkInfo();
 
       if (checkin) {
-        // Vérification fuseau horaire (Yaoundé = UTC+1)
         final offset = DateTime.now().timeZoneOffset;
         if (offset != const Duration(hours: 1)) {
           setState(() => _status = 'Fuseau horaire invalide — réglez votre téléphone sur Yaoundé (UTC+1)');
           return;
         }
 
-        final zones = await ApiService.verifyZone(
-          bssid: _bssid,
-          ssid: _ssid,
-          ipLocale: _ipLocale,
-        );
-        if (zones['valide'] != true) {
-          if (_bssid == null) {
-            // Émulateur ou pas de WiFi — on autorise pour le développement
-          } else {
-            final erreurs = (zones['erreurs'] as List?)?.join(', ') ?? 'BSSID non reconnu';
-            setState(() => _status = 'Zone WiFi non autorisée: $erreurs');
-            return;
-          }
-        }
+        // TODO: réactiver la vérification de zone en prod
+        // final zones = await ApiService.verifyZone(
+        //   bssid: _bssid,
+        //   ssid: _ssid,
+        //   ipLocale: _ipLocale,
+        // );
+        // if (zones['valide'] != true) {
+        //   if (_bssid == null) {
+        //   } else {
+        //     final erreurs = (zones['erreurs'] as List?)?.join(', ') ?? 'BSSID non reconnu';
+        //     setState(() => _status = 'Zone WiFi non autorisée: $erreurs');
+        //     return;
+        //   }
+        // }
 
-        // Choix méthode d'authentification : Biométrie ou PIN
         final useBiometric = await _showAuthChoiceDialog();
         String? pin;
 
@@ -111,7 +125,30 @@ class _HomeScreenState extends State<HomeScreen> {
         } else {
           if (!mounted) return;
           final pinCtrl = TextEditingController();
-          final pinInput = await showDialog<String>(context: context, builder: (ctx) => AlertDialog(title: const Text('Code PIN'), content: TextField(controller: pinCtrl, obscureText: true, decoration: const InputDecoration(labelText: 'PIN', border: OutlineInputBorder())), actions: [TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Annuler')), ElevatedButton(onPressed: () => Navigator.pop(ctx, pinCtrl.text), child: const Text('Valider'))]));
+          final pinInput = await showDialog<String>(
+            context: context,
+            builder: (ctx) => AlertDialog(
+              title: const Text('Code PIN'),
+              content: TextField(
+                controller: pinCtrl,
+                obscureText: true,
+                decoration: const InputDecoration(
+                  labelText: 'PIN',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(ctx, false as String?),
+                  child: const Text('Annuler'),
+                ),
+                ElevatedButton(
+                  onPressed: () => Navigator.pop(ctx, pinCtrl.text),
+                  child: const Text('Valider'),
+                ),
+              ],
+            ),
+          );
           if (pinInput == null || pinInput.isEmpty) return;
           pin = pinInput;
 
@@ -131,18 +168,21 @@ class _HomeScreenState extends State<HomeScreen> {
           codePin: pin,
           deviceId: deviceId,
         );
+        if (!mounted) return;
         setState(() {
           _activeSessionId = session['id'];
           _status = 'Pointage enregistré';
         });
       } else {
         await ApiService.checkout(widget.user['id'] ?? widget.user['sub']);
+        if (!mounted) return;
         setState(() {
           _activeSessionId = null;
           _status = 'Dépointage enregistré';
         });
       }
     } catch (e) {
+      if (!mounted) return;
       setState(() => _status = 'Erreur: $e');
     } finally {
       if (mounted) setState(() => _checking = false);
@@ -158,16 +198,22 @@ class _HomeScreenState extends State<HomeScreen> {
 
     if (!mounted) return false;
     return await showDialog<bool>(
-          context: context,
-          builder: (ctx) => AlertDialog(
-            title: const Text('Méthode d\'authentification'),
-            content: Text('Utiliser $label ?'),
-            actions: [
-              TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Code PIN')),
-              ElevatedButton(onPressed: () => Navigator.pop(ctx, true), child: Text(label)),
-            ],
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Méthode d\'authentification'),
+        content: Text('Utiliser $label ?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Code PIN'),
           ),
-        ) ??
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(label),
+          ),
+        ],
+      ),
+    ) ??
         false;
   }
 
@@ -178,15 +224,25 @@ class _HomeScreenState extends State<HomeScreen> {
         title: const Text('Déconnexion'),
         content: const Text('Voulez-vous vraiment vous déconnecter ?'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Annuler')),
-          TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Se déconnecter', style: TextStyle(color: Colors.redAccent))),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Annuler'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Se déconnecter', style: TextStyle(color: Colors.redAccent)),
+          ),
         ],
       ),
     );
     if (confirmed != true) return;
     await AuthService.logout();
     if (!mounted) return;
-    Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (_) => const LoginScreen()), (_) => false);
+    Navigator.pushAndRemoveUntil(
+      context,
+      MaterialPageRoute(builder: (_) => const LoginScreen()),
+          (_) => false,
+    );
   }
 
   String _formatTime(String? iso) {
@@ -212,7 +268,6 @@ class _HomeScreenState extends State<HomeScreen> {
     final cs = Theme.of(context).colorScheme;
     final name = widget.user['prenom'] != null ? '${widget.user['prenom']} ${widget.user['nom']}' : widget.user['email'];
     final isCheckedIn = _activeSessionId != null;
-
     final lastSession = _sessions.isNotEmpty ? _sessions.first as Map<String, dynamic>? : null;
     final lastArrivee = lastSession?['heure_arrivee'] as String?;
 
@@ -221,7 +276,6 @@ class _HomeScreenState extends State<HomeScreen> {
       body: SafeArea(
         child: Column(
           children: [
-            // En-tête
             Padding(
               padding: const EdgeInsets.fromLTRB(24, 16, 16, 0),
               child: Row(
@@ -230,18 +284,11 @@ class _HomeScreenState extends State<HomeScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          'Bonjour,',
-                          style: TextStyle(fontSize: 14, color: cs.onSurfaceVariant),
-                        ),
+                        Text('Bonjour,', style: TextStyle(fontSize: 14, color: cs.onSurfaceVariant)),
                         const SizedBox(height: 2),
                         Text(
                           name,
-                          style: TextStyle(
-                            fontSize: 24,
-                            fontWeight: FontWeight.w600,
-                            color: cs.onSurface,
-                          ),
+                          style: TextStyle(fontSize: 24, fontWeight: FontWeight.w600, color: cs.onSurface),
                         ),
                       ],
                     ),
@@ -250,7 +297,12 @@ class _HomeScreenState extends State<HomeScreen> {
                     icon: Icon(Icons.history, color: cs.onSurfaceVariant),
                     onPressed: () => Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (_) => HistoryScreen(userId: widget.user['id'] ?? widget.user['sub'], user: widget.user)),
+                      MaterialPageRoute(
+                        builder: (_) => HistoryScreen(
+                          userId: widget.user['id'] ?? widget.user['sub'],
+                          user: widget.user,
+                        ),
+                      ),
                     ),
                   ),
                   IconButton(
@@ -265,7 +317,6 @@ class _HomeScreenState extends State<HomeScreen> {
                 padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
                 child: Column(
                   children: [
-                    // Carte de statut centrale
                     Container(
                       width: double.infinity,
                       padding: const EdgeInsets.all(28),
@@ -273,7 +324,11 @@ class _HomeScreenState extends State<HomeScreen> {
                         color: cs.surfaceContainerHighest,
                         borderRadius: BorderRadius.circular(20),
                         boxShadow: [
-                          BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 12, offset: const Offset(0, 4)),
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.04),
+                            blurRadius: 12,
+                            offset: const Offset(0, 4),
+                          ),
                         ],
                       ),
                       child: Column(
@@ -312,25 +367,25 @@ class _HomeScreenState extends State<HomeScreen> {
                               ),
                               child: Center(
                                 child: _checking
-                                    ? const SizedBox(width: 28, height: 28, child: CircularProgressIndicator(strokeWidth: 3, color: Colors.white))
+                                    ? const SizedBox(
+                                  width: 28,
+                                  height: 28,
+                                  child: CircularProgressIndicator(strokeWidth: 3, color: Colors.white),
+                                )
                                     : Icon(
-                                        isCheckedIn ? Icons.logout : Icons.login,
-                                        size: 40,
-                                        color: Colors.white,
-                                      ),
+                                  isCheckedIn ? Icons.logout : Icons.login,
+                                  size: 40,
+                                  color: Colors.white,
+                                ),
                               ),
                             ),
                           ),
                           const SizedBox(height: 12),
-                          Text(
-                            _status,
-                            style: TextStyle(fontSize: 13, color: cs.onSurfaceVariant),
-                          ),
+                          Text(_status, style: TextStyle(fontSize: 13, color: cs.onSurfaceVariant)),
                         ],
                       ),
                     ),
                     const SizedBox(height: 16),
-                    // Dernier Pointage
                     Container(
                       width: double.infinity,
                       padding: const EdgeInsets.all(20),
@@ -338,7 +393,11 @@ class _HomeScreenState extends State<HomeScreen> {
                         color: cs.surfaceContainerHighest,
                         borderRadius: BorderRadius.circular(20),
                         boxShadow: [
-                          BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 12, offset: const Offset(0, 4)),
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.04),
+                            blurRadius: 12,
+                            offset: const Offset(0, 4),
+                          ),
                         ],
                       ),
                       child: Row(
@@ -357,10 +416,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text(
-                                  'Dernier Pointage',
-                                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: cs.onSurfaceVariant),
-                                ),
+                                Text('Dernier Pointage', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: cs.onSurfaceVariant)),
                                 const SizedBox(height: 4),
                                 Text(
                                   lastArrivee != null ? _formatTime(lastArrivee) : '--:--',
@@ -378,7 +434,6 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                     ),
                     const SizedBox(height: 12),
-                    // Lieu actuel
                     Container(
                       width: double.infinity,
                       padding: const EdgeInsets.all(20),
@@ -386,7 +441,11 @@ class _HomeScreenState extends State<HomeScreen> {
                         color: cs.surfaceContainerHighest,
                         borderRadius: BorderRadius.circular(20),
                         boxShadow: [
-                          BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 12, offset: const Offset(0, 4)),
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.04),
+                            blurRadius: 12,
+                            offset: const Offset(0, 4),
+                          ),
                         ],
                       ),
                       child: Row(
@@ -438,7 +497,6 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ),
             ),
-            // Network info bar
             Container(
               width: double.infinity,
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
@@ -468,7 +526,10 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                   IconButton(
                     icon: const Icon(Icons.refresh, size: 18),
-                    onPressed: () => setState(() { _refreshNetworkInfo(); }),
+                    onPressed: () async {
+                      await _refreshNetworkInfo();
+                      if (mounted) setState(() {});
+                    },
                     padding: EdgeInsets.zero,
                     constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
                   ),
@@ -482,11 +543,20 @@ class _HomeScreenState extends State<HomeScreen> {
         currentIndex: 0,
         onTap: (i) {
           if (i == 1) {
-            Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => ProfileScreen(user: widget.user)));
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (_) => ProfileScreen(user: widget.user)),
+            );
           } else if (i == 2) {
-            Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => RequestsScreen(user: widget.user)));
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (_) => RequestsScreen(user: widget.user)),
+            );
           } else if (i == 3) {
-            Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => SettingsScreen(user: widget.user)));
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (_) => SettingsScreen(user: widget.user)),
+            );
           }
         },
       ),

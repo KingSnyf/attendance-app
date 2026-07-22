@@ -14,7 +14,7 @@ class ApiService {
     await dotenv.load(fileName: '.env');
     
     final baseUrl = dotenv.env['API_BASE_URL'] ?? 'http://192.168.1.181:3002/api';
-    final timeout = int.tryParse(dotenv.env['API_TIMEOUT'] ?? '30000') ?? 30000;
+    final timeout = int.tryParse(dotenv.env['API_TIMEOUT'] ?? '10000') ?? 10000;
     
     _dio.options = BaseOptions(
       baseUrl: baseUrl,

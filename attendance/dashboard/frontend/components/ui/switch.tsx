@@ -18,7 +18,7 @@ function Switch({ checked, onChange, disabled, className }: SwitchProps) {
       onClick={() => onChange(!checked)}
       className={cn(
         "relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors disabled:cursor-not-allowed disabled:opacity-50",
-        checked ? "bg-brand" : "bg-muted",
+        checked ? "bg-[#5363dc]" : "bg-[#dfe3e9]",
         className,
       )}
     >

@@ -1,9 +1,10 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import Link from "next/link"
+import dynamic from "next/dynamic"
 import { useRouter } from "next/navigation"
-import { AlertTriangle, BriefcaseBusiness, CheckCircle2, ChevronDown, Code2, Coffee, Database, Download, Filter, Plus, Search, UserX, Users } from "lucide-react"
+import { AlertTriangle, CheckCircle2, ChevronDown, Coffee, Download, MapPinned, Plus, Search, UserX, Users } from "lucide-react"
 import toast from "react-hot-toast"
 import { Avatar } from "@/components/dashboard/avatar"
 import { PresenceChart } from "@/components/dashboard/presence-chart"
@@ -11,7 +12,12 @@ import { Spinner } from "@/components/ui/spinner"
 import { useDashboardData } from "@/lib/hooks/use-dashboard-data"
 import { useRequests } from "@/lib/hooks/use-requests"
 import { useSettings } from "@/lib/hooks/use-settings"
-import { exporterVersCSV, formatDuree, formatHeure, getNomComplet, telechargerCSV } from "@/lib/utils"
+import { distanceMetres, exporterVersCSV, formatDuree, formatHeure, getNomComplet, telechargerCSV } from "@/lib/utils"
+
+const GeofenceMap = dynamic(
+  () => import("@/components/dashboard/geofence-map").then((m) => m.GeofenceMap),
+  { ssr: false },
+)
 
 type Demande = {
   id: string
@@ -20,8 +26,6 @@ type Demande = {
   dateDemande: string
   user: { firstName: string; lastName: string; photoUrl: string | null }
 }
-
-const departmentIcons = [BriefcaseBusiness, Code2, Database, Users]
 
 export default function DashboardPage() {
   const router = useRouter()
@@ -32,6 +36,8 @@ export default function DashboardPage() {
   const [department, setDepartment] = useState("all")
   const [search, setSearch] = useState("")
   const [employeeView, setEmployeeView] = useState<"tous" | "connectes" | "heure" | "retard">("tous")
+  const sectionRef = useRef<HTMLDivElement>(null)
+  const [sectionHeight, setSectionHeight] = useState<number>(0)
 
   const isLate = (iso?: string | null) => {
     if (!iso || !settings?.heure_debut_journee) return false
@@ -95,6 +101,28 @@ export default function DashboardPage() {
     [requests],
   )
 
+  const onSiteMarkers = useMemo(() => {
+    if (!settings?.coordonnees_bureau || !settings?.rayon_geofencing_metres) return []
+    return (data?.employees ?? [])
+      .filter((employee) => employee.derniere_position)
+      .filter((employee) => distanceMetres(settings.coordonnees_bureau, employee.derniere_position!) <= settings.rayon_geofencing_metres)
+      .map((employee) => ({
+        lat: employee.derniere_position!.lat,
+        lng: employee.derniere_position!.lng,
+        label: getNomComplet(employee),
+        sub: employee.departement,
+      }))
+  }, [data?.employees, settings])
+
+  useEffect(() => {
+    const measure = () => {
+      if (sectionRef.current) setSectionHeight(sectionRef.current.clientHeight)
+    }
+    measure()
+    window.addEventListener("resize", measure)
+    return () => window.removeEventListener("resize", measure)
+  }, [data, period, department])
+
   if (isLoading) return <div className="flex min-h-[55vh] items-center justify-center gap-3 text-[#7d8496]"><Spinner /> Chargement du tableau de bord...</div>
   if (error || !data) return <div className="p-6 text-sm text-red-600">Impossible de charger le tableau de bord.</div>
 
@@ -136,8 +164,8 @@ export default function DashboardPage() {
         ))}
       </div>
 
-      <div className="grid gap-4 xl:grid-cols-[minmax(0,1.65fr)_minmax(250px,.62fr)_minmax(300px,.8fr)]">
-        <section className="min-w-0 space-y-4">
+      <div className="flex gap-4 items-start">
+        <section ref={sectionRef} className="flex-[1.65] min-w-0 space-y-4">
           <div className="overflow-hidden rounded-lg border border-[#e1e5eb] bg-white shadow-[0_2px_10px_rgba(31,42,68,.04)]">
             <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#eef0f3] px-5 py-4">
               <div>
@@ -145,8 +173,12 @@ export default function DashboardPage() {
                 <p className="text-[10px] text-[#8a91a3]">{period === "semaine" ? "Semaine en cours" : "Vue mensuelle"}</p>
               </div>
               <div className="flex items-center gap-2">
-                <button className="flex items-center gap-2 rounded-md border border-[#dfe3e9] px-3 py-2 text-[11px] text-[#454d61]"><Filter className="size-3" /> Tous les départements</button>
-                <select value={period} onChange={(event) => setPeriod(event.target.value as "semaine" | "mois")} className="rounded-md border border-[#dfe3e9] bg-white px-3 py-2 text-[11px]">
+                <select value={department} onChange={(event) => setDepartment(event.target.value)}
+                  className="h-9 rounded-md border border-[#dfe3e9] bg-white px-3 text-[11px] text-[#454d61]">
+                  <option value="all">Tous les départements</option>
+                  {departments.map((item) => <option key={item.name} value={item.name}>{item.name}</option>)}
+                </select>
+                <select value={period} onChange={(event) => setPeriod(event.target.value as "semaine" | "mois")} className="h-9 rounded-md border border-[#dfe3e9] bg-white px-3 text-[11px]">
                   <option value="semaine">Semaine</option>
                   <option value="mois">Mois</option>
                 </select>
@@ -181,7 +213,7 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            <div className="min-h-56 rounded-lg border border-[#e1e5eb] bg-white p-5">
+            <div className="rounded-lg border border-[#e1e5eb] bg-white p-5">
               <div className="mb-5 flex items-center justify-between">
                 <div>
                   <h2 className="text-sm font-semibold text-[#17203a]">Aperçu opérationnel</h2>
@@ -202,31 +234,8 @@ export default function DashboardPage() {
           </div>
         </section>
 
-        <aside className="space-y-3">
-          <div className="flex items-center justify-between px-1">
-            <h2 className="text-xs font-semibold text-[#111a35]">Tous les départements</h2>
-            <ChevronDown className="size-3.5 text-[#7c8496]" />
-          </div>
-          {departments.slice(0, 5).map((item, index) => {
-            const Icon = departmentIcons[index % departmentIcons.length]
-            return (
-              <button key={item.name} onClick={() => setDepartment(item.name)} className="w-full rounded-lg border border-[#e1e5eb] bg-white p-4 text-left shadow-[0_2px_8px_rgba(31,42,68,.03)]">
-                <div className="grid grid-cols-[1fr_auto] gap-3">
-                  <div><p className="text-[10px] text-[#8a91a3]">Total</p><p className="font-data text-2xl font-semibold text-[#111a35]">{item.total}</p></div>
-                  <div className="grid grid-cols-[auto_24px] gap-x-3 text-[9px] text-[#7d8496]">
-                    <span>À l'heure</span><b className="text-[#17203a]">{String(item.onTime).padStart(2, "0")}</b>
-                    <span>Retard</span><b className="text-[#17203a]">{String(item.late).padStart(2, "0")}</b>
-                    <span>Congé</span><b className="text-[#17203a]">{String(item.leave).padStart(2, "0")}</b>
-                  </div>
-                </div>
-                <div className="mt-3 flex items-center gap-2 border-t border-[#eef0f3] pt-3"><Icon className="size-4 text-[#4f5fd8]" /><span className="truncate text-[10px] font-medium text-[#4c5468]">{item.name}</span></div>
-              </button>
-            )
-          })}
-        </aside>
-
-        <aside className="rounded-lg border border-[#e1e5eb] bg-white">
-          <div className="border-b border-[#eef0f3] p-4">
+        <aside className="flex-[1.35] min-w-0 flex flex-col rounded-lg border border-[#e1e5eb] bg-white overflow-hidden" style={sectionHeight ? { maxHeight: sectionHeight } : undefined}>
+          <div className="shrink-0 border-b border-[#eef0f3] p-4">
             <div className="flex items-center justify-between"><h2 className="text-xs font-semibold text-[#111a35]">Sélection du département</h2><ChevronDown className="size-3.5" /></div>
             <div className="mt-4 flex gap-4 overflow-x-auto text-[10px]">
               {([
@@ -246,14 +255,14 @@ export default function DashboardPage() {
             </div>
             <div className="relative mt-3"><Search className="absolute left-3 top-2.5 size-3.5 text-[#9298a8]" /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Rechercher un employé" className="h-9 w-full rounded-md border border-[#e2e5eb] pl-9 pr-3 text-[10px] outline-none focus:border-[#5363dc]" /></div>
           </div>
-          <div>
+          <div style={{ flex: '1 1 0%', minHeight: '0', overflowY: 'auto' }}>
             {quickEmployees.map((employee) => (
-              <button key={employee.id} onClick={() => router.push(`/dashboard/employes/${employee.id}`)} className="flex w-full items-start gap-3 border-b border-[#eef0f3] px-4 py-4 text-left last:border-0 hover:bg-[#fafbfc]">
+              <button key={employee.id} onClick={() => router.push(`/dashboard/employes/${employee.id}`)} className="flex w-full items-start gap-3 border-b border-[#eef0f3] px-4 py-3 text-left last:border-0 hover:bg-[#fafbfc]">
                 <Avatar nom={getNomComplet(employee)} src={employee.photo_url} size="sm" />
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center justify-between gap-2"><p className="truncate text-xs font-semibold text-[#17203a]">{getNomComplet(employee)}</p><span className={`size-1.5 rounded-full ${isLate(employee.premiere_arrivee) ? "bg-[#55c4df]" : "bg-[#5363dc]"}`} /></div>
                   <p className="truncate text-[9px] text-[#8a91a3]">{employee.departement} | {employee.role}</p>
-                  <p className="font-data mt-2 text-[9px] text-[#61697c]">Arrivée : {employee.premiere_arrivee ? formatHeure(employee.premiere_arrivee) : "Pas encore connecté"}</p>
+                  <p className="font-data mt-1.5 text-[9px] text-[#61697c]">Arrivée : {employee.premiere_arrivee ? formatHeure(employee.premiere_arrivee) : "Pas encore connecté"}</p>
                   <p className="font-data text-[9px] text-[#8a91a3]">Départ : -</p>
                 </div>
               </button>
@@ -262,6 +271,28 @@ export default function DashboardPage() {
           </div>
         </aside>
       </div>
+
+      {settings?.coordonnees_bureau && (
+        <div className="mt-4 overflow-hidden rounded-lg border border-[#e1e5eb] bg-white shadow-[0_2px_10px_rgba(31,42,68,.04)]">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#eef0f3] px-5 py-4">
+            <div className="flex items-center gap-3">
+              <span className="flex size-9 items-center justify-center rounded-lg bg-[#eef1ff] text-[#5363dc]"><MapPinned className="size-4" /></span>
+              <div>
+                <h2 className="text-sm font-semibold text-[#111a35]">Présence sur site</h2>
+                <p className="text-[10px] text-[#8a91a3]">Zone autorisée et employés actuellement à l'intérieur ({onSiteMarkers.length})</p>
+              </div>
+            </div>
+          </div>
+          <div className="p-3">
+            <GeofenceMap
+              center={settings.coordonnees_bureau}
+              radius={settings.rayon_geofencing_metres}
+              markers={onSiteMarkers}
+              height="h-96"
+            />
+          </div>
+        </div>
+      )}
     </div>
   )
 }

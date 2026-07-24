@@ -69,8 +69,8 @@ export default function DemandesPage() {
           <div className="flex items-center gap-3">
             <Avatar nom={`${u.firstName} ${u.lastName}`} src={u.photoUrl} size="sm" />
 <div>
-                <p className="text-sm font-medium text-[#17203a]">{u.firstName} {u.lastName}</p>
-                <p className="text-[11px] text-[#8a91a3]">{u.departement || ""}</p>
+                <p className="text-[11px] font-medium text-[#17203a]">{u.firstName} {u.lastName}</p>
+                <p className="text-[9px] text-[#8a91a3]">{u.departement || ""}</p>
               </div>
           </div>
         );
@@ -98,7 +98,7 @@ export default function DemandesPage() {
             </Button>
           </div>
         ) : (
-          <span className="text-xs text-[#8a91a3]">{r.traiteePar ? "Traité" : "—"}</span>
+          <span className="text-[10px] text-[#8a91a3]">{r.traiteePar ? "Traité" : "—"}</span>
         );
       },
     },

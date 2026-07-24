@@ -88,22 +88,20 @@ export default function LogsPage() {
   ]
 
   if (user?.role !== "admin") {
-    return <Card>Accès réservé aux administrateurs.</Card>
+    return <Card><p className="p-6 text-center text-[11px] text-[#8a91a3]">Accès réservé aux administrateurs.</p></Card>
   }
 
   if (isLoading) {
-    return <div className="flex min-h-[30vh] items-center justify-center gap-3 text-muted-foreground"><Spinner /><span>Chargement des logs...</span></div>
+    return <div className="flex min-h-[55vh] items-center justify-center gap-3 text-[#7d8496]"><Spinner /><span>Chargement des logs...</span></div>
   }
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-semibold tracking-tight text-foreground">
-          Journal d'activité
-        </h2>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Historique des actions administratives sur la plateforme.
-        </p>
+    <div className="mx-auto max-w-362.5 space-y-6">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <p className="mb-1 text-[11px] text-[#8a91a3]">Tableau de bord / Journal</p>
+          <h1 className="text-lg font-semibold text-[#111a35]">Journal d'activité</h1>
+        </div>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -120,14 +118,14 @@ export default function LogsPage() {
 
       <Card className="grid gap-3 lg:grid-cols-4">
         <select value={authorFilter} onChange={(e) => setAuthorFilter(e.target.value)}
-          className="h-10 rounded-xl border border-border bg-card px-3 text-sm">
+          className="h-9 rounded-md border border-[#dfe3e9] bg-white px-3 text-[11px] text-[#454d61]">
           <option value="all">Tous les auteurs</option>
           {employees.map((employee: any) => (
             <option key={employee.id} value={employee.id}>{getNomComplet(employee)}</option>
           ))}
         </select>
         <select value={actionFilter} onChange={(e) => setActionFilter(e.target.value)}
-          className="h-10 rounded-xl border border-border bg-card px-3 text-sm">
+          className="h-9 rounded-md border border-[#dfe3e9] bg-white px-3 text-[11px] text-[#454d61]">
           <option value="all">Tous les types</option>
           <option value="creation">Création</option>
           <option value="modification">Modification</option>
@@ -149,7 +147,7 @@ export default function LogsPage() {
         description="Sélectionnez les colonnes à inclure dans le fichier exporté.">
         <div className="space-y-3">
           {COLONNES_EXPORT.map((col) => (
-            <label key={col.key} className="flex items-center gap-2 text-sm text-foreground">
+            <label key={col.key} className="flex items-center gap-2 text-[11px] text-[#454d61]">
               <input type="checkbox" checked={colonnes.includes(col.key)}
                 onChange={(e) => { setColonnes(e.target.checked ? [...colonnes, col.key] : colonnes.filter((c) => c !== col.key)) }} />
               {col.label}

@@ -55,16 +55,16 @@ function SectionHeader({
       <div
         className={
           tone === "brand"
-            ? "flex size-12 items-center justify-center rounded-xl bg-brand/10 text-brand"
-            : "flex size-12 items-center justify-center rounded-xl bg-signal/10 text-signal"
+            ? "flex size-9 items-center justify-center rounded-lg bg-brand/10 text-brand"
+            : "flex size-9 items-center justify-center rounded-lg bg-signal/10 text-signal"
         }
       >
-        <Icon className="size-5" />
+        <Icon className="size-4" />
       </div>
       <div>
-        <h3 className="text-lg font-semibold text-foreground">{title}</h3>
+        <h3 className="text-sm font-semibold text-[#17203a]">{title}</h3>
         {description && (
-          <p className="text-sm text-muted-foreground">{description}</p>
+          <p className="text-[10px] text-[#8a91a3]">{description}</p>
         )}
       </div>
     </div>
@@ -83,14 +83,14 @@ function RuleCard({
   children: React.ReactNode;
 }) {
   return (
-    <div className="group rounded-2xl border border-border bg-muted/30 p-4 transition-colors hover:border-brand/40">
+    <div className="group rounded-lg bg-[#f4f6f8]/30 p-4 transition-colors hover:bg-[#eef1ff]/50">
       <div className="mb-3 flex items-center gap-3">
-        <Icon className="size-5 text-brand transition-transform group-hover:scale-110" />
-        <h4 className="text-xs font-semibold uppercase tracking-wide text-foreground">
+        <Icon className="size-4 text-brand transition-transform group-hover:scale-110" />
+        <h4 className="text-[10px] font-semibold uppercase tracking-wide text-[#17203a]">
           {label}
         </h4>
       </div>
-      <p className="mb-4 text-sm text-muted-foreground">{description}</p>
+      <p className="mb-4 text-[9px] text-[#8a91a3]">{description}</p>
       {children}
     </div>
   );
@@ -162,7 +162,7 @@ export default function ParametresPage() {
   if (user?.role !== "admin" && user?.role !== "gestionnaire") {
     return (
       <Card>
-        <p className="p-6 text-center text-muted-foreground">
+        <p className="p-6 text-center text-[#8a91a3]">
           Accès réservé aux administrateurs et gestionnaires.
         </p>
       </Card>
@@ -173,7 +173,7 @@ export default function ParametresPage() {
 
   if (settingsLoading) {
     return (
-      <div className="flex min-h-[30vh] items-center justify-center gap-3 text-muted-foreground">
+      <div className="flex min-h-[30vh] items-center justify-center gap-3 text-[#8a91a3]">
         <Spinner />
         <span>Chargement des paramètres système…</span>
       </div>
@@ -183,7 +183,7 @@ export default function ParametresPage() {
   if (!settings) {
     return (
       <Card>
-        <p className="p-6 text-center text-muted-foreground">
+        <p className="p-6 text-center text-[#8a91a3]">
           Impossible de charger les paramètres. Vérifie que le backend est lancé.
         </p>
       </Card>
@@ -231,13 +231,13 @@ export default function ParametresPage() {
   ) => setSettings((prev) => prev && { ...prev, [key]: value });
 
   return (
-    <div className="space-y-6">
-      {/* === EN-TÊTE === */}
+    <div className="mx-auto max-w-362.5 space-y-6">
       <div>
-        <h2 className="text-2xl font-semibold tracking-tight text-foreground">
+        <p className="mb-1 text-[11px] text-[#8a91a3]">Tableau de bord / Paramètres</p>
+        <h2 className="text-lg font-semibold text-[#17203a]">
           Paramètres système
         </h2>
-        <p className="mt-1 text-sm text-muted-foreground">
+        <p className="mt-1 text-[11px] text-[#8a91a3]">
           Configure les protocoles de sécurité et de présence de l'organisation.
         </p>
       </div>
@@ -245,7 +245,7 @@ export default function ParametresPage() {
       {/* === BENTO ROW: PROFIL + SÉCURITÉ === */}
       <div className="grid gap-6 lg:grid-cols-12">
         {/* Profil */}
-        <Card className="lg:col-span-8">
+        <Card className="p-6 lg:col-span-8">
           <SectionHeader icon={User} title="Mon profil" description="Identité et photo affichées dans l'application." />
           <div className="mt-6 flex flex-col gap-6 lg:flex-row lg:items-start">
             <button
@@ -302,7 +302,7 @@ export default function ParametresPage() {
           </div>
 
           {/* Changer le mot de passe */}
-          <div className="mt-8 border-t border-border pt-6">
+          <div className="mt-8 pt-6">
             <SectionHeader icon={Lock} title="Changer mon mot de passe" description="Met à jour le mot de passe de ton compte." />
             <div className="mt-6 grid gap-4 sm:grid-cols-3">
               <Input
@@ -334,7 +334,7 @@ export default function ParametresPage() {
         </Card>
 
         {/* Statut sécurité réseau -- carte accent sombre */}
-        <div className="relative flex flex-col justify-between overflow-hidden rounded-2xl bg-primary p-6 text-primary-foreground shadow-sm lg:col-span-4">
+        <div className="relative flex flex-col justify-between overflow-hidden rounded-lg bg-primary p-6 text-primary-foreground shadow-sm lg:col-span-4">
           <div className="pointer-events-none absolute -right-10 -top-10 size-40 rounded-full bg-brand/20 blur-3xl" />
           <div className="relative">
             <div className="mb-4 flex items-center justify-between">
@@ -343,8 +343,8 @@ export default function ParametresPage() {
               </span>
               <Shield className="size-5 text-primary-foreground/70" />
             </div>
-            <h4 className="mb-1 text-lg font-bold">Intégrité réseau</h4>
-            <p className="text-sm text-primary-foreground/70">
+            <h4 className="mb-1 text-sm font-semibold">Intégrité réseau</h4>
+            <p className="text-[10px] text-primary-foreground/70">
               Accès restreint au Wi-Fi et à la plage IP du bureau.
             </p>
           </div>
@@ -390,8 +390,8 @@ export default function ParametresPage() {
       </div>
 
       {/* === GÉOFENCING === */}
-      <Card className="overflow-hidden p-0">
-        <div className="flex flex-wrap items-center justify-between gap-4 border-b border-border p-6">
+<Card className="overflow-hidden p-0">
+        <div className="flex flex-wrap items-center justify-between gap-4 p-6">
           <SectionHeader
             icon={MapPinned}
             tone="signal"
@@ -399,10 +399,10 @@ export default function ParametresPage() {
             description="Zone géographique autorisée pour l'émargement mobile."
           />
           <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2 rounded-lg border border-border bg-muted/40 px-3 py-1.5 text-sm text-foreground">
+            <div className="flex items-center gap-2 rounded-lg bg-[#f4f6f8]/40 px-3 py-1.5 text-[11px] text-[#17203a]">
               Rayon : <span className="font-semibold">{settings.rayon_geofencing_metres}m</span>
             </div>
-            <label className="flex items-center gap-2 text-sm font-medium text-foreground">
+            <label className="flex items-center gap-2 text-[10px] font-medium text-[#17203a]">
               Activer
               <Switch
                 checked={settings.geofencing_actif}
@@ -419,9 +419,9 @@ export default function ParametresPage() {
               radius={settings.rayon_geofencing_metres}
             />
           </div>
-          <div className="grid gap-4 border-t border-border p-6 sm:grid-cols-2 lg:border-l lg:border-t-0">
+          <div className="grid gap-4 bg-[#f4f6f8]/20 p-6 sm:grid-cols-2">
             <div className="space-y-2">
-              <label className="text-sm font-medium text-foreground">
+              <label className="text-[10px] font-medium text-[#17203a]">
                 Rayon de sécurité (mètres)
               </label>
               <Input
@@ -435,7 +435,7 @@ export default function ParametresPage() {
             </div>
             <div />
             <div className="space-y-2">
-              <label className="text-sm font-medium text-foreground">Latitude</label>
+              <label className="text-[10px] font-medium text-[#17203a]">Latitude</label>
               <Input
                 type="number"
                 step="0.0001"
@@ -456,7 +456,7 @@ export default function ParametresPage() {
               />
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-medium text-foreground">Longitude</label>
+              <label className="text-[10px] font-medium text-[#17203a]">Longitude</label>
               <Input
                 type="number"
                 step="0.0001"
@@ -481,7 +481,7 @@ export default function ParametresPage() {
       </Card>
 
       {/* === RÈGLES DE PRÉSENCE === */}
-      <Card>
+      <Card className="p-6">
         <SectionHeader
           icon={Building2}
           title="Règles de présence & conformité"
@@ -522,7 +522,7 @@ export default function ParametresPage() {
             description="Exiger que le pointage se fasse dans le périmètre autorisé."
           >
             <div className="flex items-center justify-between">
-              <span className="text-sm font-semibold text-foreground">
+              <span className="text-[10px] font-semibold text-[#17203a]">
                 {settings.geofencing_actif ? "Activé" : "Désactivé"}
               </span>
               <Switch
@@ -538,7 +538,7 @@ export default function ParametresPage() {
             description="Autoriser une validation manuelle si le GPS échoue."
           >
             <div className="flex items-center justify-between">
-              <span className="text-sm font-semibold text-foreground">
+              <span className="text-[10px] font-semibold text-[#17203a]">
                 {settings.geolocalisation_secours_active ? "Activé" : "Désactivé"}
               </span>
               <Switch
@@ -554,11 +554,11 @@ export default function ParametresPage() {
       </Card>
 
       {/* === HORAIRES STANDARD === */}
-      <Card>
+      <Card className="p-6">
         <SectionHeader icon={Clock} title="Horaires standard" description="Plage horaire de référence pour le calcul des retards." />
         <div className="mt-6 grid gap-6 lg:grid-cols-2">
           <div className="space-y-2">
-            <label className="text-sm font-medium text-foreground">
+            <label className="text-[10px] font-medium text-[#17203a]">
               Début de journée
             </label>
             <Input
@@ -569,7 +569,7 @@ export default function ParametresPage() {
             />
           </div>
           <div className="space-y-2">
-            <label className="text-sm font-medium text-foreground">
+            <label className="text-[10px] font-medium text-[#17203a]">
               Fin de journée
             </label>
             <Input
@@ -583,11 +583,11 @@ export default function ParametresPage() {
       </Card>
 
       {/* === CALENDRIER === */}
-      <Card>
+      <Card className="p-6">
         <SectionHeader icon={CalendarDays} title="Calendrier" description="Jours fériés et jours ouvrés de l'organisation." />
         <div className="mt-6 grid gap-6 lg:grid-cols-2">
           <div className="space-y-2">
-            <label className="text-sm font-medium text-foreground">
+            <label className="text-[10px] font-medium text-[#17203a]">
               Jours fériés (un par ligne)
             </label>
             <textarea
@@ -602,19 +602,19 @@ export default function ParametresPage() {
                 )
               }
               disabled={isReadOnly}
-              className="min-h-36 w-full resize-none rounded-xl border border-border bg-card p-3 text-sm outline-none transition focus:border-brand focus:ring-1 focus:ring-brand/20 disabled:cursor-not-allowed disabled:opacity-60"
+              className="min-h-36 w-full resize-none rounded-md border border-[#e1e5eb] bg-white p-3 text-[11px] outline-none transition focus:border-brand focus:ring-1 focus:ring-brand/20 disabled:cursor-not-allowed disabled:opacity-60"
               placeholder="2026-01-01"
             />
           </div>
           <div className="space-y-2">
-            <label className="text-sm font-medium text-foreground">
+            <label className="text-[10px] font-medium text-[#17203a]">
               Jours ouvrés
             </label>
             <div className="grid gap-3 sm:grid-cols-2">
               {joursSemaine.map((jour) => (
                 <label
                   key={jour}
-                  className="flex cursor-pointer items-center gap-3 rounded-xl border border-border px-4 py-3 text-sm text-foreground transition hover:bg-muted has-checked:border-brand has-checked:bg-brand/5"
+                  className="flex cursor-pointer items-center gap-3 rounded-md bg-[#f4f6f8]/40 px-4 py-3 text-[11px] text-[#17203a] transition hover:bg-[#eef1ff]/50 has-checked:bg-brand/5"
                 >
                   <input
                     type="checkbox"
@@ -644,12 +644,12 @@ export default function ParametresPage() {
 
       {/* === SAUVEGARDE GLOBALE === */}
       {!isReadOnly && (
-        <div className="flex items-center justify-between rounded-2xl border border-border bg-card p-4">
+        <div className="flex items-center justify-between rounded-lg border border-[#e1e5eb] bg-white p-5">
           <div>
-            <p className="text-sm font-medium text-foreground">
+            <p className="text-[11px] font-semibold text-[#17203a]">
               Paramètres système
             </p>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-[10px] text-[#8a91a3]">
               La sauvegarde concerne le réseau, le géofencing, les règles et le
               calendrier.
             </p>

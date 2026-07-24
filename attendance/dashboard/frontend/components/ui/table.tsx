@@ -2,7 +2,7 @@ import { cn } from "@/lib/utils"
 import type { HTMLAttributes, TdHTMLAttributes, ThHTMLAttributes } from "react"
 
 function TableWrapper({ className, ...props }: HTMLAttributes<HTMLDivElement>) {
-  return <div className={cn("overflow-x-auto rounded-xl border border-border", className)} {...props} />
+  return <div className={cn("overflow-x-auto rounded-lg border border-border", className)} {...props} />
 }
 
 function Table({ className, ...props }: HTMLAttributes<HTMLTableElement>) {

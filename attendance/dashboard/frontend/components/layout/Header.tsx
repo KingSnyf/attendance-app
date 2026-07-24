@@ -1,11 +1,13 @@
 "use client"
 
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { usePathname, useRouter } from "next/navigation"
-import { AlertTriangle, Bell, CalendarDays, CheckCircle2, ChevronDown, ClipboardList, FileEdit, Menu } from "lucide-react"
+import { AlertTriangle, Bell, CalendarDays, CheckCircle2, ChevronDown, ClipboardList, FileEdit, Menu, Search } from "lucide-react"
 import { navigation } from "@/components/layout/navigation"
 import { useAuth } from "@/hooks/useAuth"
 import { useNotifications } from "@/lib/hooks/use-notifications"
+import { useEmployees } from "@/lib/hooks/use-employees"
+import { getNomComplet } from "@/lib/utils"
 
 function Header({ onToggleSidebar }: { onToggleSidebar?: () => void }) {
   const pathname = usePathname()
@@ -15,6 +17,10 @@ function Header({ onToggleSidebar }: { onToggleSidebar?: () => void }) {
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
   const { data: notifs } = useNotifications()
+  const { data: employees = [] } = useEmployees()
+  const [search, setSearch] = useState("")
+  const [searchOpen, setSearchOpen] = useState(false)
+  const searchRef = useRef<HTMLDivElement>(null)
   const initials = user ? `${user.prenom?.[0] ?? ""}${user.nom?.[0] ?? ""}`.toUpperCase() : ""
   const counts = {
     anomalies: notifs?.anomalies ?? 0,
@@ -23,9 +29,18 @@ function Header({ onToggleSidebar }: { onToggleSidebar?: () => void }) {
   }
   const total = counts.anomalies + counts.modifications + counts.requests
 
+  const searchResults = useMemo(() => {
+    if (!search.trim()) return []
+    const q = search.toLowerCase()
+    return employees
+      .filter((employee) => getNomComplet(employee).toLowerCase().includes(q) || employee.departement?.toLowerCase().includes(q))
+      .slice(0, 6)
+  }, [employees, search])
+
   useEffect(() => {
     const close = (event: MouseEvent) => {
       if (ref.current && !ref.current.contains(event.target as Node)) setOpen(false)
+      if (searchRef.current && !searchRef.current.contains(event.target as Node)) setSearchOpen(false)
     }
     document.addEventListener("mousedown", close)
     return () => document.removeEventListener("mousedown", close)
@@ -51,11 +66,46 @@ function Header({ onToggleSidebar }: { onToggleSidebar?: () => void }) {
         </div>
       </div>
 
+      <div ref={searchRef} className="relative mx-4 hidden max-w-xs flex-1 md:block">
+        <Search className="pointer-events-none absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-[#9298a8]" />
+        <input
+          value={search}
+          onChange={(event) => { setSearch(event.target.value); setSearchOpen(true) }}
+          onFocus={() => setSearchOpen(true)}
+          placeholder="Rechercher un employé, un département..."
+          className="h-9 w-full rounded-md border border-[#e2e5eb] bg-[#f7f8fa] pl-8 pr-3 text-[11px] outline-none focus:border-[#5363dc] focus:bg-white"
+        />
+        {searchOpen && search.trim() && (
+          <div className="absolute left-0 top-11 w-80 rounded-lg border border-[#e1e5eb] bg-white p-2 shadow-xl">
+            {searchResults.map((employee) => (
+              <button
+                key={employee.id}
+                onClick={() => { router.push(`/dashboard/employes/${employee.id}`); setSearch(""); setSearchOpen(false) }}
+                className="flex w-full items-center gap-3 rounded-md px-2 py-2 text-left hover:bg-[#f7f8fa]"
+              >
+                <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-[#eef1ff] text-[10px] font-semibold text-[#5363dc]">
+                  {getNomComplet(employee).slice(0, 2).toUpperCase()}
+                </span>
+                <span className="min-w-0">
+                  <span className="block truncate text-xs font-medium text-[#17203a]">{getNomComplet(employee)}</span>
+                  <span className="block truncate text-[9px] text-[#8a91a3]">{employee.departement}</span>
+                </span>
+              </button>
+            ))}
+            {!searchResults.length && <p className="p-3 text-center text-[11px] text-[#8a91a3]">Aucun résultat.</p>}
+          </div>
+        )}
+      </div>
+
       <div className="flex items-center gap-3">
         <div ref={ref} className="relative">
           <button onClick={() => setOpen(!open)} className="relative flex size-10 items-center justify-center rounded-lg text-[#6e7587] hover:bg-[#f4f6f9]" aria-label="Notifications">
             <Bell className="size-5" />
-            {total > 0 && <span className="absolute right-1.5 top-1.5 size-2 rounded-full bg-[#df5967] ring-2 ring-white" />}
+            {total > 0 && (
+              <span className="absolute -right-1 -top-1 flex h-4.5 min-w-4.5 items-center justify-center rounded-full bg-[#df5967] px-1 text-[9px] font-semibold text-white ring-2 ring-white">
+                {total > 9 ? "9+" : total}
+              </span>
+            )}
           </button>
           {open && (
             <div className="absolute right-0 top-12 w-80 rounded-lg border border-[#e1e5eb] bg-white p-4 shadow-xl">

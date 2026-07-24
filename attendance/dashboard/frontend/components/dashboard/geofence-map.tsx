@@ -24,13 +24,15 @@ type GeofenceMapProps = {
   center: { lat: number; lng: number }
   radius: number
   lastPosition?: { lat: number; lng: number; date: string } | null
+  markers?: Array<{ lat: number; lng: number; label: string; sub?: string }>
+  height?: string
 }
 
-function GeofenceMap({ center, radius, lastPosition }: GeofenceMapProps) {
+function GeofenceMap({ center, radius, lastPosition, markers, height = "h-64" }: GeofenceMapProps) {
   const coords: [number, number] = [center.lat, center.lng]
 
   return (
-    <div className="h-64 overflow-hidden rounded-2xl">
+    <div className={`${height} overflow-hidden rounded-lg`}>
       <MapContainer
         center={coords}
         zoom={16}
@@ -45,7 +47,7 @@ function GeofenceMap({ center, radius, lastPosition }: GeofenceMapProps) {
         <Circle
           center={coords}
           radius={radius}
-          pathOptions={{ color: "#f97316", fillOpacity: 0.15 }}
+          pathOptions={{ color: "#5363dc", fillOpacity: 0.12 }}
         />
         {lastPosition && (
           <Marker position={[lastPosition.lat, lastPosition.lng]}>
@@ -56,6 +58,14 @@ function GeofenceMap({ center, radius, lastPosition }: GeofenceMapProps) {
             </Popup>
           </Marker>
         )}
+        {markers?.map((marker, index) => (
+          <Marker key={index} position={[marker.lat, marker.lng]}>
+            <Popup>
+              <b>{marker.label}</b>
+              {marker.sub && <><br />{marker.sub}</>}
+            </Popup>
+          </Marker>
+        ))}
       </MapContainer>
     </div>
   )

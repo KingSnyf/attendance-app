@@ -62,7 +62,7 @@ export default function AnomaliesPage() {
 
   if (isLoading) {
     return (
-      <div className="flex min-h-[30vh] items-center justify-center gap-3 text-muted-foreground">
+      <div className="flex min-h-[55vh] items-center justify-center gap-3 text-[#7d8496]">
         <Spinner />
         <span>Chargement des anomalies...</span>
       </div>
@@ -71,21 +71,19 @@ export default function AnomaliesPage() {
 
   if (error) {
     return (
-      <div className="flex min-h-[30vh] items-center justify-center">
-        <p className="text-sm text-destructive">Erreur lors du chargement des anomalies.</p>
+      <div className="flex min-h-[55vh] items-center justify-center">
+        <p className="text-sm text-[#93000a]">Erreur lors du chargement des anomalies.</p>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-semibold tracking-tight text-foreground">
-          Gestion des anomalies
-        </h2>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Surveillance des irrégularités de présence et de géolocalisation.
-        </p>
+    <div className="mx-auto max-w-362.5 space-y-6">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <p className="mb-1 text-[11px] text-[#8a91a3]">Tableau de bord / Anomalies</p>
+          <h1 className="text-lg font-semibold text-[#111a35]">Anomalies</h1>
+        </div>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -99,7 +97,7 @@ export default function AnomaliesPage() {
         <select
           value={statusFilter}
           onChange={(event) => setStatusFilter(event.target.value)}
-          className="h-10 rounded-xl border border-border bg-card px-3 text-sm"
+          className="h-9 rounded-md border border-[#dfe3e9] bg-white px-3 text-[11px] text-[#454d61]"
         >
           <option value="all">Tous les statuts</option>
           <option value="non_traitee">Non traitées</option>
@@ -108,7 +106,7 @@ export default function AnomaliesPage() {
         <select
           value={typeFilter}
           onChange={(event) => setTypeFilter(event.target.value)}
-          className="h-10 rounded-xl border border-border bg-card px-3 text-sm"
+          className="h-9 rounded-md border border-[#dfe3e9] bg-white px-3 text-[11px] text-[#454d61]"
         >
           <option value="all">Tous les types</option>
           <option value="device_different">Appareil différent</option>
@@ -119,7 +117,7 @@ export default function AnomaliesPage() {
         <select
           value={employeeFilter}
           onChange={(event) => setEmployeeFilter(event.target.value)}
-          className="h-10 rounded-xl border border-border bg-card px-3 text-sm"
+          className="h-9 rounded-md border border-[#dfe3e9] bg-white px-3 text-[11px] text-[#454d61]"
         >
           <option value="all">Tous les employés</option>
           {employees.map((employee) => (
@@ -128,13 +126,13 @@ export default function AnomaliesPage() {
             </option>
           ))}
         </select>
-        <label className="flex items-center gap-2 rounded-xl border border-border px-3">
+        <label className="flex items-center gap-2 rounded-md border border-[#dfe3e9] px-3 h-9">
           <input
             type="checkbox"
             checked={geoOnly}
             onChange={(event) => setGeoOnly(event.target.checked)}
           />
-          <span className="text-sm text-foreground">Seulement géofencing</span>
+          <span className="text-[11px] text-[#454d61]">Seulement géofencing</span>
         </label>
       </Card>
 
@@ -148,7 +146,7 @@ export default function AnomaliesPage() {
                 <Badge variant={a.criticite === 'critique' ? 'danger' : a.criticite === 'moyen' ? 'warning' : 'info'}>
                   {a.criticite === 'critique' ? 'Critique' : a.criticite === 'moyen' ? 'Moyen' : 'Faible'}
                 </Badge>
-              ) : <span className="text-muted-foreground">—</span>;
+              ) : <span className="text-[#8a91a3]">—</span>;
             }},
             { accessorKey: "employe", header: "Employé", enableSorting: true, cell: ({ row }) => row.original.employe ? getNomComplet(row.original.employe) : "Inconnu" },
             { accessorKey: "description", header: "Description", enableSorting: false, cell: ({ row }) => row.original.description },
@@ -185,10 +183,10 @@ export default function AnomaliesPage() {
           <textarea
             value={comment}
             onChange={(event) => setComment(event.target.value)}
-            className="min-h-28 w-full rounded-2xl border border-border bg-card p-3 text-sm outline-none focus:border-brand"
+            className="min-h-28 w-full rounded-md border border-[#dfe3e9] bg-white p-3 text-[11px] text-[#454d61] outline-none focus:border-[#5363dc]"
             placeholder="Commentaire de traitement"
           />
-          <label className="flex items-center gap-2 text-sm text-foreground">
+          <label className="flex items-center gap-2 text-[11px] text-[#454d61]">
             <input
               type="checkbox"
               checked={geolocVerified}

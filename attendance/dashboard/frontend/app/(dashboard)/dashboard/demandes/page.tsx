@@ -68,10 +68,10 @@ export default function DemandesPage() {
         return (
           <div className="flex items-center gap-3">
             <Avatar nom={`${u.firstName} ${u.lastName}`} src={u.photoUrl} size="sm" />
-            <div>
-              <p className="text-sm font-medium text-foreground">{u.firstName} {u.lastName}</p>
-              <p className="text-xs text-muted-foreground">{u.departement || ""}</p>
-            </div>
+<div>
+                <p className="text-sm font-medium text-[#17203a]">{u.firstName} {u.lastName}</p>
+                <p className="text-[11px] text-[#8a91a3]">{u.departement || ""}</p>
+              </div>
           </div>
         );
       },
@@ -98,7 +98,7 @@ export default function DemandesPage() {
             </Button>
           </div>
         ) : (
-          <span className="text-xs text-muted-foreground">{r.traiteePar ? "Traité" : "—"}</span>
+          <span className="text-xs text-[#8a91a3]">{r.traiteePar ? "Traité" : "—"}</span>
         );
       },
     },
@@ -106,7 +106,7 @@ export default function DemandesPage() {
 
   if (isLoading) {
     return (
-      <div className="flex min-h-[30vh] items-center justify-center gap-3 text-muted-foreground">
+      <div className="flex min-h-[30vh] items-center justify-center gap-3 text-[#7d8496]">
         <Spinner />
         <span>Chargement des demandes...</span>
       </div>
@@ -116,16 +116,18 @@ export default function DemandesPage() {
   if (error) {
     return (
       <div className="flex min-h-[30vh] items-center justify-center">
-        <p className="text-sm text-destructive">Erreur lors du chargement des demandes.</p>
+        <p className="text-sm text-[#93000a]">Erreur lors du chargement des demandes.</p>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-semibold tracking-tight text-foreground">Demandes</h2>
-        <p className="mt-1 text-sm text-muted-foreground">Valide ou refuse les demandes des employés.</p>
+    <div className="mx-auto max-w-362.5 space-y-6">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <p className="mb-1 text-[11px] text-[#8a91a3]">Tableau de bord / Demandes</p>
+          <h1 className="text-lg font-semibold text-[#111a35]">Demandes</h1>
+        </div>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">

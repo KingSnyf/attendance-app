@@ -60,14 +60,14 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className="flex h-screen bg-background">
+    <div className="flex h-screen overflow-hidden bg-[#f3f5f7]">
       <div className={`fixed inset-0 z-30 bg-black/40 lg:static lg:z-auto lg:bg-transparent ${sidebarOpen ? "block" : "hidden lg:block"}`} onClick={() => setSidebarOpen(false)} />
       <div className={`fixed inset-y-0 left-0 z-40 h-screen shrink-0 transition-transform duration-300 lg:static lg:translate-x-0 ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}`}>
         <Sidebar onClose={() => setSidebarOpen(false)} />
       </div>
-      <div className="flex flex-1 flex-col overflow-y-auto">
+      <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
         <Header onToggleSidebar={() => setSidebarOpen((prev) => !prev)} />
-        <main className="flex-1 p-6">{children}</main>
+        <main className="flex-1 overflow-y-auto px-4 py-4 sm:px-6 lg:px-7">{children}</main>
       </div>
     </div>
   )

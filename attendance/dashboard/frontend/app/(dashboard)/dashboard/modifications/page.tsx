@@ -49,7 +49,7 @@ export default function ModificationsPage() {
     {
       header: "Session",
       cell: ({ row }) => (
-        <span className="text-muted-foreground">
+        <span className="text-[#8a91a3]">
           {row.original.session ? `${row.original.session.date} · ${formatHeure(row.original.session.heure_arrivee)}` : "—"}
         </span>
       ),
@@ -74,7 +74,7 @@ export default function ModificationsPage() {
     {
       header: "Actions",
       cell: ({ row }) => {
-        if (user?.role !== "admin" && user?.role !== "gestionnaire") return <span className="text-sm text-muted-foreground">Lecture seule</span>
+        if (user?.role !== "admin" && user?.role !== "gestionnaire") return <span className="text-[11px] text-[#8a91a3]">Lecture seule</span>
         return (
           <div className="flex gap-2">
             <Button variant="outline" size="sm" onClick={() => setSelectedAction({ id: row.original.id, action: "approve" })}>Valider</Button>
@@ -86,21 +86,27 @@ export default function ModificationsPage() {
   ]
 
   if (isLoading) {
-    return <div className="flex min-h-[30vh] items-center justify-center gap-3 text-muted-foreground"><Spinner /><span>Chargement des demandes...</span></div>
+    return <div className="flex min-h-[30vh] items-center justify-center gap-3 text-[#7d8496]"><Spinner /><span>Chargement des demandes...</span></div>
   }
 
   return (
-    <div className="space-y-6">
+    <div className="mx-auto max-w-362.5 space-y-6">
+      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <p className="mb-1 text-[11px] text-[#8a91a3]">Tableau de bord / Modifications</p>
+          <h1 className="text-lg font-semibold text-[#111a35]">Modifications</h1>
+        </div>
+      </div>
       <Card className="grid gap-3 lg:grid-cols-2">
         <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}
-          className="h-10 rounded-xl border border-border bg-card px-3 text-sm">
+          className="h-9 rounded-md border border-[#dfe3e9] bg-white px-3 text-[11px] text-[#454d61]">
           <option value="all">Tous les statuts</option>
           <option value="en_attente">En attente</option>
           <option value="validee">Validée</option>
           <option value="rejetee">Rejetée</option>
         </select>
         <select value={employeeFilter} onChange={(e) => setEmployeeFilter(e.target.value)}
-          className="h-10 rounded-xl border border-border bg-card px-3 text-sm">
+          className="h-9 rounded-md border border-[#dfe3e9] bg-white px-3 text-[11px] text-[#454d61]">
           <option value="all">Tous les employés</option>
           {employees.map((employee: any) => (
             <option key={employee.id} value={employee.id}>{getNomComplet(employee)}</option>

@@ -1,80 +1,66 @@
 "use client"
+
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { cn } from "@/lib/utils"
+import { Clock3, LogOut, X } from "lucide-react"
 import { navigation } from "@/components/layout/navigation"
 import { useAuth } from "@/hooks/useAuth"
-import { LogOut, Fingerprint, X } from "lucide-react"
+import { cn } from "@/lib/utils"
 
 function Sidebar({ onClose }: { onClose?: () => void }) {
   const pathname = usePathname()
   const { user, logout } = useAuth()
-
-  const visibleItems = navigation.filter((item) => {
-    if (!user) return true
-    return !item.roles || item.roles.includes(user.role as "admin" | "gestionnaire" | "employe")
-  })
+  const visibleItems = navigation.filter((item) => !user || !item.roles || item.roles.includes(user.role as "admin" | "gestionnaire" | "employe"))
 
   return (
-    <aside className="flex h-full w-64 flex-col bg-sidebar text-sidebar-foreground">
-      <div className="flex items-center justify-between border-b border-sidebar-border px-5 py-5">
-        <div className="flex items-center gap-3">
-          <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-white/10 text-white">
-            <Fingerprint className="size-5" />
+    <aside className="flex h-full w-60 flex-col border-r border-[#e7eaf0] bg-white text-[#17203a]">
+      <div className="flex h-20 items-center border-b border-[#edf0f4] px-5">
+        <Link href="/dashboard" className="flex min-w-0 items-center gap-3" aria-label="Attendance X">
+          <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-[#5665df] text-white shadow-sm">
+            <Clock3 className="size-5" />
           </span>
-          <div className="min-w-0">
-            <p className="font-heading text-base font-bold leading-none tracking-tight text-white">
-              Attendance
-            </p>
-            <p className="mt-1 text-[10px] uppercase tracking-widest text-white/40">
-              Tableau de bord
-            </p>
-          </div>
-        </div>
-        <button onClick={onClose} className="text-white/40 hover:text-white lg:hidden" aria-label="Fermer le menu">
-          <X className="size-5" />
+          <span className="min-w-0">
+            <span className="block truncate text-sm font-bold text-[#111a35]">Attendance X</span>
+            <span className="block truncate text-[9px] uppercase text-[#9298a8]">Gestion des présences</span>
+          </span>
+        </Link>
+        <button onClick={onClose} className="absolute right-2 top-2 text-[#7d8498] lg:hidden" aria-label="Fermer le menu">
+          <X className="size-4" />
         </button>
       </div>
 
-      <nav className="flex-1 space-y-0.5 px-3 py-4">
+      <nav className="flex flex-1 flex-col gap-1 px-3 py-5">
         {visibleItems.map((item) => {
-          const isDashboard = item.href === "/dashboard"
-          const active = pathname === item.href || (!isDashboard && pathname.startsWith(item.href + "/"))
+          const active = pathname === item.href || (item.href !== "/dashboard" && pathname.startsWith(item.href + "/"))
           return (
             <Link
               key={item.href}
               href={item.href}
               onClick={onClose}
+              title={item.label}
+              aria-label={item.label}
               className={cn(
-                "group flex items-center gap-3 rounded-lg border-l-4 px-3 py-2.5 text-sm font-medium transition-all duration-200",
-                active
-                  ? "border-sidebar-primary bg-white/5 text-white"
-                  : "border-transparent text-sidebar-foreground/70 hover:bg-white/5 hover:text-white",
+                "flex h-10 w-full items-center gap-3 rounded-lg px-3 text-[11px] font-medium transition",
+                active ? "bg-[#eef1ff] text-[#5261d9]" : "text-[#7d8498] hover:bg-[#f4f6f9] hover:text-[#17203a]",
               )}
             >
-              <item.icon className="size-4.5" />
-              {item.label}
+              <item.icon className="size-4.5 shrink-0" />
+              <span className="truncate">{item.label}</span>
             </Link>
           )
         })}
       </nav>
 
-      <div className="border-t border-sidebar-border p-4">
-        <div className="mb-3 flex items-center gap-3 rounded-lg bg-white/5 px-3 py-2.5">
-          <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-sidebar-primary font-heading text-xs font-semibold text-white">
-            {(user?.prenom?.[0] ?? "").toUpperCase()}{(user?.nom?.[0] ?? "").toUpperCase()}
+      <div className="border-t border-[#edf0f4] p-3">
+        <div className="mb-2 flex items-center justify-between rounded-lg bg-[#f6f7f9] px-3 py-2">
+          <span className="text-[9px] text-[#9298a8]">Heure locale</span>
+          <span className="font-data text-[10px] font-semibold text-[#17203a]">
+            {new Date().toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}
           </span>
-          <div className="min-w-0 text-sm">
-            <p className="truncate font-medium text-white">{user?.prenom} {user?.nom}</p>
-            <p className="truncate text-xs capitalize text-sidebar-foreground/70">{user?.role}</p>
-          </div>
         </div>
-        <button
-          onClick={logout}
-          className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-sidebar-foreground/70 transition hover:bg-white/5 hover:text-white"
-        >
-          <LogOut className="size-4" />
-          Déconnexion
+        <button onClick={logout} className="flex h-10 w-full items-center gap-3 rounded-lg px-3 text-[11px] font-medium text-[#7d8498] hover:bg-[#fff0f0] hover:text-[#c84d58]" title="Déconnexion" aria-label="Déconnexion">
+          <LogOut className="size-4.5" />
+          <span>Déconnexion</span>
         </button>
       </div>
     </aside>

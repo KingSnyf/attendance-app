@@ -67,7 +67,7 @@
   --font-data-mono: 'Inter', ui-sans-serif, system-ui, sans-serif;
 
   /* Surface -- fond bleu-gris très clair (palette Stitch) */
-  --background: #f7f9fb;
+  --background: #f3f5f7;
   --foreground: #191c1e;
 
   --card: #ffffff;
@@ -89,9 +89,9 @@
   --ring: #085ac0;
 
   /* Accent principal -- bleu institutionnel (palette Stitch "secondary") */
-  --brand: #085ac0;
+  --brand: #5363dc;
   --brand-foreground: #ffffff;
-  --brand-accent: #064a9e;
+  --brand-accent: #4352c7;
 
   /* Accent secondaire -- brun chaud, réservé aux signalements/urgences */
   --signal: #995c2e;
@@ -110,7 +110,7 @@
   --chart-4: #191c1e;
   --chart-5: #0058be;
 
-  --radius: 0.75rem;
+  --radius: 0.5rem;
 
   /* Boîtier sidebar -- bleu marine profond (palette Stitch "sidebar-bg") */
   --sidebar: #131b2e;
@@ -180,7 +180,7 @@
   }
   h1, h2, h3, h4 {
     font-family: var(--font-display);
-    letter-spacing: -0.02em;
+    letter-spacing: 0;
   }
 }
 
